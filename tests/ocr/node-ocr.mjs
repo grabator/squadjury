@@ -34,7 +34,7 @@ let worker;
 async function getWorker() {
   if (worker) return worker;
   const langPath = new URL('../../node_modules/@tesseract.js-data/eng/4.0.0_best_int/', import.meta.url).pathname;
-  worker = await Tesseract.createWorker('eng', 1, { langPath, gzip: true });
+  worker = await Tesseract.createWorker('eng', 1, { langPath, gzip: true, cachePath: (await import('node:os')).tmpdir() });
   return worker;
 }
 export async function stop() { if (worker) await worker.terminate(); worker = null; }
