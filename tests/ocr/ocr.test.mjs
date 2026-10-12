@@ -21,15 +21,23 @@ const cases = [
     bench: ['Kinsky', 'Haaland', 'Silva', 'Mitchell'],
     captain: 'Saka', vice: 'Barnes',
   },
+  {
+    // Newer app layout: a pitch line through the midfield names, a yellow (flagged) name,
+    // "Groß" and a cut short "Calvert-Le...".
+    file: 'pick-team-3.jpg', gw: 7,
+    xi: ['Verbruggen', 'De Cuyper', 'Calafiori', 'Konsa', 'Gibbs-White', 'B.Fernandes', 'Groß', 'Barnes', 'Schade', 'Haaland', 'João Pedro'],
+    bench: ['Kinsky', 'Muharemović', 'Calvert-Lewin', 'Shaw'],
+    captain: 'De Cuyper', vice: 'B.Fernandes',
+  },
 ];
 
 for (const c of cases) {
   test(`reads all 15 players from ${c.file}`, async () => {
-    const s = await readFile(fileURLToPath(new URL(`../fixtures/${c.file}`, import.meta.url)), snap);
+    const s = await readFile(fileURLToPath(new URL(`../fixtures/${c.file}`, import.meta.url)), { ...snap, hintGw: c.gw });
     const name = (id) => snap.players.find((p) => p.id === id)?.web_name;
     assert.equal(s.recognised, 15);
     assert.equal(s.ok, true, JSON.stringify(s.problems));
-    assert.equal(s.gw, 6, 'gameweek guessed from the fixture labels');
+    assert.equal(s.gw, c.gw ?? 6, 'gameweek guessed from the fixture labels');
     assert.deepEqual(s.picks.filter((p) => !p.bench).map((p) => p.name), c.xi);
     assert.deepEqual(s.picks.filter((p) => p.bench).map((p) => p.name), c.bench);
     assert.equal(name(s.captain), c.captain);

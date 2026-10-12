@@ -52,6 +52,11 @@ export function lookup(index, text) {
   const k = norm(text);
   if (k.length < 3) return null;
   if (index.byKey.has(k)) return { key: k, dist: 0, players: index.byKey.get(k) };
+  // A long name cut short on the card ("Calvert-Le..."): the start must fit one name only.
+  if (/(\.\.\.|…)$/.test(String(text).trim()) && k.length >= 5) {
+    const keys = index.keys.filter((key) => key.startsWith(k));
+    if (keys.length === 1) return { key: keys[0], dist: 1, players: index.byKey.get(keys[0]) };
+  }
   const max = allowedDistance(k.length);
   if (!max) return null;
   let best = null;
@@ -73,7 +78,9 @@ const NOISE = new Set(['gk', 'def', 'mid', 'fwd', 'fantasy', 'emirates', 'stake'
 export function candidates(passes, index) {
   const found = [];
   for (const words of passes) {
-    const ws = words.filter((w) => w.text && w.confidence > 55);
+    const ws = words.filter((w) => w.text && w.confidence > 15);
+    // A single name card holds only a name and a fixture, so a less sure reading is still useful.
+    const sure = words.cards ? 0 : 55;
     // Single words and pairs of neighbouring words ("Van" + "Hecke").
     const tokens = [];
     for (let i = 0; i < ws.length; i++) {
@@ -94,10 +101,16 @@ export function candidates(passes, index) {
       }
     }
     for (const t of tokens) {
-      const clean = t.text.replace(/[^A-Za-zÀ-ÿĀ-žØøÆæßŁłĐđ' -]/g, '').trim();
+      // "ß" often comes out as "f3" or "3" ("Groß" -> "Grof3").
+      const text = t.text.replace(/(?<=[a-z])(f3|3)(?=$|[^A-Za-z0-9])/g, 'ß');
+      const clean = text.replace(/[^A-Za-zÀ-ÿĀ-žØøÆæßŁłĐđ' -]/g, '').trim();
       if (!/^[A-ZÀ-ÞĀ-Ž]/.test(clean) || NOISE.has(norm(clean))) continue;
-      const hit = lookup(index, clean);
+      const cut = /(\.\.\.|…)$/.test(text.trim());
+      // ...or as a "b" at the end ("Grob"): only tried when the plain reading is no name.
+      const hit = lookup(index, cut ? clean + '...' : clean) || (/[a-z][bB]$/.test(clean) && lookup(index, clean.slice(0, -1) + 'ß'));
       if (!hit) continue;
+      // Unsure readings only count when they spell a full name exactly ("Grof3" -> "Groß").
+      if (t.conf <= sure && !(hit.dist === 0 && hit.key.length >= 5)) continue;
       const cx = (t.box.x0 + t.box.x1) / 2, cy = (t.box.y0 + t.box.y1) / 2;
       // Same name seen in another pass at the same spot: keep the better reading.
       const dup = found.find((f) => Math.abs(f.cx - cx) < 60 && Math.abs(f.cy - cy) < 30);
@@ -178,6 +191,37 @@ function resolve(cand, labels, ctx) {
     if (fit.length === 1) return { player: fit[0], label };
   }
   return { player: null, options, label };
+}
+
+/**
+ * Last try for one name card the normal reading missed. The fixture under the name ("CRY (H)")
+ * is read almost perfectly, so it tells us which club the player is from; the name then only
+ * has to be close to one player of that club ("Grofl" -> "Groß", "cailvert-Le..." -> "Calvert-Lewin").
+ * words: the card's OCR words. Returns { player, box } or null.
+ */
+export function rescueCard(words, ctx, gw, taken) {
+  if (!gw) return null;
+  const fx = words.findIndex((w, i) => /^[A-Z]{3}$/.test(w.text) && /^\((H|A)\)$/.test(words[i + 1]?.text || ''));
+  if (fx < 1) return null;
+  const code = words[fx].text, venue = words[fx + 1].text[1];
+  const nameWords = words.slice(0, fx).filter((w) => w.bbox.y1 <= words[fx].bbox.y0 + 4 && /[A-Za-z]{2}/.test(w.text));
+  if (!nameWords.length) return null;
+  const raw = nameWords.map((w) => w.text).join(' ');
+  const cut = /(\.\.\.|…)$/.test(raw.trim());
+  const k = norm(raw);
+  if (k.length < 3) return null;
+  const options = ctx.players.filter((p) => !taken.has(p.id) &&
+    fixtureFor(p.team, gw, ctx.fixtures, ctx.teams).some((f) => f.code === code && f.venue === venue));
+  let best = null, second = null;
+  for (const p of options) {
+    const key = norm(p.web_name);
+    const d = lev(k, cut ? key.slice(0, k.length) : key, 6);
+    if (!best || d < best.d) { second = best; best = { p, d }; } else if (!second || d < second.d) second = { p, d };
+  }
+  if (!best || best.d > Math.max(2, Math.round(k.length * 0.35))) return null;
+  if (second && second.d === best.d) return null;
+  const box = nameWords.reduce((b, w) => ({ x0: Math.min(b.x0, w.bbox.x0), y0: Math.min(b.y0, w.bbox.y0), x1: Math.max(b.x1, w.bbox.x1), y1: Math.max(b.y1, w.bbox.y1) }), { ...nameWords[0].bbox });
+  return { player: best.p, box };
 }
 
 /**

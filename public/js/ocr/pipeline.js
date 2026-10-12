@@ -3,7 +3,7 @@
 // ({ gray: Uint8Array, width, height }) and returns words in that image's pixels.
 
 import { findCards, findBadges, badgeLetter, cropGray, grayUpscale, thresholdGray, THRESHOLDS } from './preprocess.js';
-import { readSquad, buildIndex } from './match.js';
+import { readSquad, buildIndex, candidates, rescueCard } from './match.js';
 
 const scaleWords = (words, s, dx = 0, dy = 0) =>
   words.map((w) => ({
@@ -23,16 +23,24 @@ export async function readScreenshot(img, data, { recognize, onProgress = () => 
 
   // 1) Each white name card on its own: small, clean, fast and very reliable.
   const cards = findCards(img);
-  const cardWords = [];
+  const cardWords = [], perCard = [];
   for (let i = 0; i < cards.length; i++) {
     const c = cards[i];
     const up = cropGray(img, c, 3);
-    const words = await recognize(thresholdGray(up, 150), '6');
-    cardWords.push(...scaleWords(words, 3, c.x, c.y));
+    // Try a second contrast when the first reading holds no player name.
+    for (const t of [150, 110, 190]) {
+      const words = scaleWords(await recognize(thresholdGray(up, t), '6'), 3, c.x, c.y);
+      cardWords.push(...words);
+      perCard[i] = words;
+      if (candidates([Object.assign(words, { cards: true })], ctx.index).length) break;
+    }
     onProgress({ step: 'cards', done: i + 1, total: cards.length });
   }
+  cardWords.cards = true;
   const passes = [cardWords];
+  const rescued = [];
   let squad = readSquad(passes, ctx);
+  squad = rescue(squad);
   onProgress({ step: 'found', recognised: squad.recognised });
 
   // 2) Whole screenshot passes until all 15 are found (cards the detector missed,
@@ -42,10 +50,30 @@ export async function readScreenshot(img, data, { recognize, onProgress = () => 
     for (const t of THRESHOLDS) {
       const words = await recognize(thresholdGray(up, t), '11');
       passes.push(scaleWords(words, 2));
-      squad = readSquad(passes, ctx);
+      squad = rescue(readSquad(passes, ctx));
       onProgress({ step: 'page', threshold: t, recognised: squad.recognised });
       if (squad.recognised >= 15 && squad.ok) break;
     }
   }
   return { ...squad, cards: cards.length, ms: Date.now() - t0 };
+
+  // Cards with no player on them get one more, club aware try (see rescueCard).
+  function rescue(sq) {
+    if (sq.recognised >= 15) return sq;
+    const gw = data.hintGw ?? sq.gw;
+    const taken = new Set(sq.picks.map((p) => p.id).filter(Boolean));
+    const extra = [];
+    cards.forEach((c, i) => {
+      const inside = (p) => p.at.x >= c.x && p.at.x <= c.x + c.w && p.at.y >= c.y - 4 && p.at.y <= c.y + c.h;
+      if (sq.picks.some((p) => p.id && inside(p))) return;
+      const hit = perCard[i] && rescueCard(perCard[i], ctx, gw, taken);
+      if (!hit) return;
+      taken.add(hit.player.id);
+      extra.push({ text: hit.player.web_name, confidence: 99, bbox: hit.box });
+    });
+    if (!extra.length) return sq;
+    if (!passes.includes(rescued)) passes.push(rescued);
+    rescued.push(...extra);
+    return readSquad(passes, ctx);
+  }
 }
