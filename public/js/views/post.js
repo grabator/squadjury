@@ -324,7 +324,7 @@ function done() {
   haptic([30, 50, 40]);
   chime();
   root.innerHTML = html`<div class="empty" style="padding-top:18px">
-      <img src="/img/logo/mark.svg" alt="" width="96" height="96" style="width:96px;margin:0 auto 14px;border-radius:24px;box-shadow:0 0 40px rgba(60,255,143,.35)">
+      <img src="/img/logo/mark.svg" alt="" width="96" height="96" style="width:96px;margin:0 auto 14px">
       <h2 style="font-size:40px">${t('post.liveTitle')}</h2>
       <p>${left ? t('post.liveText', { n: left }) : t('judge.unlocked')}</p>
       <div class="row" style="justify-content:center">

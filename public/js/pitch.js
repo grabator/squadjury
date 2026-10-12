@@ -45,12 +45,14 @@ export function squadHtml(fpl, { picks, captain, vice, gw }, { editable = false 
   const unknown = xi.filter((p) => !p.pos);
   if (unknown.length) rows[2].push(...unknown);
   const ctx = { captain, vice, editable };
+  // Chalked on the pitch like a coach's board: 3-5-2, 4-4-2 ...
+  const formation = xi.length === 11 && !unknown.length && rows[0].length === 1 ? rows.slice(1).map((r) => r.length).join('-') : '';
   const lines = rows
     .filter((r) => r.length)
     .map((r, ri) => html`<div class="line" role="list">${r.map((p, ci) => playerCell(fpl, p, gw, { ...ctx, row: ri, col: ci, index: p.index }))}</div>`);
   return html`
     <div class="squad">
-      <div class="pitch">${lines}</div>
+      <div class="pitch">${formation ? html`<span class="formation" aria-label="${t('judge.formation', { f: formation })}">${formation}</span>` : ''}${lines}</div>
       <div class="bench" role="list" aria-label="${t('judge.bench')}">${bench.map((p, ci) => playerCell(fpl, p, gw, { ...ctx, row: 5, col: ci, index: p.index }))}</div>
     </div>`;
 }

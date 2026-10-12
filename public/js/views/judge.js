@@ -68,7 +68,7 @@ function renderBar() {
     const right = need
       ? html`<span class="rank" title="${t('judge.progress', { n: s.judged, max: s.minJudged })}"><span class="k">${s.judged}/${s.minJudged}</span>${raw(ring(s.judged, s.minJudged))}</span>`
       : p.rank ? html`<span class="rank"><span class="pos num">#${p.rank}</span></span>` : html`<span class="rank"><span class="k">${t('lb.waiting')}</span></span>`;
-    out = html`<a class="lt" href="/squad" aria-label="${t('judge.yourSquad')}">
+    out = html`<a class="lt ${need ? 'need' : ''}" href="/squad" aria-label="${t('judge.yourSquad')}">
       <span class="big" data-count>${s.mine.avg != null ? s.mine.avg.toFixed(1) : '-'}</span>
       <span class="meta"><b>${t('judge.yourSquad')}</b><span class="k">${t('lb.votes', { n: s.mine.votes })}${need ? ` · ${t('judge.progressShort', { n: s.minJudged - s.judged })}` : ''}</span></span>
       ${right}</a>`.s;
@@ -139,17 +139,25 @@ function show() {
   });
   if (!controls.firstChild) {
     controls.innerHTML = html`
+      <div class="vscale" aria-hidden="true"><b>${t('judge.yourVerdict')}</b><span>${t('judge.scale')}</span></div>
       <div class="verdicts" role="group" aria-label="${t('judge.rate')}">
         ${Array.from({ length: 10 }, (_, i) => html`<button type="button" class="vbtn" style="--n:${i + 1}" data-score="${i + 1}" aria-label="${t('judge.score', { n: i + 1 })}">${i + 1}</button>`)}
       </div>
       <div class="judge-actions">
-        <span class="judge-hint">${t('judge.hint')}</span>
+        <span class="judge-hint">${raw(SWIPE)}<span>${matchMedia('(hover: hover)').matches ? t('judge.hint') : t('judge.swipeHint')}</span></span>
         <button type="button" class="skip" id="skip">${t('judge.skip')}${raw(ICONS.skip)}</button>
       </div>`.s;
     controls.querySelectorAll('.vbtn').forEach((b) => b.addEventListener('click', () => vote(+b.dataset.score)));
     $('#skip', controls).addEventListener('click', skip);
   }
-  controls.querySelectorAll('.vbtn').forEach((b) => b.classList.remove('chosen'));
+  controls.querySelectorAll('.vbtn').forEach((b) => { b.classList.remove('chosen'); b.querySelector('.pen')?.remove(); });
+}
+
+const SWIPE = '<svg class="swipe" viewBox="0 0 34 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M31 10H5M11 4l-6 6 6 6"/><path d="M25 5v10" opacity=".45"/></svg>';
+// A loose hand drawn loop, a little different every time.
+function pen() {
+  const j = () => (Math.random() * 6 - 3).toFixed(1);
+  return `<svg class="pen" viewBox="0 0 60 70" preserveAspectRatio="none" aria-hidden="true"><path d="M${12 + +j()} ${40 + +j()}C${6 + +j()} 18 ${26 + +j()} 4 ${44 + +j()} 10S${60 + +j()} 46 ${44 + +j()} 60 ${8 + +j()} 64 ${7 + +j()} 38 ${20 + +j()} 14 ${34 + +j()} 12"/></svg>`;
 }
 
 /** Drag with physics: the card follows the finger, tilts, springs back or flies away. */
@@ -222,6 +230,7 @@ async function vote(score) {
   haptic(score >= 9 ? [20, 40, 30] : 24);
   const btn = $(`.vbtn[data-score="${score}"]`, root);
   btn?.classList.add('chosen');
+  btn?.insertAdjacentHTML('beforeend', pen());
   const deck = $('#deck', root);
   const card = $('.jcard', deck);
   card?.insertAdjacentHTML('beforeend', verdictOverlay(score).s);

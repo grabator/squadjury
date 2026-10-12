@@ -131,11 +131,43 @@ def lockup(mark_svg, name):
 '''
 
 
-VARIANTS = {'v1': v1, 'v2': v2, 'v3': v3, 'v4': v4, 'v5': v5}
+def v6():
+    """Club crest: a shield with the SJ monogram and a green halfway line. Reads well down to 16px."""
+    shield = 'M256 34 L448 92 V246 C448 370 366 446 256 490 C146 446 64 370 64 246 V92 Z'
+    inner = 'M256 70 L414 118 V246 C414 352 346 414 256 452 C166 414 98 352 98 246 V118 Z'
+    s, w1 = text_path('S', 250)
+    j, w2 = text_path('J', 250)
+    x0 = (512 - (w1 + w2 + 4)) / 2
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <path d="{shield}" fill="#101A2E"/>
+  <path d="{shield}" fill="none" stroke="#E9F1FF" stroke-width="14"/>
+  <path d="{inner}" fill="none" stroke="#E9F1FF" stroke-opacity=".28" stroke-width="5"/>
+  <g transform="translate({x0:.1f} 352)"><path d="{s}" fill="{WHITE}"/></g>
+  <g transform="translate({x0 + w1 + 4:.1f} 352)"><path d="{j}" fill="{WHITE}"/></g>
+  <rect x="186" y="378" width="140" height="16" rx="3" fill="{GREEN}"/>
+</svg>
+'''
+
+
+def lockup_caps(mark_svg):
+    """Crest on the left, SQUADJURY in capitals with JURY in green."""
+    inner = mark_svg.split('\n', 1)[1].rsplit('</svg>', 1)[0]
+    a, wa = text_path('SQUAD', 150, tracking=4)
+    b, wb = text_path('JURY', 150, tracking=4)
+    W = 170 + 30 + wa + wb + 6
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W:.0f} 170" width="{W:.0f}" height="170">
+  <svg x="0" y="0" width="170" height="170" viewBox="0 0 512 512">{inner}</svg>
+  <g transform="translate(200 138)"><path d="{a}" fill="{WHITE}"/></g>
+  <g transform="translate({200 + wa:.1f} 138)"><path d="{b}" fill="{GREEN}"/></g>
+</svg>
+'''
+
+
+VARIANTS = {'v1': v1, 'v2': v2, 'v3': v3, 'v4': v4, 'v5': v5, 'v6': v6}
 
 # The variant used across the site. Change this one letter to switch logos, then run
 # `python3 scripts/logo.py && npm run icons`.
-CHOSEN = 'v1'
+CHOSEN = 'v6'
 
 if __name__ == '__main__':
     for key, fn in VARIANTS.items():
@@ -144,5 +176,6 @@ if __name__ == '__main__':
         (OUT / f'{key}-lockup.svg').write_text(lockup(svg, key))
     chosen = VARIANTS[CHOSEN]()
     (OUT.parent / 'mark.svg').write_text(chosen)
-    (OUT.parent / 'logo.svg').write_text(lockup(chosen, CHOSEN))
+    (OUT.parent / 'logo.svg').write_text(lockup_caps(chosen) if CHOSEN == 'v6' else lockup(chosen, CHOSEN))
+    (ROOT / 'public' / 'favicon.svg').write_text(chosen)
     print('written', len(VARIANTS) * 2, 'variants; site logo is', CHOSEN)
