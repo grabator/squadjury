@@ -68,6 +68,7 @@ npm run test:api        # API tests on a throwaway database
 node tests/e2e/run.mjs      # full flow in a real browser (needs npm run dev)
 node tests/e2e/audit.mjs    # accessibility and layout on every page at 360 to 1280 px
 node tests/e2e/perf.mjs     # load time on a simulated phone over 4G
+node tests/e2e/fit.mjs      # Judge and Post fit one phone screen on 5 sizes, 360x640 to 430x932
 ```
 
 The browser tests look for Chromium in the usual places; set `CHROME_PATH` to point at a different browser.

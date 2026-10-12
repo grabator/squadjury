@@ -13,24 +13,31 @@ const data = await page.evaluate(async () => {
   const c = document.createElement('canvas');
   c.width = 1920; c.height = 1005;
   const g = c.getContext('2d');
-  const grad = g.createLinearGradient(0, 0, 1920, 1005);
-  grad.addColorStop(0, '#4b0752'); grad.addColorStop(0.55, '#37003c'); grad.addColorStop(1, '#1f0022');
+  // Night stadium: dark navy, two floodlight cones and a lit pitch at the bottom.
+  const grad = g.createLinearGradient(0, 0, 0, 1005);
+  grad.addColorStop(0, '#04060c'); grad.addColorStop(0.6, '#0a0f1c'); grad.addColorStop(1, '#0b2a1d');
   g.fillStyle = grad; g.fillRect(0, 0, 1920, 1005);
-  g.globalAlpha = 0.05; g.strokeStyle = '#fff'; g.lineWidth = 40;
-  for (let x = -1005; x < 1920; x += 140) { g.beginPath(); g.moveTo(x, 1005); g.lineTo(x + 1005, 0); g.stroke(); }
-  g.globalAlpha = 1;
+  for (const [x, dir] of [[260, 1], [1660, -1]]) {
+    const cone = g.createLinearGradient(x, 0, x + dir * 420, 900);
+    cone.addColorStop(0, 'rgba(233,241,255,.16)'); cone.addColorStop(1, 'rgba(233,241,255,0)');
+    g.fillStyle = cone;
+    g.beginPath(); g.moveTo(x - 30, 0); g.lineTo(x + 30, 0); g.lineTo(x + dir * 620, 1005); g.lineTo(x + dir * 220, 1005); g.closePath(); g.fill();
+  }
+  const glow = g.createRadialGradient(960, 1005, 40, 960, 1005, 900);
+  glow.addColorStop(0, 'rgba(60,255,143,.22)'); glow.addColorStop(1, 'rgba(60,255,143,0)');
+  g.fillStyle = glow; g.fillRect(0, 0, 1920, 1005);
   const load = (src) => new Promise((r) => { const i = new Image(); i.onload = () => r(i); i.src = src; });
   const mark = await load('/img/logo/mark.svg');
   g.drawImage(mark, 1180, 190, 600, 600);
   const logo = await load('/img/logo/logo.svg');
   g.drawImage(logo, 120, 150, 640, 640 * (logo.height / logo.width));
-  g.fillStyle = '#f7f2f8'; g.font = '800 132px "Barlow Condensed"';
+  g.fillStyle = '#e9f1ff'; g.font = '800 132px "Barlow Condensed"';
   g.fillText('Post your squad.', 120, 470);
-  g.fillStyle = '#00ff87';
+  g.fillStyle = '#3cff8f';
   g.fillText('The jury decides.', 120, 600);
-  g.fillStyle = 'rgba(247,242,248,.75)'; g.font = '700 42px Manrope';
+  g.fillStyle = 'rgba(233,241,255,.75)'; g.font = '700 42px Manrope';
   g.fillText('Rate FPL squads from 1 to 10 before the deadline', 120, 720);
-  g.fillStyle = '#04f5ff'; g.font = '800 48px "Barlow Condensed"';
+  g.fillStyle = '#9cc8ff'; g.font = '800 48px "Barlow Condensed"';
   g.fillText('squadjury.com', 120, 860);
   return c.toDataURL('image/png');
 });
