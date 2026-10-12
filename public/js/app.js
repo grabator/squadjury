@@ -1,7 +1,7 @@
-// SquadJury app shell: router, the match clock, the floating tab bar, splash and intro.
+// SquadJury app shell: router, the deadline in the header and the menu.
 
 import { t } from './i18n.js';
-import { $, html, raw, ICONS, esc, sheet, haptic, reduceMotion } from './ui.js';
+import { $, html, raw, ICONS, sheet } from './ui.js';
 import { nowMs } from './api.js';
 import { store, refreshState } from './store.js';
 
@@ -11,6 +11,7 @@ const routes = [
   [/^\/post\/?$/, () => import('./views/post.js'), 'fit-post'],
   [/^\/squad\/?$/, () => import('./views/squad.js')],
   [/^\/me\/?$/, () => import('./views/me.js')],
+  [/^\/me\/verdicts\/?$/, () => import('./views/verdicts.js')],
   [/^\/t\/([A-Za-z0-9_-]{4,20})\/?$/, () => import('./views/team.js')],
   [/^\/(how|rules|privacy)\/?$/, () => import('./views/pages.js')],
   [/^\/admin\/?$/, () => import('./views/admin.js')],
@@ -64,144 +65,65 @@ function footerHtml() {
       <p>${t('footer.fan')}</p></footer>`.s;
 }
 
-// ============================================================ tab bar
+// ============================================================ menu
 
-let lastRank = null;
 function renderTabs() {
   const s = store.state;
   const path = location.pathname;
   const mine = s.mine;
-  const rank = mine?.place?.rank ?? null;
-  let moved = false;
-  try {
-    const seen = sessionStorage.getItem('sj-rank');
-    moved = rank != null && seen != null && String(rank) !== seen && !path.startsWith('/leaderboard');
-    if (path.startsWith('/leaderboard') && rank != null) sessionStorage.setItem('sj-rank', String(rank));
-    if (seen == null && rank != null) sessionStorage.setItem('sj-rank', String(rank));
-  } catch {}
-  lastRank = rank;
+  const rank = mine?.place?.rank;
   const items = [
     { href: '/', icon: ICONS.judge, label: t('nav.judge'), on: path === '/' },
-    { href: '/leaderboard', icon: ICONS.board, label: t('nav.leaderboard'), on: path.startsWith('/leaderboard'), dot: moved },
+    { href: '/leaderboard', icon: ICONS.board, label: t('nav.leaderboard'), on: path.startsWith('/leaderboard') },
     mine
-      ? { href: '/squad', icon: ICONS.shirt, label: t('nav.mySquad'), on: path.startsWith('/squad'), fab: true, badge: mine.avg != null ? mine.avg.toFixed(1) : null }
-      : { href: '/post', icon: ICONS.post, label: t('nav.post'), on: path.startsWith('/post'), fab: true },
+      ? { href: '/squad', icon: ICONS.shirt, label: t('nav.mySquad'), on: path.startsWith('/squad'), badge: rank ? `#${rank}` : null }
+      : { href: '/post', icon: ICONS.post, label: t('nav.post'), on: path.startsWith('/post') },
     { href: '/me', icon: ICONS.me, label: t('nav.me'), on: path.startsWith('/me') },
   ];
-  const nav = $('#tabs');
-  const glider = nav.querySelector('.glider') || Object.assign(document.createElement('span'), { className: 'glider' });
-  nav.innerHTML = items
-    .map((i) => {
-      const badge = i.badge ? html`<span class="badge" aria-label="score ${i.badge}">${i.badge}</span>` : '';
-      const icon = i.fab ? html`<span class="bubble">${raw(i.icon)}${badge}</span>` : html`${raw(i.icon)}${badge}`;
-      return html`<a class="tab ${i.fab ? 'fab' : ''}" href="${i.href}" ${raw(i.on ? 'aria-current="page"' : '')}>${icon}<span>${i.label}</span>${i.dot ? raw('<span class="dot" aria-label="your rank changed"></span>') : ''}</a>`.s;
-    })
+  $('#tabs').innerHTML = items
+    .map((i) => html`<a class="tab" href="${i.href}" ${raw(i.on ? 'aria-current="page"' : '')}>${raw(i.icon)}<span>${i.label}</span>${i.badge ? html`<span class="badge" aria-label="${t('lb.title')} ${i.badge}">${i.badge}</span>` : ''}</a>`.s)
     .join('');
-  nav.prepend(glider);
-  requestAnimationFrame(() => moveGlider(nav, glider));
 }
-
-function moveGlider(nav, glider) {
-  const on = nav.querySelector('.tab[aria-current="page"]');
-  if (!on || on.classList.contains('fab')) { glider.style.opacity = '0'; return; }
-  const n = nav.getBoundingClientRect(), r = on.getBoundingClientRect();
-  const w = Math.min(r.width - 10, 84);
-  glider.style.opacity = '1';
-  glider.style.width = `${w}px`;
-  glider.style.transform = `translateX(${r.left - n.left + (r.width - w) / 2}px)`;
-}
-addEventListener('resize', () => { const nav = $('#tabs'); const g = nav?.querySelector('.glider'); if (g) moveGlider(nav, g); });
-document.addEventListener('pointerdown', (e) => { if (e.target.closest('.tab')) haptic(10); });
 
 // ============================================================ match clock
 
-const clock = { phase: null, text: '' };
+const clock = { text: '', locked: false };
 
-function clockParts(ms) {
+/** "5d 01h", "3h 12m", or "42m 05s" in the final hour. */
+function left(ms) {
   const s = Math.max(0, Math.floor(ms / 1000));
   const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
   const p2 = (n) => String(n).padStart(2, '0');
-  if (d) return [[String(d), 'd'], [p2(h), 'h'], [p2(m), 'm']];
-  return [[p2(h), ':'], [p2(m), ':'], [p2(sec), '']];
-}
-
-function renderDigits(el, parts) {
-  // Each digit is its own span, so only the digits that change roll in.
-  const chars = [];
-  for (const [num, unit] of parts) {
-    for (const ch of num) chars.push({ ch, cls: '' });
-    if (unit === ':') chars.push({ ch: ':', cls: 'sep' });
-    else if (unit) chars.push({ ch: unit, cls: 'u' });
-  }
-  if (el.children.length !== chars.length) {
-    el.innerHTML = chars.map((c) => `<span class="${c.cls}">${esc(c.ch)}</span>`).join('');
-    return;
-  }
-  chars.forEach((c, i) => {
-    const span = el.children[i];
-    if (span.textContent !== c.ch) {
-      span.textContent = c.ch;
-      span.className = c.cls;
-      if (!reduceMotion()) { void span.offsetWidth; span.classList.add('roll'); }
-    }
-  });
+  if (d) return `${d}d ${p2(h)}h`;
+  if (h) return `${h}h ${p2(m)}m`;
+  return `${m}m ${p2(sec)}s`;
 }
 
 function tickClock() {
   const el = $('#clock');
   const s = store.state;
   if (!s.loaded || !el) return;
-  if (!s.gw) {
-    el.dataset.phase = 'locked';
-    el.innerHTML = html`<span class="lbl"><small>${t('clock.season')}</small></span>`.s;
-    return setBanner(null);
-  }
-  const left = s.gw.deadline - nowMs();
-  if (left <= 0) {
-    if (clock.phase !== 'locked') {
-      clock.phase = 'locked';
-      el.dataset.phase = 'locked';
-      el.innerHTML = html`<span class="lock-anim" style="width:24px;height:24px;color:var(--hot)">${raw(ICONS.lock)}</span><span class="lbl"><small>GW${s.gw.id}</small><span class="digits" style="font-size:15px">${t('clock.locked')}</span></span>`.s;
-      setBanner(null);
-      // The next gameweek opens as soon as the server sees the deadline pass.
-      setTimeout(() => refreshState().finally(() => { clock.phase = null; render(); }), 2200);
+  let text, hot = false;
+  if (!s.gw) text = html`${t('clock.season')}`.s;
+  else {
+    const ms = s.gw.deadline - nowMs();
+    if (ms <= 0) {
+      text = html`GW${s.gw.id} <b>${t('clock.locked')}</b>`.s;
+      if (!clock.locked) {
+        clock.locked = true;
+        // The next gameweek opens as soon as the server sees the deadline pass.
+        setTimeout(() => refreshState().finally(() => { clock.locked = false; render(); }), 2000);
+      }
+    } else {
+      hot = ms < 3600e3;
+      text = html`${t('clock.closes', { gw: s.gw.id })} <b>${left(ms)}</b>`.s;
     }
-    return;
   }
-  const phase = left < 3600e3 ? 'hot' : left < 24 * 3600e3 ? 'soon' : 'calm';
-  if (!el.querySelector('.digits') || clock.phase !== phase || clock.gw !== s.gw.id) {
-    el.innerHTML = html`<svg class="ring" viewBox="0 0 26 26" aria-hidden="true"><circle class="track" cx="13" cy="13" r="10"/><circle class="fill" cx="13" cy="13" r="10" stroke-dasharray="62.83" stroke-dashoffset="62.83"/></svg>
-      <span class="lbl"><small>${t('clock.closes', { gw: s.gw.id })}</small><span class="digits" aria-hidden="true"></span></span>`.s;
-    clock.phase = phase;
-    clock.gw = s.gw.id;
-  }
-  el.dataset.phase = phase;
-  renderDigits(el.querySelector('.digits'), clockParts(left));
-  const span = s.prevDeadline ? s.gw.deadline - s.prevDeadline : 7 * 864e5;
-  const done = Math.min(1, Math.max(0, 1 - left / span));
-  el.querySelector('.fill').style.strokeDashoffset = String(62.83 * (1 - done));
-  const label = `${t('clock.closes', { gw: s.gw.id })} ${clockParts(left).map(([n, u]) => n + (u === ':' ? '' : u)).join(' ')}`;
-  if (clock.text !== label && left % 60000 < 1000) el.setAttribute('aria-label', label);
-  clock.text = label;
-  setBanner(left < 600e3 ? left : null);
-}
-
-/** Big "locks in" strip during the last 10 minutes. */
-function setBanner(left) {
-  let b = $('.final-banner');
-  if (left == null) {
-    if (b) { b.remove(); document.documentElement.style.setProperty('--banner', '0px'); }
-    return;
-  }
-  if (!b) {
-    b = document.createElement('div');
-    b.className = 'final-banner';
-    b.setAttribute('role', 'status');
-    $('.topbar').after(b);
-    document.documentElement.style.setProperty('--banner', '36px');
-  }
-  const [m, s] = [Math.floor(left / 60000), Math.floor((left % 60000) / 1000)];
-  b.textContent = t('clock.final', { gw: store.state.gw.id, time: `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` });
+  if (text === clock.text) return;
+  clock.text = text;
+  el.innerHTML = text;
+  el.classList.toggle('hot', hot);
+  el.setAttribute('aria-label', el.textContent);
 }
 
 function ics(gw, deadline) {
@@ -238,28 +160,6 @@ function openClockSheet() {
   $('#ics', sh.el).onclick = () => { ics(s.gw.id, s.gw.deadline); sh.close(); };
 }
 
-// ============================================================ splash and intro
-
-function splash() {
-  try {
-    if (reduceMotion() || sessionStorage.getItem('sj-splash')) return;
-    sessionStorage.setItem('sj-splash', '1');
-  } catch { return; }
-  const el = document.createElement('div');
-  el.className = 'splash';
-  el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = '<img src="/img/logo/mark.svg" alt="">';
-  document.body.append(el);
-  setTimeout(() => el.remove(), 1100);
-}
-
-function intro() {
-  try {
-    if (localStorage.getItem('sj-intro') || navigator.webdriver) return;
-  } catch { return; }
-  import('./views/intro.js').then((m) => m.showIntro()).catch(() => {});
-}
-
 // ============================================================ wiring
 
 // Internal links go through the router.
@@ -294,7 +194,6 @@ addEventListener('beforeunload', () => { leaving = true; });
 addEventListener('pageshow', () => { leaving = false; });
 
 (async function boot() {
-  splash();
   // Squad data is needed by almost every screen: fetch it while the state loads.
   if (!location.pathname.startsWith('/admin')) import('./fpl.js').then((m) => m.loadFpl()).catch(() => {});
   $('#clock').addEventListener('click', openClockSheet);
@@ -307,10 +206,8 @@ addEventListener('pageshow', () => { leaving = false; });
   setInterval(tickClock, 1000);
   offlineBanner();
   await render();
-  intro();
   if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 })();
 
-export const _lastRank = () => lastRank;

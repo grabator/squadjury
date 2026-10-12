@@ -1,49 +1,40 @@
-// Pieces shared by several views: the squad card, the gavel, sharing and reporting.
+// Pieces shared by several views: the squad card, sharing and reporting.
 
 import { t } from '../i18n.js';
-import { html, raw, $, ICONS, sheet, toast, errText, avatar } from '../ui.js';
-import { squadHtml } from '../pitch.js';
+import { html, raw, $, ICONS, sheet, toast, errText } from '../ui.js';
+import { squadHtml, formationOf } from '../pitch.js';
 import { api } from '../api.js';
 import { ensureUser } from '../auth.js';
 import { store } from '../store.js';
 
-export const GAVEL_SVG = `<svg viewBox="-130 -60 260 330" aria-hidden="true">
-  <rect x="-14" y="30" width="28" height="230" rx="14" fill="#fff"/>
-  <rect x="-118" y="-50" width="236" height="100" rx="22" fill="#3cff8f"/>
-  <rect x="-118" y="-50" width="236" height="40" rx="22" fill="#fff" opacity=".25"/>
-  <rect x="-86" y="-50" width="18" height="100" fill="#0a0f1c" opacity=".9"/>
-  <rect x="68" y="-50" width="18" height="100" fill="#0a0f1c" opacity=".9"/></svg>`;
-
-/** Owner line, gameweek chip and the squad (pitch, or the original screenshot). */
+/** Owner, @handle and formation, then the squad (pitch, or the original screenshot). */
 export function teamCardHtml(fpl, team, { report = true } = {}) {
   const hasShot = !!team.image;
+  const f = formationOf(fpl, team.picks);
   return html`
     <div class="jcard-head">
-      <div class="owner">
-        ${avatar(team.nickname)}
-        <b>${team.nickname}</b>
-        ${team.x ? html`<a class="xlink" href="https://x.com/${team.x}" target="_blank" rel="noopener" aria-label="@${team.x} on X">${raw(ICONS.x.replace('<svg', '<svg style="width:15px;height:15px"'))}</a>` : ''}
-        ${team.demo ? html`<span class="tag tag-demo" title="${t('judge.example')}">${t('judge.exampleShort')}</span>` : ''}
+      <div class="who">
+        <b>${team.nickname}${team.demo ? html`<span class="tag" title="${t('judge.example')}">${t('judge.exampleShort')}</span>` : ''}</b>
+        <span>${team.x ? html`<a href="https://x.com/${team.x}" target="_blank" rel="noopener">@${team.x}</a>` : `GW${team.gw}`}${f ? ` · ${f}` : ''}</span>
       </div>
       <span class="head-right">
-        ${hasShot ? html`<button type="button" class="icon-btn" data-shot aria-pressed="false" aria-label="${t('judge.viewShot')}" title="${t('judge.viewShot')}">${raw(ICONS.post)}</button>` : ''}
+        ${hasShot ? html`<button type="button" class="icon-btn" data-shot aria-pressed="false" aria-label="${t('judge.viewShot')}" title="${t('judge.viewShot')}">${raw(ICONS.shot)}</button>` : ''}
         ${report && !team.mine ? html`<button type="button" class="icon-btn" data-report aria-label="${t('judge.report')}" title="${t('judge.report')}">${raw(ICONS.flag)}</button>` : ''}
-        <span class="gwchip">GW${team.gw}</span>
       </span>
     </div>
     <div class="squad-box squad-view">${squadHtml(fpl, team)}</div>`;
 }
 
-/** Wires the pitch/screenshot toggle and the report button inside a card. */
+/** Wires the pitch/screenshot toggle and the report button inside a card. The screenshot loads only on tap. */
 export function wireTeamCard(root, fpl, team) {
   const btn = $('[data-shot]', root);
   btn?.addEventListener('click', () => {
     const shot = btn.getAttribute('aria-pressed') !== 'true';
     btn.setAttribute('aria-pressed', String(shot));
-    btn.innerHTML = shot ? ICONS.shirt : ICONS.post;
+    btn.innerHTML = shot ? ICONS.pitch : ICONS.shot;
     btn.setAttribute('aria-label', shot ? t('judge.viewPitch') : t('judge.viewShot'));
     $('.squad-view', root).innerHTML = shot
-      ? html`<div class="shot"><img src="${team.image}" alt="Screenshot of ${team.nickname}'s squad" loading="lazy"></div>`.s
+      ? html`<div class="shot"><img src="${team.image}" alt="Screenshot of ${team.nickname}'s squad"></div>`.s
       : squadHtml(fpl, team).s;
   });
   $('[data-report]', root)?.addEventListener('click', () => reportTeam(team));
@@ -68,25 +59,8 @@ export async function reportTeam(team) {
   };
 }
 
-/** Colour of a verdict on the red (1) to green (10) scale. */
-export const verdictColor = (n) => `hsl(${(n - 1) * 15.5} 92% 60%)`;
-
-/** The stamp overlay: gavel comes down, verdict lands in its own colour. */
-export function verdictOverlay(score) {
-  return html`<div class="verdict" aria-hidden="true">
-      <div class="gavel">${raw(GAVEL_SVG)}</div>
-      <div class="stamp" style="--sc:${verdictColor(score)}"><div><small>${t('judge.verdict').toUpperCase()}</small><strong>${score}</strong></div></div>
-    </div>`;
-}
-
-/** Camera flash over the whole screen when the verdict lands. */
-export function flash() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const f = document.createElement('div');
-  f.className = 'flash';
-  document.body.append(f);
-  setTimeout(() => f.remove(), 480);
-}
+/** The verdict moment: a big yellow card with the score lands on the squad. */
+export const verdictCard = (score) => html`<div class="moment" aria-hidden="true"><small>${t('judge.verdict').toUpperCase()}</small><strong>${score}</strong></div>`;
 
 export const shareUrl = (team) => `${location.origin}/t/${team.key}`;
 

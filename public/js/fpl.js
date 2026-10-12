@@ -81,12 +81,11 @@ export function shirtSvg([main, second, pattern], id) {
   const light = ['#ffffff', '#fff'].includes(main.toLowerCase());
   return `<svg viewBox="0 0 64 56" aria-hidden="true"><defs>
     <clipPath id="${clip}"><path d="${body}"/></clipPath>
-    <linearGradient id="${shade}" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></linearGradient>
-    <linearGradient id="${side}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset=".22" stop-color="#000" stop-opacity="0"/><stop offset=".78" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient></defs>
+    <linearGradient id="${shade}" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
+    <linearGradient id="${side}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".14"/><stop offset=".2" stop-color="#000" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".14"/></linearGradient></defs>
     <g clip-path="url(#${clip})"><path d="${body}" fill="${main}"/>${deco}
     <rect width="64" height="56" fill="url(#${side})"/><rect width="64" height="56" fill="url(#${shade})"/>
-    <path d="M14 21 L14 54 M50 21 L50 54" stroke="rgba(0,0,0,.22)" stroke-width="2.5"/>
-    <path d="M24 30 Q30 34 27 44 M40 28 Q35 36 39 46" fill="none" stroke="rgba(0,0,0,.12)" stroke-width="1.6"/>
-    <path d="M23 5 Q32 14 41 5" fill="none" stroke="${light ? '#c9ced8' : 'rgba(0,0,0,.35)'}" stroke-width="3.2"/></g>
+    <path d="M14 21 L14 54 M50 21 L50 54" stroke="rgba(0,0,0,.12)" stroke-width="2"/>
+    <path d="M23 5 Q32 14 41 5" fill="none" stroke="${light ? '#c9ced8' : 'rgba(0,0,0,.28)'}" stroke-width="3.2"/></g>
     <path d="${body}" fill="none" stroke="${light ? '#b8bfcc' : 'rgba(0,0,0,.35)'}" stroke-width="1.2"/></svg>`;
 }

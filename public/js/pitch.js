@@ -6,10 +6,14 @@ import { t } from './i18n.js';
 
 let uid = 0;
 
-/** Short display name that fits a card on a 360 px screen. */
-function shortName(name, max = 11) {
+/** Display name that fits a plate on a 360 px screen: long names keep the surname. */
+function shortName(name, max = 12) {
   if (!name) return '?';
-  return name.length <= max ? name : name.split(/[\s-]/).pop().slice(0, max);
+  if (name.length <= max) return name;
+  const last = name.split(/\s+/).pop();
+  if (last.length <= max) return last;
+  const part = last.split('-').pop();
+  return part.length <= max ? part : part.slice(0, max);
 }
 
 function playerCell(fpl, pick, gw, { captain, vice, row, col, editable, index }) {
@@ -23,13 +27,35 @@ function playerCell(fpl, pick, gw, { captain, vice, row, col, editable, index })
     : `${t('post.pick', { pos: POS[pick.pos] || 'player' })}`;
   const inner = html`
     <span class="shirt">${raw(shirtSvg(kit, `${uid}-${index}`))}${!p && editable ? raw('<span class="plus" aria-hidden="true">+</span>') : ''}${isC ? raw('<span class="armband c" aria-hidden="true">C</span>') : ''}${isV ? raw('<span class="armband v" aria-hidden="true">V</span>') : ''}</span>
-    <span class="card"><span class="name">${shortName(name)}</span><span class="fix">${fix}</span></span>`;
+    <span class="name ${shortName(name).length > 9 ? 'long' : ''}">${shortName(name)}</span><span class="fix">${fix.split(',')[0]}</span>`;
   const cls = `pl${p ? '' : ' missing'}`;
-  const style = `--row:${row};--col:${col};--kit:${kit[0] === '#ffffff' ? kit[1] : kit[0]}`;
+  const style = `--row:${row};--col:${col}`;
   if (editable) {
     return html`<div class="${cls}" style="${style}"><button type="button" class="pick" data-index="${index}" aria-label="${label}">${inner}</button></div>`;
   }
   return html`<div class="${cls}" style="${style}" role="listitem" aria-label="${label}">${inner}</div>`;
+}
+
+// Lines of a real pitch seen from above: touchline, halfway line, both boxes and six yard boxes.
+const LINES = `<svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+  <rect x="1.5" y="1" width="97" height="98"/><line x1="1.5" y1="50" x2="98.5" y2="50"/>
+  <rect x="24" y="1" width="52" height="15"/><rect x="37" y="1" width="26" height="5.5"/>
+  <rect x="24" y="84" width="52" height="15"/><rect x="37" y="93.5" width="26" height="5.5"/></svg><span class="circle" aria-hidden="true"></span>`;
+
+function rowsOf(fpl, picks) {
+  const withIdx = picks.map((p, index) => ({ ...p, index, pos: p.pos ?? fpl.byId.get(p.id)?.element_type }));
+  const xi = withIdx.filter((p) => !p.bench);
+  const bench = withIdx.filter((p) => p.bench);
+  const rows = [1, 2, 3, 4].map((pos) => xi.filter((p) => p.pos === pos));
+  const unknown = xi.filter((p) => !p.pos);
+  if (unknown.length) rows[2].push(...unknown);
+  return { xi, bench, rows, unknown };
+}
+
+/** "3-5-2" for a complete starting XI, or an empty string. */
+export function formationOf(fpl, picks) {
+  const { xi, rows, unknown } = rowsOf(fpl, picks);
+  return xi.length === 11 && !unknown.length && rows[0].length === 1 ? rows.slice(1).map((r) => r.length).join('-') : '';
 }
 
 /**
@@ -38,21 +64,14 @@ function playerCell(fpl, pick, gw, { captain, vice, row, col, editable, index })
  */
 export function squadHtml(fpl, { picks, captain, vice, gw }, { editable = false } = {}) {
   uid++;
-  const withIdx = picks.map((p, index) => ({ ...p, index, pos: p.pos ?? fpl.byId.get(p.id)?.element_type }));
-  const xi = withIdx.filter((p) => !p.bench);
-  const bench = withIdx.filter((p) => p.bench);
-  const rows = [1, 2, 3, 4].map((pos) => xi.filter((p) => p.pos === pos));
-  const unknown = xi.filter((p) => !p.pos);
-  if (unknown.length) rows[2].push(...unknown);
+  const { bench, rows } = rowsOf(fpl, picks);
   const ctx = { captain, vice, editable };
-  // Chalked on the pitch like a coach's board: 3-5-2, 4-4-2 ...
-  const formation = xi.length === 11 && !unknown.length && rows[0].length === 1 ? rows.slice(1).map((r) => r.length).join('-') : '';
   const lines = rows
     .filter((r) => r.length)
     .map((r, ri) => html`<div class="line" role="list">${r.map((p, ci) => playerCell(fpl, p, gw, { ...ctx, row: ri, col: ci, index: p.index }))}</div>`);
   return html`
     <div class="squad">
-      <div class="pitch">${formation ? html`<span class="formation" aria-label="${t('judge.formation', { f: formation })}">${formation}</span>` : ''}${lines}</div>
-      <div class="bench" role="list" aria-label="${t('judge.bench')}">${bench.map((p, ci) => playerCell(fpl, p, gw, { ...ctx, row: 5, col: ci, index: p.index }))}</div>
+      <div class="pitch">${raw(LINES)}${lines}</div>
+      <div class="bench"><span class="bl">${t('judge.bench')}</span><div class="brow" role="list" aria-label="${t('judge.bench')}">${bench.map((p, ci) => playerCell(fpl, p, gw, { ...ctx, row: 5, col: ci, index: p.index }))}</div></div>
     </div>`;
 }
