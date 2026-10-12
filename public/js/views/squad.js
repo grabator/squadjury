@@ -36,7 +36,7 @@ export function renderMine(el, fpl, team) {
       : html`<b>${t('lb.waiting')}</b><span>${t('squad.noVerdicts')}</span>`;
   el.innerHTML = html`<div>
     <div class="page-head"><h1 class="title">${t('squad.title')}, GW${team.gw}</h1></div>
-    <div class="scoreboard">
+    <div class="scoreboard"><span class="ycard" aria-hidden="true"></span>
       <div class="big ${team.avg == null ? 'none' : ''}">${team.avg != null ? team.avg.toFixed(1) : '-'}</div>
       <div class="meta">${status}<span>${team.votes === 1 ? t('squad.verdict1') : t('squad.verdicts', { n: team.votes })}</span></div>
     </div>

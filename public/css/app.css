@@ -103,7 +103,8 @@ p { margin: 0 0 12px; }
 .tab svg { width: 22px; height: 22px; }
 .tab[aria-current='page'] { color: var(--ink); font-weight: 800; }
 .tab[aria-current='page'] svg { stroke-width: 2.4; }
-.tab .badge { position: absolute; top: 6px; left: calc(50% + 7px); padding: 1px 5px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 10px; font-weight: 800; line-height: 1.4; }
+.tab[aria-current='page']::before { content: ''; position: absolute; top: -1px; left: 50%; width: 28px; height: 3px; border-radius: 0 0 3px 3px; background: var(--yellow); transform: translateX(-50%); }
+.tab .badge { position: absolute; top: 6px; left: calc(50% + 7px); padding: 1px 5px; border-radius: 999px; background: var(--yellow); color: var(--on-yellow); font-size: 10px; font-weight: 800; line-height: 1.4; box-shadow: 0 0 0 2px var(--card); }
 
 /* ============================================================ page */
 
@@ -243,7 +244,7 @@ main.fit > .view, .home { height: 100%; }
 .mine { display: flex; align-items: center; gap: 8px; min-height: 28px; margin: 0 4px 6px; font-size: 13px; color: var(--ink-2); text-decoration: none; flex: none; white-space: nowrap; overflow: hidden; }
 .mine b { color: var(--ink); font-size: 15px; font-weight: 800; }
 .mine .dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: 0.6; flex: none; }
-.mine .go { margin-left: auto; color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.mine .go { margin-left: auto; color: var(--ink); font-weight: 700; text-decoration: underline 2px var(--yellow); text-underline-offset: 4px; }
 
 .deck { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
 .deck .jcard { flex: 1 1 auto; min-height: 0; width: 100%; touch-action: pan-y; will-change: transform; }
@@ -346,7 +347,7 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 .post-entry .example img { height: 100%; max-height: 360px; width: auto; border-radius: 14px; box-shadow: inset 0 0 0 1px var(--line), 0 6px 20px rgba(0, 0, 0, 0.1); background: var(--card); }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; counter-reset: s; flex: none; }
 .steps li { display: flex; align-items: center; gap: 10px; font-size: 14px; counter-increment: s; }
-.steps li::before { content: counter(s); flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 800; }
+.steps li::before { content: counter(s); flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--yellow); color: var(--on-yellow); font-size: 12px; font-weight: 800; }
 .post-entry .btn-block { flex: none; min-height: 54px; font-size: 16px; }
 .drop-hint { margin: -6px 0 0; text-align: center; font-size: 12.5px; color: var(--ink-2); flex: none; }
 .post-entry.dropping { outline: 2px dashed var(--ink); outline-offset: 6px; border-radius: 12px; }
@@ -384,6 +385,7 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 /* ============================================================ my squad */
 
 .scoreboard { display: flex; align-items: center; gap: 18px; padding: 16px; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); margin-bottom: 12px; }
+.scoreboard .ycard { width: 22px; height: 30px; flex: none; margin-right: -8px; }
 .scoreboard .big { font-size: 64px; font-weight: 900; font-stretch: 90%; line-height: 0.9; font-variant-numeric: tabular-nums; }
 .scoreboard .big.none { color: var(--ink-3); }
 .scoreboard .meta { display: grid; gap: 2px; font-size: 14px; color: var(--ink-2); }
@@ -392,7 +394,7 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 .chart h2 { font-size: 14px; font-weight: 700; color: var(--ink-2); margin-bottom: 10px; }
 .hist { display: grid; grid-template-columns: repeat(10, 1fr); align-items: end; gap: 6px; height: 90px; }
 .hist i { display: block; border-radius: 3px 3px 0 0; background: var(--line-2); min-height: 3px; }
-.hist i.top { background: var(--ink); }
+.hist i.top { background: var(--yellow); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
 .hist-x { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin-top: 4px; text-align: center; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .share-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
 .share-row .btn-go { grid-column: 1 / -1; }
@@ -413,7 +415,7 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 .gw-group summary small { color: var(--ink-2); font-weight: 400; }
 .gw-group[open] summary { border-radius: var(--r) var(--r) 0 0; }
 .gw-group[open] .list { border-radius: 0 0 var(--r) var(--r); margin-top: -1px; }
-.show-all { display: block; text-align: center; padding: 12px; font-weight: 700; }
+.show-all { display: block; text-align: center; padding: 12px; font-weight: 700; text-decoration: underline 2px var(--yellow); text-underline-offset: 4px; }
 .pager { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; }
 .pager .pages { display: flex; gap: 4px; }
 .pager .pages a, .pager .pages span { min-width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; text-decoration: none; font-weight: 700; color: var(--ink-2); }

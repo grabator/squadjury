@@ -83,7 +83,10 @@ The browser tests look for Chromium in the usual places; set `CHROME_PATH` to po
    ```
    Put the `database_id` printed by the first command into `wrangler.jsonc`.
 2. In Google Cloud, create an OAuth client id of type **Web application** with `https://squadjury.com` as an authorised JavaScript origin, and put the client id in `GOOGLE_CLIENT_ID` in `wrangler.jsonc`.
-3. Set `ADMIN_EMAILS` in `wrangler.jsonc` to the Google email(s) that may open `/admin`.
+3. Store the Google email(s) that may open `/admin` as a secret (comma separated), so they never end up in the repo:
+   ```bash
+   npx wrangler secret put ADMIN_EMAILS
+   ```
 4. Apply the schema and deploy:
    ```bash
    npx wrangler d1 migrations apply squadjury --remote

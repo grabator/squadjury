@@ -21,11 +21,11 @@
   ],
   "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "squadjury-images" }],
   "triggers": { "crons": ["*/5 * * * *", "0 * * * *"] },
+  // ADMIN_EMAILS (Google emails that can open /admin) is a secret, so no email ends up in the repo:
+  //   npx wrangler secret put ADMIN_EMAILS
   "vars": {
     // Public OAuth client id from Google Cloud (not a secret).
-    "GOOGLE_CLIENT_ID": "",
-    // Comma separated Google emails that can open /admin.
-    "ADMIN_EMAILS": ""
+    "GOOGLE_CLIENT_ID": ""
   },
   "observability": { "enabled": true, "traces": { "enabled": true } }
 }
