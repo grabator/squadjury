@@ -150,7 +150,7 @@ const en = {
   'lb.votes': '{n} verdicts',
   'lb.waiting': 'Not ranked yet',
   'lb.needs': 'needs {n} more verdicts',
-  'lb.needsJudge': 'owner must judge {n} more',
+  'lb.needsJudge': 'has to judge {n} more squads',
   'lb.empty': 'No ranked squads yet. Squads need 5 verdicts to be ranked.',
   'lb.you': 'You',
   'lb.top10': 'Top 10',

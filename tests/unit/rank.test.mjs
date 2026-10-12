@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { rankScore, standings, voterWeight, priorMean } from '../../src/lib/rank.js';
+import { rankScore, standings, voterWeight, priorMean, judgeTarget } from '../../src/lib/rank.js';
 
 const r2 = (x) => Math.round(x * 100) / 100;
 
@@ -26,11 +26,29 @@ test('standings: 5 verdicts and 5 judged squads to be ranked', () => {
       { id: 2, avg: 10, votes: 1, judged: 9 },
       { id: 3, avg: 9.5, votes: 30, judged: 2 },
       { id: 4, avg: 7, votes: 6, judged: 5 },
+      { id: 5, avg: 6, votes: 0, judged: 0 },
+      { id: 6, avg: 6, votes: 0, judged: 0 },
     ],
     7,
   );
   assert.deepEqual(ranked.map((r) => [r.id, r.rank]), [[1, 1], [4, 2]]);
-  assert.deepEqual(pending.map((r) => [r.id, r.needsVotes, r.needsJudged]), [[3, 0, 3], [2, 4, 0]]);
+  assert.deepEqual(pending.map((r) => [r.id, r.needsVotes, r.needsJudged]), [[3, 0, 3], [2, 4, 0], [5, 5, 5], [6, 5, 5]]);
+});
+
+test('with only a few squads, judging every other squad is enough', () => {
+  // 4 squads: an owner can judge at most 3 others, so 3 is the target, not 5.
+  const rows = [
+    { id: 1, avg: 8.8, votes: 5, judged: 3 },
+    { id: 2, avg: 8.5, votes: 5, judged: 1 },
+    { id: 3, avg: 9.5, votes: 2, judged: 3 },
+    { id: 4, avg: 0, votes: 0, judged: 0 },
+  ];
+  const { ranked, pending } = standings(rows, 7);
+  assert.deepEqual(ranked.map((r) => r.id), [1]);
+  assert.deepEqual(pending.map((r) => [r.id, r.needsVotes, r.needsJudged]), [[2, 0, 2], [3, 3, 0], [4, 5, 3]]);
+  assert.equal(judgeTarget(1), 0);
+  assert.equal(judgeTarget(4), 3);
+  assert.equal(judgeTarget(40), 5);
 });
 
 test('ties go to the squad with more verdicts', () => {

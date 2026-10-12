@@ -6,7 +6,7 @@ import { verifyGoogleToken, createSession, endSession, currentUser, isAdmin, che
 import { getFpl } from './lib/fpl.js';
 import { syncGameweeks, liveStandings, refreshVoterWeight, teamOut, placeOf, avgOf } from './lib/core.js';
 import { validate } from '../public/js/ocr/match.js';
-import { MIN_JUDGED } from './lib/rank.js';
+import { judgeTarget } from './lib/rank.js';
 
 const MAX_IMAGE = 3 * 1024 * 1024;
 const MAX_OG = 2 * 1024 * 1024;
@@ -93,7 +93,11 @@ const route = (method, pattern, handler) => routes.push({ method, re: new RegExp
 route('GET', '/api/state', async (c) => {
   const open = await c.open();
   const u = c.user;
-  let mine = null, judged = 0;
+  let mine = null, judged = 0, minJudged = 0;
+  if (open) {
+    const n = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM teams WHERE gw = ? AND hidden = 0').bind(open.id).first();
+    minJudged = judgeTarget(n.n);
+  }
   if (u && open) {
     judged = await judgedCount(c.env, u.id, open.id);
     const t = await myTeam(c.env, u.id, open.id);
@@ -107,7 +111,7 @@ route('GET', '/api/state', async (c) => {
     user: u ? { id: u.id, nickname: u.nickname, x: u.x_handle, admin: isAdmin(c.env, u) } : null,
     mine,
     judged,
-    minJudged: MIN_JUDGED,
+    minJudged,
     // Deadline of the gameweek before the open one: the clock shows how much of the window is gone.
     prevDeadline: open ? (() => {
       const prev = c.fpl.events.filter((e) => Date.parse(e.deadline_time) <= c.now).pop();

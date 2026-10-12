@@ -32,7 +32,7 @@ const PAGES = {
       <li>Verdicts are anonymous to squad owners.</li>
     </ul>
     <h2>The leaderboard</h2>
-    <p>A squad needs <strong>at least 5 verdicts</strong>, and its owner needs to judge <strong>at least 5 other squads</strong> that gameweek, to be ranked.</p>
+    <p>A squad needs <strong>at least 5 verdicts</strong>, and its owner needs to judge <strong>at least 5 other squads</strong> that gameweek (or every other squad, while there are fewer), to be ranked.</p>
     <p><strong>How the rank is worked out:</strong> more verdicts make a score more reliable, so a squad with only a few verdicts needs high marks from more people to reach the top. Technically, each average is blended with the gameweek average as if it had 5 extra votes at that average. The leaderboard shows the real average.</p>
     <h2>Fair play</h2>
     <ul>
