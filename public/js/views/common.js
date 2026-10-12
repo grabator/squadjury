@@ -26,27 +26,26 @@ export function teamCardHtml(fpl, team, { report = true } = {}) {
         ${team.demo ? html`<span class="tag tag-demo" title="${t('judge.example')}">${t('judge.exampleShort')}</span>` : ''}
       </div>
       <span class="head-right">
+        ${hasShot ? html`<button type="button" class="icon-btn" data-shot aria-pressed="false" aria-label="${t('judge.viewShot')}" title="${t('judge.viewShot')}">${raw(ICONS.post)}</button>` : ''}
         ${report && !team.mine ? html`<button type="button" class="icon-btn" data-report aria-label="${t('judge.report')}" title="${t('judge.report')}">${raw(ICONS.flag)}</button>` : ''}
         <span class="gwchip">GW${team.gw}</span>
       </span>
     </div>
-    <div class="squad-box squad-view">${squadHtml(fpl, team)}</div>
-    ${hasShot
-      ? html`<div class="view-toggle"><div class="seg" role="group" aria-label="View"><button type="button" data-view="pitch" aria-pressed="true">${t('judge.viewPitch')}</button><button type="button" data-view="shot" aria-pressed="false">${t('judge.viewShot')}</button></div></div>`
-      : ''}`;
+    <div class="squad-box squad-view">${squadHtml(fpl, team)}</div>`;
 }
 
 /** Wires the pitch/screenshot toggle and the report button inside a card. */
 export function wireTeamCard(root, fpl, team) {
-  root.querySelectorAll('[data-view]').forEach((b) =>
-    b.addEventListener('click', () => {
-      const shot = b.dataset.view === 'shot';
-      root.querySelectorAll('[data-view]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-      $('.squad-view', root).innerHTML = shot
-        ? html`<div class="shot"><img src="${team.image}" alt="Screenshot of ${team.nickname}'s squad" loading="lazy"></div>`.s
-        : squadHtml(fpl, team).s;
-    }),
-  );
+  const btn = $('[data-shot]', root);
+  btn?.addEventListener('click', () => {
+    const shot = btn.getAttribute('aria-pressed') !== 'true';
+    btn.setAttribute('aria-pressed', String(shot));
+    btn.innerHTML = shot ? ICONS.shirt : ICONS.post;
+    btn.setAttribute('aria-label', shot ? t('judge.viewPitch') : t('judge.viewShot'));
+    $('.squad-view', root).innerHTML = shot
+      ? html`<div class="shot"><img src="${team.image}" alt="Screenshot of ${team.nickname}'s squad" loading="lazy"></div>`.s
+      : squadHtml(fpl, team).s;
+  });
   $('[data-report]', root)?.addEventListener('click', () => reportTeam(team));
 }
 

@@ -53,7 +53,7 @@
   --nav-gap: 10px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
-  --nav-space: calc(var(--nav-h) + var(--nav-gap) + var(--safe-b) + 10px);
+  --nav-space: calc(var(--nav-h) + var(--nav-gap) + var(--safe-b) + 24px);
   --r-1: 10px;
   --r-2: 16px;
   --r-3: 24px;
@@ -465,7 +465,8 @@ main.fit > .view { height: 100%; }
 .gwchip { font: 800 14px/1 var(--display); padding: 6px 9px; border-radius: 9px; background: rgba(4, 6, 12, 0.6); color: var(--accent-2); letter-spacing: 0.06em; }
 .squad-box { flex: 1 1 auto; min-height: 0; display: grid; place-items: start center; container-type: size; }
 .squad-box > .squad, .squad-box > .shot { width: min(100cqw, 100cqh * 0.9); height: auto; max-height: 100cqh; }
-.squad-box > .shot { overflow: auto; }
+.squad-box > .shot { overflow: auto; max-height: 100cqh; }
+.icon-btn[aria-pressed='true'] { color: var(--accent); background: rgba(60, 255, 143, 0.12); }
 .view-toggle { display: flex; justify-content: center; margin-top: 6px; flex: none; }
 
 /* the verdict bar: red 1 to green 10 */
@@ -613,17 +614,23 @@ main.fit > .view { height: 100%; }
 
 /* ============================================================ post */
 
-main.fit-post { min-height: calc(100dvh - var(--top) - var(--safe-t) - var(--banner)); }
-.post-entry { display: flex; flex-direction: column; gap: 14px; min-height: calc(100dvh - var(--top) - var(--safe-t) - var(--banner) - var(--nav-space) - 24px); }
-.post-entry .page-head { margin: 0; }
-.post-stage { flex: 1 1 auto; min-height: 150px; display: grid; place-items: center; position: relative; }
+/* The entry screen fits the phone like Judge does; later steps scroll normally. */
+main.fit-post:has(.post-entry) { height: calc(100dvh - var(--top) - var(--safe-t) - var(--banner)); min-height: 0; overflow: hidden; }
+main.fit-post:has(.post-entry) > .view { height: 100%; }
+.post-entry { display: flex; flex-direction: column; gap: 12px; height: 100%; min-height: 0; }
+.post-entry .page-head { margin: 0; flex: none; }
+.post-entry .title { font-size: clamp(30px, 8.6vw, 40px); }
+.post-entry .steps, .post-entry .btn-block, .post-entry .drop-hint { flex: none; }
+@media (max-height: 720px) { .post-entry .sub { display: none; } .steps li { padding: 8px; font-size: 11.5px; } .steps li::before { width: 18px; height: 18px; margin-bottom: 4px; font-size: 12px; } }
+@media (hover: none) { .post-entry .drop-hint { display: none; } }
+.post-stage { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; position: relative; container-type: size; }
 .phone {
-  position: relative; height: 100%; max-height: 330px; aspect-ratio: 9 / 18.5; border-radius: 26px; padding: 7px;
+  position: relative; height: min(100cqh, 380px); aspect-ratio: 9 / 18.5; border-radius: 26px; padding: 7px;
   background: linear-gradient(160deg, #2a3756, #0e1527); box-shadow: 0 24px 50px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   animation: float 5s ease-in-out infinite;
 }
 @keyframes float { 50% { transform: translateY(-6px) rotate(-1deg); } }
-.phone .screen { position: relative; width: 100%; height: 100%; border-radius: 20px; overflow: hidden; background: #0f6b3c; }
+.phone .screen { position: relative; width: 100%; height: 100%; border-radius: 20px; overflow: hidden; background: #0a0f1c; }
 .phone .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .phone .notch { position: absolute; top: 9px; left: 50%; width: 34%; height: 12px; border-radius: 0 0 8px 8px; transform: translateX(-50%); background: #0b1120; z-index: 2; }
 .phone .scanline { position: absolute; left: 0; right: 0; height: 26%; top: -26%; background: linear-gradient(180deg, transparent, rgba(60, 255, 143, 0.35) 85%, var(--accent)); animation: sweep 1.6s linear infinite; z-index: 3; }

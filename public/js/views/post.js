@@ -2,8 +2,9 @@
 
 import { t } from '../i18n.js';
 import { html, raw, $, $$, sheet, toast, errText, ICONS, confetti, haptic } from '../ui.js';
+import { chime } from '../sound.js';
 import { api } from '../api.js';
-import { loadFpl, POS, POS_LONG } from '../fpl.js';
+import { loadFpl, POS, POS_LONG, kitFor, shirtSvg } from '../fpl.js';
 import { store, refreshState } from '../store.js';
 import { ensureUser } from '../auth.js';
 import { squadHtml } from '../pitch.js';
@@ -11,7 +12,7 @@ import { navigate } from '../app.js';
 import { validate } from '../ocr/match.js';
 import { renderShareImage } from '../share.js';
 
-let root, fpl, draft, shotBitmap, replace = false;
+let root, fpl, draft, shotBitmap, replace = false, onPaste, onDrag;
 
 export async function mount(el) {
   root = el;
@@ -24,57 +25,109 @@ export async function mount(el) {
   }
   if (s.mine && !replace) return navigate('/squad', { replace: true });
   if (!s.user?.nickname) {
-    el.innerHTML = html`<div class="page-head"><h1 class="title">${t('post.title')}</h1><p class="sub">${t('post.sub')}</p></div>
-      <div class="empty"><button class="btn btn-go" id="signin">${t('auth.google')}</button></div>`.s;
+    el.innerHTML = entryHtml(false);
     $('#signin', el).onclick = async () => { if (await ensureUser({ title: t('post.signIn') })) mount(el); };
     return;
   }
   chooser();
 }
 
-function chooser() {
+export function unmount() {
+  document.removeEventListener('paste', onPaste);
+  document.removeEventListener('dragover', onDrag);
+  document.removeEventListener('dragleave', onDrag);
+  document.removeEventListener('drop', onDrag);
+}
+
+/** The entry screen: a phone with an example screenshot, three steps and one big button. */
+function entryHtml(signedIn) {
   const gw = store.state.gw.id;
-  root.innerHTML = html`<div class="page-head"><h1 class="title">${replace ? t('squad.replace') : t('post.title')}</h1><p class="sub">${t('post.sub')}</p></div>
-    <label class="drop" for="file">
-      ${raw(ICONS.upload)}
-      <span class="btn btn-go">${t('post.choose')}</span>
-      <span class="sub" style="margin:0">${t('post.dropHint')}</span>
-    </label>
-    <input type="file" id="file" accept="image/*" class="sr-only">
-    <div class="example">
-      <img src="/img/example-pick-team.svg" alt="${t('post.exampleAlt')}" width="112" height="160">
-      <ol><li>${t('post.step1')}</li><li>${t('post.step2', { gw })}</li><li>${t('post.step3')}</li></ol>
-    </div>`.s;
+  return html`<div class="post-entry">
+    <div class="page-head"><h1 class="title">${replace ? t('squad.replace') : html`${t('post.titleA')} <span class="hl">${t('post.titleB')}</span>`}</h1><p class="sub">${t('post.sub')}</p></div>
+    <div class="post-stage"><div class="phone"><div class="notch"></div><div class="screen"><img src="/img/example-pick-team.svg" alt="${t('post.exampleAlt')}"><div class="scanline"></div></div></div></div>
+    <ol class="steps"><li>${t('post.step1')}</li><li>${t('post.step2', { gw })}</li><li>${t('post.step3')}</li></ol>
+    ${signedIn
+      ? html`<label class="btn btn-go btn-block" for="file" style="min-height:56px;font-size:18px">${raw(ICONS.upload)}${t('post.choose')}</label>
+        <input type="file" id="file" accept="image/*" class="sr-only">
+        <p class="drop-hint">${matchMedia('(hover: hover)').matches ? t('post.dropDesk') : t('post.dropHint')}</p>`
+      : html`<button class="btn btn-go btn-block" id="signin" style="min-height:56px;font-size:18px">${t('auth.google')}</button>`}
+  </div>`.s;
+}
+
+function chooser() {
+  root.innerHTML = entryHtml(true);
   // Start loading the reader early: most people pick a file within seconds.
   import('../ocr/client.js').then((m) => m.warmUp()).catch(() => {});
   $('#file', root).addEventListener('change', (e) => e.target.files[0] && read(e.target.files[0]));
+  // Desktop: paste with Ctrl+V or drop a file on the page.
+  unmount();
+  onPaste = (e) => {
+    const f = [...(e.clipboardData?.files || [])].find((x) => x.type.startsWith('image/'));
+    if (f && $('#file', root)) { e.preventDefault(); read(f); }
+  };
+  onDrag = (e) => {
+    if (!$('#file', root)) return;
+    e.preventDefault();
+    const entry = $('.post-entry', root);
+    if (e.type === 'dragover') entry?.classList.add('dropping');
+    else entry?.classList.remove('dropping');
+    if (e.type === 'drop') {
+      const f = [...(e.dataTransfer?.files || [])].find((x) => x.type.startsWith('image/'));
+      if (f) read(f);
+    }
+  };
+  document.addEventListener('paste', onPaste);
+  document.addEventListener('dragover', onDrag);
+  document.addEventListener('dragleave', onDrag);
+  document.addEventListener('drop', onDrag);
+}
+
+function setPhase(i, pct, label) {
+  $$('.phase', root).forEach((el, k) => {
+    el.classList.toggle('done', k < i);
+    el.classList.toggle('active', k === i);
+    if (k === i) $('.bar i', el).style.width = `${Math.round(pct * 100)}%`;
+  });
+  const st = $('#status', root);
+  if (st && label) st.innerHTML = label;
 }
 
 async function read(file) {
+  if (file.size > 15 * 1024 * 1024) return toast(t('err.image_too_large'), { bad: true });
   const url = URL.createObjectURL(file);
   root.innerHTML = html`<div class="page-head"><h1 class="title">${t('post.reading')}</h1></div>
-    <div class="scan"><img src="${url}" alt=""></div>
-    <p class="status" id="status" role="status">${t('post.loadingEngine')}</p>
-    <div class="found" id="found" aria-hidden="true"></div>`.s;
-  const status = $('#status', root);
+    <div class="post-stage" style="height:min(52dvh,420px)"><div class="phone"><div class="notch"></div><div class="screen" id="screen"><img src="${url}" alt="" style="object-fit:contain;background:#0a0f1c"><div class="scanline"></div></div></div></div>
+    <div class="phases" aria-hidden="true">
+      <div class="phase active"><div class="bar"><i></i></div>${t('post.phase1')}</div>
+      <div class="phase"><div class="bar"><i></i></div>${t('post.phase2')}</div>
+      <div class="phase"><div class="bar"><i></i></div>${t('post.phase3')}</div>
+    </div>
+    <p class="status" id="status" role="status">${t('post.loadingEngine')}<small>${t('post.firstTime')}</small></p>`.s;
   try {
     const ocr = await import('../ocr/client.js');
     const { imageData, bitmap } = await ocr.decodeFile(file);
     shotBitmap = bitmap;
+    setPhase(0, 0.4);
     await ocr.warmUp();
+    setPhase(1, 0, html`${t('post.readingPlayers')}`.s);
     const result = await ocr.readSquadFromImage(imageData, fpl, {
       gw: store.state.gw.id,
       onProgress: (p) => {
-        status.innerHTML = p.step === 'cards'
-          ? html`${t('post.readingCards', { done: p.done, total: p.total })}`.s
-          : html`${t('post.readingPage')}`.s;
+        if (p.step === 'cards') setPhase(1, p.done / p.total, html`${t('post.readingCards', { done: p.done, total: p.total })}`.s);
+        else setPhase(2, 0.5, html`${t('post.readingPage')}`.s);
       },
     });
+    setPhase(3, 1, html`${t('post.checking')}`.s);
     if (result.recognised < 8) return notFpl(url);
-    const shown = $('#found', root);
-    for (const p of result.picks.filter((x) => x.id)) {
-      shown.insertAdjacentHTML('beforeend', html`<span>${p.name}</span>`.s);
-      await new Promise((r) => setTimeout(r, 45));
+    // Light up each name where it was found on the screenshot.
+    const screen = $('#screen', root);
+    const img = $('img', screen);
+    const box = img.getBoundingClientRect(), sb = screen.getBoundingClientRect();
+    const scale = Math.min(box.width / imageData.width, box.height / imageData.height);
+    const ox = (box.width - imageData.width * scale) / 2 + box.left - sb.left, oy = (box.height - imageData.height * scale) / 2 + box.top - sb.top;
+    for (const p of result.picks.filter((x) => x.id && x.at)) {
+      screen.insertAdjacentHTML('beforeend', html`<span class="tagname" style="left:${ox + p.at.x * scale}px;top:${oy + p.at.y * scale}px">${p.name}</span>`.s);
+      await new Promise((r) => setTimeout(r, 55));
     }
     draft = {
       picks: result.picks.map((p) => ({ id: p.id, bench: p.bench, pos: p.pos ?? posForSlot(result.picks, p), name: p.name, options: p.options })),
@@ -83,11 +136,11 @@ async function read(file) {
       seenGw: result.gw,
       url,
     };
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 600));
     confirmView();
   } catch (e) {
     console.error(e);
-    status.innerHTML = html`${t('err.generic')}<small>${errText(e)}</small>`.s;
+    $('#status', root).innerHTML = html`${t('err.generic')}<small>${errText(e)}</small>`.s;
     root.insertAdjacentHTML('beforeend', html`<div class="row" style="justify-content:center;margin-top:12px"><button class="btn" id="again">${t('post.tryAgain')}</button></div>`.s);
     $('#again', root).onclick = chooser;
   }
@@ -101,9 +154,11 @@ function posForSlot(picks, p) {
 
 function notFpl(url) {
   root.innerHTML = html`<div class="empty">
-      <img class="big" src="${url}" alt="" style="width:120px;height:auto;border-radius:10px;opacity:.6">
+      <div class="row" style="justify-content:center;gap:18px;margin-bottom:14px;align-items:center">
+        <img src="${url}" alt="" style="width:96px;border-radius:12px;opacity:.55;transform:rotate(-6deg);box-shadow:0 0 0 3px var(--hot)">
+        <img src="/img/example-pick-team.svg" alt="${t('post.exampleAlt')}" style="width:96px;border-radius:12px;transform:rotate(5deg);box-shadow:0 0 0 3px var(--accent)">
+      </div>
       <h2>${t('post.notFpl')}</h2><p>${t('post.notFplText')}</p>
-      <img src="/img/example-pick-team.svg" alt="${t('post.exampleAlt')}" width="140" style="margin:0 auto 18px">
       <button class="btn btn-go" id="again">${t('post.tryAgain')}</button></div>`.s;
   $('#again', root).onclick = chooser;
 }
@@ -124,26 +179,56 @@ function currentPicks() {
   });
 }
 
+function checks(picks) {
+  const known = picks.filter((p) => p.id);
+  const count = (pos) => known.filter((p) => p.pos === pos).length;
+  const clubs = {};
+  for (const p of known) clubs[p.team] = (clubs[p.team] || 0) + 1;
+  const items = [
+    ['GK', count(1), 2], ['DEF', count(2), 5], ['MID', count(3), 5], ['FWD', count(4), 3],
+  ].map(([lbl, have, need]) => ({ ok: have === need, text: `${lbl} ${have}/${need}` }));
+  items.push({ ok: Object.values(clubs).every((n) => n <= 3), text: t('post.clubRule') });
+  return html`<div class="checks" aria-label="${t('post.rules')}">${items.map((c) => html`<span class="check ${c.ok ? 'ok' : ''}">${raw(c.ok ? ICONS.check : ICONS.alert)}${c.text}</span>`)}</div>`;
+}
+
 function confirmView() {
   const gw = store.state.gw.id;
   const picks = currentPicks();
   const v = validate(picks, fpl);
   const missing = picks.filter((p) => !p.id).length;
   const ready = v.ok && !missing;
-  root.innerHTML = html`<div class="squad-wrap">
-    <div class="recog"><span class="num">${15 - missing}</span><span><b>${t('post.recognised', { n: 15 - missing })}</b></span></div>
-    <p class="sub" style="margin-top:0">${ready ? t('post.allGood') : t('post.fix')}</p>
-    ${draft.seenGw && draft.seenGw !== gw ? html`<p class="note">${t('post.gwNote', { seen: draft.seenGw, gw })}</p>` : ''}
-    ${!ready ? html`<div class="problems" role="alert">${missing ? html`<b>${t('problem.missing')}</b>` : ''}<ul>${problemsText(v).map((x) => html`<li>${x}</li>`)}</ul></div>` : ''}
-    <div id="pitch" style="margin:12px 0">${squadHtml(fpl, { picks, captain: draft.captain, vice: draft.vice, gw }, { editable: true })}</div>
-    <p class="sub" style="font-size:13px">${t('post.tapPlayer')}</p>
-    <div class="row" style="margin-top:14px">
+  root.innerHTML = html`<div class="squad-wrap confirm-grid">
+    <div>
+      <div class="recog"><span class="num">${15 - missing}</span><b>${t('post.recognised', { n: 15 - missing })}</b></div>
+      <p class="sub" style="margin-top:0">${ready ? t('post.allGood') : t('post.fix')}</p>
+      ${checks(picks)}
+      ${draft.seenGw && draft.seenGw !== gw ? html`<p class="note">${t('post.gwNote', { seen: draft.seenGw, gw })}</p>` : ''}
+      ${!ready && v.problems.some((p) => p.code === 'formation') ? html`<p class="note" role="alert">${t('problem.formation')}</p>` : ''}
+    </div>
+    <div id="pitch">${squadHtml(fpl, { picks, captain: draft.captain, vice: draft.vice, gw }, { editable: true })}</div>
+    <p class="sub" style="font-size:13px;margin:0">${t('post.tapPlayer')}</p>
+    ${ready ? html`<div class="preview-card" id="preview"><span class="skeleton" style="width:120px;height:63px"></span><p>${t('post.previewText')}</p></div>` : ''}
+    <div class="row">
       <button class="btn btn-ghost" id="again">${t('post.retake')}</button>
       <button class="btn btn-go" id="send" ${raw(ready ? '' : 'disabled')}>${t('post.send')}</button>
     </div></div>`.s;
   $$('.pick', root).forEach((b) => b.addEventListener('click', () => playerMenu(+b.dataset.index)));
   $('#again', root).onclick = chooser;
   $('#send', root).onclick = send;
+  if (ready) {
+    // Small preview of the link card the jury will see.
+    renderShareImage('og', fpl, previewTeam(), null).then((blob) => {
+      const box = $('#preview', root);
+      if (!box || !blob) return;
+      draft.og = blob;
+      box.firstElementChild.outerHTML = `<img src="${URL.createObjectURL(blob)}" alt="${t('post.previewAlt')}">`;
+    }).catch(() => {});
+  }
+}
+
+function previewTeam() {
+  const me = store.state.user;
+  return { nickname: me.nickname, x: me.x, gw: store.state.gw.id, picks: draft.picks.map((p) => ({ id: p.id, bench: p.bench })), captain: draft.captain, vice: draft.vice, avg: null, votes: 0 };
 }
 
 function playerMenu(index) {
@@ -189,7 +274,7 @@ function pickPlayer(index) {
       .sort((a, b) => (preferred.has(b.id) - preferred.has(a.id)) || a.web_name.localeCompare(b.web_name))
       .slice(0, 60);
     list.innerHTML = items
-      .map((p) => html`<button type="button" role="option" data-id="${p.id}"><span><b>${p.web_name}</b> <small>${p.first_name} ${p.second_name}</small></span><small>${fpl.teamsById.get(p.team)?.short_name} ${POS[p.element_type]}</small></button>`.s)
+      .map((p) => html`<button type="button" role="option" data-id="${p.id}"><span class="mini-shirt">${raw(shirtSvg(kitFor(fpl, p), `ps${p.id}`))}</span><span class="grow"><b>${p.web_name}</b> <small>${p.first_name} ${p.second_name}</small></span><small>${fpl.teamsById.get(p.team)?.short_name} ${POS[p.element_type]}</small></button>`.s)
       .join('');
   };
   draw();
@@ -209,13 +294,12 @@ function pickPlayer(index) {
 async function send() {
   const btn = $('#send', root);
   btn.disabled = true;
-  btn.textContent = t('post.sending');
+  btn.classList.add('loading');
+  btn.setAttribute('aria-label', t('post.sending'));
   try {
     const ocr = await import('../ocr/client.js');
     const picks = draft.picks.map((p) => ({ id: p.id }));
-    const me = store.state.user;
-    const preview = { nickname: me.nickname, x: me.x, gw: store.state.gw.id, picks: draft.picks.map((p) => ({ id: p.id, bench: p.bench })), captain: draft.captain, vice: draft.vice, avg: null, votes: 0 };
-    const [shot, og] = await Promise.all([ocr.compress(shotBitmap), renderShareImage('og', fpl, preview, null)]);
+    const [shot, og] = await Promise.all([ocr.compress(shotBitmap), draft.og || renderShareImage('og', fpl, previewTeam(), null)]);
     const form = new FormData();
     form.set('picks', JSON.stringify(picks));
     if (draft.captain) form.set('captain', String(draft.captain));
@@ -229,18 +313,19 @@ async function send() {
   } catch (e) {
     toast(errText(e), { bad: true });
     btn.disabled = false;
-    btn.textContent = t('post.send');
+    btn.classList.remove('loading');
   }
 }
 
 function done() {
   const s = store.state;
   const left = Math.max(0, s.minJudged - s.judged);
-  confetti();
-  haptic(40);
-  root.innerHTML = html`<div class="empty">
-      <img class="big" src="/img/logo/mark.svg" alt="" width="88" height="88">
-      <h2>${t('post.liveTitle')}</h2>
+  confetti({ n: 160, spread: 200 });
+  haptic([30, 50, 40]);
+  chime();
+  root.innerHTML = html`<div class="empty" style="padding-top:18px">
+      <img src="/img/logo/mark.svg" alt="" width="96" height="96" style="width:96px;margin:0 auto 14px;border-radius:24px;box-shadow:0 0 40px rgba(60,255,143,.35)">
+      <h2 style="font-size:40px">${t('post.liveTitle')}</h2>
       <p>${left ? t('post.liveText', { n: left }) : t('judge.unlocked')}</p>
       <div class="row" style="justify-content:center">
         <a class="btn btn-go" href="/">${t('post.startJudging')}</a>

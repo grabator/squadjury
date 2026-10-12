@@ -261,6 +261,7 @@ export function readSquad(passes, ctx) {
     pos: s.player?.element_type ?? null,
     options: s.player ? undefined : (s.options || []).map((p) => p.id),
     fixture: s.label ? `${s.label.code}${s.label.venue ? ` (${s.label.venue})` : ''}` : null,
+    at: { x: Math.round(s.cand.cx), y: Math.round(s.cand.cy) },
   });
   const picks = [...starters.map((s, i) => toPick(s, i, false)), ...bench.map((s, i) => toPick(s, i + starters.length, true))];
   return { gw, picks, captain, vice, ...validate(picks, ctx) };
