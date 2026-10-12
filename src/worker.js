@@ -281,6 +281,11 @@ route('GET', '/api/teams/([A-Za-z0-9_-]{4,20})', async (c, key) => {
   const showAvg = locked || mineFlag || !!my;
   const out = teamOut(t, { mine: mineFlag, myVote: my?.score ?? null, locked, place: await placeOf(c.env, t.gw, t.id, locked) });
   if (!showAvg) { out.avg = null; out.place = null; }
+  // How the jury voted (counts per score), for the owner and for locked gameweeks.
+  if (mineFlag || locked) {
+    const d = await c.env.DB.prepare('SELECT score, COUNT(*) AS n FROM votes WHERE team_id = ? GROUP BY score').bind(t.id).all();
+    out.dist = Array.from({ length: 10 }, (_, i) => d.results.find((r) => r.score === i + 1)?.n ?? 0);
+  }
   return json({ team: out });
 });
 
@@ -489,7 +494,13 @@ async function sharePage(c, key) {
     ].join('\n    ');
     html = html.replace(/<!-- og:start -->[\s\S]*?<!-- og:end -->/, meta).replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`);
   }
-  return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' } });
+  // Keep the security headers (CSP and friends) that static assets get from public/_headers.
+  const headers = new Headers(shell.headers);
+  headers.set('content-type', 'text/html; charset=utf-8');
+  headers.set('cache-control', 'no-cache');
+  headers.delete('content-length');
+  headers.delete('etag');
+  return new Response(html, { headers });
 }
 
 async function image(c, key) {

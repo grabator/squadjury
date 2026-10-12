@@ -1,0 +1,14 @@
+{
+  "name": "SquadJury",
+  "short_name": "SquadJury",
+  "description": "Post your FPL squad. The jury decides.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1F0022",
+  "theme_color": "#1F0022",
+  "icons": [
+    { "src": "/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/img/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/img/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
