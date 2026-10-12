@@ -1,4 +1,5 @@
-// Judge and the Post entry must fit one phone screen: no page scroll, Skip and the main button above the bottom menu.
+// Judge and the Post entry must fit one phone screen: no page scroll, Skip and the main button above the bottom menu,
+// and every player name on the pitch at least 11 px.
 // Usage: node tests/e2e/fit.mjs [screenshot folder]   (against `npm run dev`)
 import { launch } from '../../scripts/browser.mjs';
 
@@ -38,11 +39,15 @@ for (const signedIn of [false, true]) {
         hasDeck: !!document.querySelector('.jcard'),
         skipOk: !skip || skip.bottom <= nav.top,
         btnsOk: btns.every((b) => { const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= nav.top; }),
+        minName: Math.min(...[...document.querySelectorAll('#deck .pl .name')].map((n) => parseFloat(getComputedStyle(n).fontSize))),
+        names: document.querySelectorAll('#deck .pl .name').length,
       };
     });
     if (j.scroll > 0) problems.push(`${tag} judge: page scrolls by ${j.scroll}px`);
     if (j.hasDeck && !j.skipOk) problems.push(`${tag} judge: Skip is under the bottom menu`);
     if (j.hasDeck && !j.btnsOk) problems.push(`${tag} judge: a verdict button is off screen`);
+    if (j.hasDeck && j.names !== 15) problems.push(`${tag} judge: ${j.names} player names shown, not 15`);
+    if (j.hasDeck && j.minName < 11) problems.push(`${tag} judge: a player name is ${j.minName}px, under 11px`);
     if (OUT) await page.screenshot({ path: `${OUT}/fit-judge-${w}x${h}${signedIn ? '-in' : ''}.png` });
     checked++;
 

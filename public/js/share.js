@@ -1,18 +1,17 @@
-// Share images drawn on a canvas: 1920x1080 for X, 1080x1920 for stories,
-// 1920x1005 for link cards. Our fonts, colours, logo and pitch; no FPL artwork.
+// Share images drawn on a canvas, in the app's daylight style: a square 1080x1080 for posts on X,
+// 1080x1920 for stories and 1200x630 for link previews. Our fonts, pitch and logo; no FPL artwork.
 
 import { t } from './i18n.js';
 import { kitFor, shirtSvg, fixtureLabel } from './fpl.js';
 
 export const SIZES = {
-  x: { w: 1920, h: 1080 },
+  x: { w: 1080, h: 1080 },
   story: { w: 1080, h: 1920 },
-  og: { w: 1920, h: 1005 },
+  og: { w: 1200, h: 630 },
 };
 
-const C = { night: '#04060c', purple: '#111a2c', purple2: '#18233a', green: '#3cff8f', cyan: '#9cc8ff', magenta: '#ff3b5c', gold: '#ffc94a', silver: '#d5dceb', bronze: '#e8925a', chalk: '#f2f5fa' };
-const DISPLAY = '"Barlow Condensed", "Arial Narrow", sans-serif';
-const BODY = 'Manrope, system-ui, sans-serif';
+const C = { bg: '#f6f6f3', ink: '#111418', ink2: '#5e6670', grass1: '#3da35d', grass2: '#359452', bench: '#e9eee6', fix: '#dde3da', fixInk: '#3b444c', yellow: '#ffd400' };
+const FONT = 'Archivo, system-ui, sans-serif';
 
 const imgCache = new Map();
 function loadImage(src) {
@@ -29,12 +28,7 @@ function loadImage(src) {
 const svgUrl = (svg) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.includes('xmlns') ? svg : svg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"'))}`;
 
 async function fonts() {
-  await Promise.all([
-    document.fonts.load(`800 100px ${DISPLAY}`),
-    document.fonts.load(`700 100px ${DISPLAY}`),
-    document.fonts.load(`700 40px ${BODY}`),
-    document.fonts.load(`800 40px ${BODY}`),
-  ]).catch(() => {});
+  await Promise.all([document.fonts.load(`800 100px ${FONT}`), document.fonts.load(`600 40px ${FONT}`)]).catch(() => {});
 }
 
 function roundRect(g, x, y, w, h, r) {
@@ -47,173 +41,162 @@ function roundRect(g, x, y, w, h, r) {
   g.closePath();
 }
 
-function fitText(g, text, maxW, size, weight = 800, family = DISPLAY) {
+function setFont(g, weight, size, stretch = 'normal') {
+  g.font = `${weight} ${size}px ${FONT}`;
+  if ('fontStretch' in g) g.fontStretch = stretch;
+}
+
+/** Shrinks the text until it fits maxW; returns the size used. */
+function fit(g, text, maxW, size, weight = 800, stretch = 'normal') {
   let s = size;
   do {
-    g.font = `${weight} ${s}px ${family}`;
+    setFont(g, weight, s, stretch);
     if (g.measureText(text).width <= maxW) break;
     s -= 2;
-  } while (s > 12);
+  } while (s > 10);
   return s;
 }
 
-/** Night stadium: deep blue, two floodlight cones, a glow over the pitch and fine grain. */
-function background(g, w, h) {
-  const grad = g.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, '#0d1424');
-  grad.addColorStop(1, '#04060c');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, w, h);
-  const cone = (x, dir) => {
-    g.save();
-    const lg = g.createRadialGradient(x, -h * 0.1, 0, x, -h * 0.1, h * 1.2);
-    lg.addColorStop(0, 'rgba(200,225,255,0.22)');
-    lg.addColorStop(1, 'rgba(200,225,255,0)');
-    g.fillStyle = lg;
-    g.beginPath();
-    g.moveTo(x, -h * 0.1);
-    g.lineTo(x + dir * w * 0.62, h);
-    g.lineTo(x + dir * w * 0.32, h);
-    g.closePath();
-    g.fill();
-    g.restore();
-  };
-  cone(w * 0.08, 1);
-  cone(w * 0.92, -1);
-  const glow = g.createRadialGradient(w / 2, h * 1.05, 0, w / 2, h * 1.05, h * 0.8);
-  glow.addColorStop(0, 'rgba(30,140,80,0.32)');
-  glow.addColorStop(1, 'rgba(30,140,80,0)');
-  g.fillStyle = glow;
-  g.fillRect(0, 0, w, h);
-  // grain
-  const img = g.getImageData(0, 0, w, h);
-  for (let i = 0; i < img.data.length; i += 4 * 3) {
-    const n = (Math.random() - 0.5) * 10;
-    img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n;
-  }
-  g.putImageData(img, 0, 0);
+/** The yellow card with the jury's score, tilted like the one in the app. */
+function scoreCard(g, cx, cy, w, scored, score, rot = 0.1) {
+  const h = w * 1.31;
+  g.save();
+  g.translate(cx, cy);
+  g.rotate(rot);
+  g.shadowColor = 'rgba(0,0,0,.16)';
+  g.shadowBlur = w * 0.12;
+  g.shadowOffsetY = w * 0.05;
+  roundRect(g, -w / 2, -h / 2, w, h, w * 0.11);
+  g.fillStyle = C.yellow;
+  g.fill();
+  g.shadowColor = 'transparent';
+  g.fillStyle = C.ink;
+  g.textAlign = 'center';
+  g.textBaseline = 'alphabetic';
+  setFont(g, 800, w * 0.1);
+  g.fillText(scored ? t('share.jury') : t('share.rateIt'), 0, -h * 0.27);
+  fit(g, score, w * 0.86, w * 0.5, 900, 'semi-condensed');
+  g.textBaseline = 'middle';
+  g.fillText(score, 0, h * 0.04);
+  setFont(g, 700, w * 0.1);
+  g.textBaseline = 'alphabetic';
+  g.fillText(scored ? '/ 10' : '1 to 10', 0, h * 0.36);
+  g.restore();
 }
 
-/** Pitch with XI and bench, inside the box (x, y, w, h). */
+/** Pitch seen from above with the XI, and the bench strip under it, inside (x, y, w, h). */
 async function drawSquad(g, fpl, team, x, y, w, h) {
   const benchH = h * 0.2;
-  const pitchH = h - benchH - h * 0.025;
-  // stripes
-  roundRect(g, x, y, w, pitchH, 28);
+  const gap = h * 0.018;
+  const pitchH = h - benchH - gap;
+  const r = w * 0.018;
+  roundRect(g, x, y, w, pitchH, r);
   g.save();
   g.clip();
   for (let i = 0; i < 10; i++) {
-    g.fillStyle = i % 2 ? '#0c5a33' : '#0f6b3c';
+    g.fillStyle = i % 2 ? C.grass2 : C.grass1;
     g.fillRect(x, y + (pitchH / 10) * i, w, pitchH / 10 + 1);
   }
-  const light = g.createRadialGradient(x + w / 2, y + pitchH * 0.42, 0, x + w / 2, y + pitchH * 0.42, w * 0.7);
-  light.addColorStop(0, 'rgba(210,255,225,0.22)');
-  light.addColorStop(1, 'rgba(0,0,0,0.35)');
-  g.fillStyle = light;
-  g.fillRect(x, y, w, pitchH);
-  g.strokeStyle = 'rgba(255,255,255,.26)';
-  g.lineWidth = 4;
-  g.beginPath(); g.moveTo(x, y + pitchH * 0.58); g.lineTo(x + w, y + pitchH * 0.58); g.stroke();
-  g.beginPath(); g.arc(x + w / 2, y + pitchH * 0.58, w * 0.13, 0, Math.PI * 2); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.85)';
+  g.lineWidth = Math.max(2, w / 360);
+  const px = (f) => x + w * f, py = (f) => y + pitchH * f;
+  g.strokeRect(px(0.015), py(0.01), w * 0.97, pitchH * 0.98);
+  g.beginPath(); g.moveTo(px(0.015), py(0.5)); g.lineTo(px(0.985), py(0.5)); g.stroke();
+  g.beginPath(); g.arc(px(0.5), py(0.5), w * 0.11, 0, Math.PI * 2); g.stroke();
+  g.strokeRect(px(0.24), py(0.01), w * 0.52, pitchH * 0.15);
+  g.strokeRect(px(0.37), py(0.01), w * 0.26, pitchH * 0.055);
+  g.strokeRect(px(0.24), py(0.84), w * 0.52, pitchH * 0.15);
+  g.strokeRect(px(0.37), py(0.935), w * 0.26, pitchH * 0.055);
   g.restore();
-  // bench strip
-  roundRect(g, x, y + pitchH + h * 0.025, w, benchH, 24);
-  g.fillStyle = 'rgba(255,255,255,.06)';
+
+  roundRect(g, x, y + pitchH + gap, w, benchH, r);
+  g.fillStyle = C.bench;
   g.fill();
-  g.strokeStyle = 'rgba(255,255,255,.08)';
-  g.lineWidth = 2;
-  g.stroke();
 
   const picks = team.picks.map((p) => ({ ...p, pl: fpl.byId.get(p.id) }));
   const xi = picks.filter((p) => !p.bench);
-  const rows = [1, 2, 3, 4].map((pos) => xi.filter((p) => p.pl?.element_type === pos)).filter((r) => r.length);
+  const rows = [1, 2, 3, 4].map((pos) => xi.filter((p) => p.pl?.element_type === pos)).filter((row) => row.length);
   const bench = picks.filter((p) => p.bench);
-  const cell = Math.min(w / 5.6, pitchH / (rows.length * 1.12));
-  const rowGap = pitchH / rows.length;
-  for (let r = 0; r < rows.length; r++) {
-    const cy = y + rowGap * r + rowGap * 0.12;
-    await drawRow(g, fpl, team, rows[r], x, cy, w, cell);
-  }
-  await drawRow(g, fpl, team, bench, x, y + pitchH + h * 0.025 + benchH * 0.06, w, Math.min(cell, benchH * 0.9));
+  const rowH = pitchH / rows.length;
+  const cell = Math.min(w / 5.15, rowH / 0.95); // a player (shirt and plates) is 0.82 of a cell high
+  const unitH = cell * 0.82; // shirt plus the two plates
+  for (let i = 0; i < rows.length; i++) await drawRow(g, fpl, team, rows[i], x, y + rowH * i + (rowH - unitH) / 2, w, cell);
+  const bcell = cell * 0.86;
+  setFont(g, 700, w * 0.022);
+  g.fillStyle = C.ink2;
+  g.textAlign = 'left';
+  g.textBaseline = 'top';
+  g.fillText(t('judge.bench').toUpperCase(), x + w * 0.025, y + pitchH + gap + benchH * 0.08);
+  await drawRow(g, fpl, team, bench, x, y + pitchH + gap + (benchH - bcell * 0.82) / 2 + benchH * 0.06, w, bcell);
 }
 
 async function drawRow(g, fpl, team, row, x, y, w, cell) {
-  const gap = cell * 0.08;
-  const total = row.length * cell + (row.length - 1) * gap;
-  let cx = x + (w - total) / 2;
+  const step = cell * 1.02;
+  let cx = x + (w - (row.length - 1) * step) / 2;
   for (const p of row) {
     await drawPlayer(g, fpl, team, p, cx, y, cell);
-    cx += cell + gap;
+    cx += step;
   }
 }
 
-async function drawPlayer(g, fpl, team, p, x, y, size) {
+async function drawPlayer(g, fpl, team, p, cx, y, cell) {
   const kit = kitFor(fpl, p.pl);
   const shirt = await loadImage(svgUrl(shirtSvg(kit, `s${p.id}`)));
-  const sw = size * 0.62, sh = sw * (56 / 64);
+  const sw = cell * 0.46, sh = sw * (56 / 64);
   g.save();
-  g.shadowColor = 'rgba(0,0,0,.35)';
-  g.shadowBlur = size * 0.06;
-  g.shadowOffsetY = size * 0.03;
-  g.drawImage(shirt, x + (size - sw) / 2, y, sw, sh);
+  g.shadowColor = 'rgba(0,0,0,.22)';
+  g.shadowBlur = cell * 0.03;
+  g.shadowOffsetY = cell * 0.015;
+  g.drawImage(shirt, cx - sw / 2, y, sw, sh);
   g.restore();
   const isC = p.id === team.captain, isV = p.id === team.vice;
   if (isC || isV) {
-    const r = size * 0.1;
-    g.fillStyle = isC ? C.green : C.cyan;
-    g.beginPath(); g.arc(x + (size - sw) / 2 + r * 0.6, y + r * 0.6, r, 0, Math.PI * 2); g.fill();
-    g.fillStyle = C.night;
-    g.font = `800 ${r * 1.3}px ${DISPLAY}`;
+    const r = cell * 0.075, ax = cx + sw / 2 + r * 0.1, ay = y + r * 0.6;
+    g.beginPath(); g.arc(ax, ay, r, 0, Math.PI * 2);
+    g.fillStyle = isC ? C.yellow : '#ffffff'; g.fill();
+    g.lineWidth = r * 0.2; g.strokeStyle = isC ? '#ffffff' : C.ink; g.stroke();
+    g.fillStyle = C.ink;
+    setFont(g, 800, r * 1.15);
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText(isC ? 'C' : 'V', x + (size - sw) / 2 + r * 0.6, y + r * 0.66);
+    g.fillText(isC ? 'C' : 'V', ax, ay + r * 0.06);
   }
-  const ny = y + sh - size * 0.02, nh = size * 0.2, fh = size * 0.16;
-  roundRect(g, x, ny, size, nh + fh, size * 0.06);
-  g.save(); g.clip();
-  g.fillStyle = '#ffffff'; g.fillRect(x, ny, size, nh);
-  g.fillStyle = kit[0].toLowerCase() === '#ffffff' ? kit[1] : kit[0]; g.fillRect(x, ny, size * 0.05, nh);
-  g.fillStyle = 'rgba(6,12,24,0.92)'; g.fillRect(x, ny + nh, size, fh);
-  g.restore();
   const name = p.pl?.web_name || '?';
-  g.fillStyle = '#0b1222';
+  const fix = fixtureLabel(fpl, p.pl?.team, team.gw).split(',')[0];
+  const nh = cell * 0.17, fh = cell * 0.14, ny = y + sh + cell * 0.01;
+  const ns = fit(g, name, cell * 0.92, nh * 0.74, 700, name.length > 9 ? 'condensed' : 'semi-condensed');
+  const nw = Math.min(cell * 0.98, g.measureText(name).width + cell * 0.12);
+  setFont(g, 600, fh * 0.7, 'semi-condensed');
+  const fw = Math.min(cell * 0.98, g.measureText(fix).width + cell * 0.12);
+  roundRect(g, cx - nw / 2, ny, nw, nh, cell * 0.03);
+  g.fillStyle = '#ffffff'; g.fill();
+  roundRect(g, cx - fw / 2, ny + nh, fw, fh, cell * 0.03);
+  g.fillStyle = C.fix; g.fill();
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  fitText(g, name, size * 0.92, nh * 0.62, 700, BODY);
-  g.fillText(name, x + size / 2, ny + nh * 0.54);
-  g.fillStyle = '#c9d6ee';
-  g.font = `700 ${fh * 0.6}px ${BODY}`;
-  g.fillText(fixtureLabel(fpl, p.pl?.team, team.gw).split(',')[0], x + size / 2, ny + nh + fh * 0.52);
+  g.fillStyle = C.ink;
+  setFont(g, 700, ns, name.length > 9 ? 'condensed' : 'semi-condensed');
+  g.fillText(name, cx, ny + nh * 0.54);
+  g.fillStyle = C.fixInk;
+  setFont(g, 600, fh * 0.7, 'semi-condensed');
+  g.fillText(fix, cx, ny + nh + fh * 0.52);
 }
 
-/** The verdict stamp: score inside a tilted ring. */
-function stamp(g, cx, cy, r, score, sub, color = C.green) {
-  g.save();
-  g.translate(cx, cy);
-  g.rotate(-0.2);
-  g.strokeStyle = color;
-  g.lineWidth = r * 0.07;
-  g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.stroke();
-  g.globalAlpha = 0.35;
-  g.lineWidth = r * 0.025;
-  g.beginPath(); g.arc(0, 0, r * 0.84, 0, Math.PI * 2); g.stroke();
-  g.globalAlpha = 1;
-  g.fillStyle = color;
-  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
-  g.font = `800 ${r * 0.2}px ${DISPLAY}`;
-  g.fillText(sub, 0, -r * 0.38);
-  fitText(g, score, r * 1.45, r * 0.9);
-  g.textBaseline = 'middle';
-  g.fillText(score, 0, r * 0.18);
-  g.restore();
-}
-
-function medal(rank) {
-  return rank === 1 ? C.gold : rank === 2 ? C.silver : rank === 3 ? C.bronze : C.green;
+async function brand(g, x, y, h, withUrl = true) {
+  const logo = await loadImage('/img/logo/logo.svg');
+  const w = h * (logo.width / logo.height);
+  g.drawImage(logo, x, y, w, h);
+  if (withUrl) {
+    g.fillStyle = C.ink2;
+    setFont(g, 600, h * 0.62);
+    g.textAlign = 'left';
+    g.textBaseline = 'alphabetic';
+    g.fillText('squadjury.com', x + w + h * 0.7, y + h * 0.78);
+  }
 }
 
 /**
  * Renders a share image. kind: 'x' | 'story' | 'og'.
- * team: { nickname, x, gw, picks, captain, vice, avg, votes }, place: { rank, total } or null.
- * Returns a Blob (PNG for x/story, JPEG for og).
+ * team: { nickname, x, gw, picks, captain, vice, avg, votes, demo }, place: { rank, total } or null.
+ * Returns a Blob (PNG for x and story, JPEG for og).
  */
 export async function renderShareImage(kind, fpl, team, place) {
   await fonts();
@@ -222,65 +205,67 @@ export async function renderShareImage(kind, fpl, team, place) {
   canvas.width = w;
   canvas.height = h;
   const g = canvas.getContext('2d');
-  background(g, w, h);
-  const logo = await loadImage('/img/logo/logo.svg');
-  const scored = team.avg != null && team.votes > 0 && kind !== 'og';
-  const top = place?.rank && place.rank <= 10 && team.votes >= 5;
-  const ringColor = top ? medal(place.rank) : C.green;
-  const scoreText = scored ? Number(team.avg).toFixed(1) : '?';
-  const subLine = scored
-    ? `${t('share.from', { n: team.votes })}${place?.rank ? `   ${t('share.of', { rank: place.rank, total: place.total })}` : ''}`
-    : t('share.judgeMy');
-  const badge = top ? (place.rank === 1 && team.locked ? t('share.champion', { gw: team.gw }) : t('share.top10', { gw: team.gw })) : null;
+  g.fillStyle = C.bg;
+  g.fillRect(0, 0, w, h);
+  const scored = team.avg != null && team.votes > 0;
+  const score = scored ? Number(team.avg).toFixed(1) : '?';
+  const gwLine = `${t('share.gameweek', { gw: team.gw })}${team.demo ? ` · ${t('judge.exampleShort')}` : ''}`;
+  const meta = [team.x ? `@${team.x}` : null, place?.rank ? t('share.of', { rank: place.rank, total: place.total }) : null, scored ? t('share.from', { n: team.votes }) : t('share.judgeMy')].filter(Boolean).join(' · ');
 
-  if (kind === 'story') {
-    const pad = 70;
-    g.drawImage(logo, pad, 90, 420, 420 * (logo.height / logo.width));
-    g.fillStyle = C.cyan;
-    g.font = `800 54px ${DISPLAY}`;
-    g.textAlign = 'right'; g.textBaseline = 'alphabetic';
-    g.fillText(`GW${team.gw}`, w - pad, 150);
-    g.textAlign = 'left';
-    g.fillStyle = C.chalk;
-    fitText(g, team.nickname, w - pad * 2, 120);
-    g.fillText(team.nickname, pad, 330);
-    if (team.x) { g.fillStyle = 'rgba(247,242,248,.7)'; g.font = `700 40px ${BODY}`; g.fillText(`@${team.x}`, pad, 390); }
-    await drawSquad(g, fpl, team, pad, 440, w - pad * 2, 960);
-    g.textAlign = 'center';
-    if (badge) { g.fillStyle = ringColor; g.font = `800 52px ${DISPLAY}`; g.fillText(badge.toUpperCase(), w / 2, 1478); }
-    stamp(g, w / 2, 1645, 135, scoreText, scored ? t('share.verdict').toUpperCase() : t('share.judgeMy').toUpperCase(), ringColor);
-    g.textAlign = 'center';
-    g.fillStyle = 'rgba(247,242,248,.75)';
-    g.font = `700 34px ${BODY}`;
-    g.fillText(scored ? subLine : 'squadjury.com', w / 2, 1852);
-  } else {
-    const pad = 80;
-    const squadW = kind === 'og' ? 900 : 960;
-    await drawSquad(g, fpl, team, pad, pad, squadW, h - pad * 2);
-    const rx = pad + squadW + 90, rw = w - rx - pad;
-    g.drawImage(logo, rx, pad + 4, 420, 420 * (logo.height / logo.width));
+  if (kind === 'x') {
+    const pad = 40;
+    await drawSquad(g, fpl, team, pad, 34, w - pad * 2, 740);
+    const cardW = 176;
+    const left = w - pad * 2 - cardW - 40;
     g.textAlign = 'left'; g.textBaseline = 'alphabetic';
-    g.fillStyle = C.cyan;
-    g.font = `800 56px ${DISPLAY}`;
-    g.fillText(`GW${team.gw}`, rx, pad + 190);
-    g.fillStyle = C.chalk;
-    fitText(g, team.nickname, rw, 120);
-    g.fillText(team.nickname, rx, pad + 300);
-    if (team.x) { g.fillStyle = 'rgba(247,242,248,.7)'; g.font = `700 38px ${BODY}`; g.fillText(`@${team.x}`, rx, pad + 352); }
-    // Badge line, then the stamp in the space left above the bottom line.
-    const badgeY = pad + 440;
-    const top0 = badge ? badgeY + 34 : pad + (team.x ? 390 : 340);
-    const bottom0 = h - pad - (kind === 'og' ? 30 : 80);
-    const r = Math.min(rw / 2.4, (bottom0 - top0) / 2 - 8);
-    const cy = top0 + (bottom0 - top0) / 2;
-    stamp(g, rx + r + 10, cy, r, scoreText, scored ? t('share.verdict').toUpperCase() : t('share.judgeMy').toUpperCase(), ringColor);
+    g.fillStyle = C.ink2; setFont(g, 700, 26);
+    g.fillText(gwLine, pad, 846);
+    g.fillStyle = C.ink;
+    fit(g, team.nickname, left, 70, 900, 'semi-condensed');
+    g.fillText(team.nickname, pad, 918);
+    g.fillStyle = C.ink2;
+    fit(g, meta, left, 28, 600);
+    g.fillText(meta, pad, 962);
+    await brand(g, pad, 996, 36);
+    scoreCard(g, w - pad - cardW / 2 - 6, 922, cardW, scored, score);
+  } else if (kind === 'story') {
+    const pad = 64;
+    await brand(g, pad, 96, 52, false);
+    g.textAlign = 'right'; g.textBaseline = 'alphabetic';
+    g.fillStyle = C.ink2; setFont(g, 700, 34);
+    g.fillText(gwLine, w - pad, 138);
     g.textAlign = 'left';
-    g.fillStyle = 'rgba(247,242,248,.78)';
-    g.font = `700 34px ${BODY}`;
-    if (scored) g.fillText(subLine, rx, h - pad - 20);
-    else g.fillText('squadjury.com', rx, h - pad - 4);
-    if (badge) { g.textAlign = 'left'; g.fillStyle = ringColor; g.font = `800 50px ${DISPLAY}`; g.fillText(badge.toUpperCase(), rx, badgeY); }
-    if (scored) { g.fillStyle = 'rgba(247,242,248,.55)'; g.textAlign = 'right'; g.font = `700 30px ${BODY}`; g.fillText('squadjury.com', w - pad, h - pad - 20); }
+    g.fillStyle = C.ink;
+    fit(g, team.nickname, w - pad * 2, 96, 900, 'semi-condensed');
+    g.fillText(team.nickname, pad, 290);
+    if (team.x) { g.fillStyle = C.ink2; setFont(g, 600, 36); g.fillText(`@${team.x}`, pad, 344); }
+    await drawSquad(g, fpl, team, pad - 20, 400, w - (pad - 20) * 2, 1060);
+    scoreCard(g, w / 2, 1650, 230, scored, score);
+    g.textAlign = 'center';
+    g.fillStyle = C.ink2;
+    fit(g, place?.rank || scored ? meta.replace(`@${team.x} · `, '') : 'squadjury.com', w - pad * 2, 34, 600);
+    g.fillText(place?.rank || scored ? meta.replace(`@${team.x} · `, '') : 'squadjury.com', w / 2, 1868);
+  } else {
+    const pad = 32;
+    const sqW = 520;
+    await drawSquad(g, fpl, team, pad, pad, sqW, h - pad * 2);
+    const rx = pad + sqW + 48, rw = w - rx - pad;
+    await brand(g, rx, 56, 40, false);
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    g.fillStyle = C.ink2; setFont(g, 700, 26);
+    g.fillText(gwLine, rx, 172);
+    g.fillStyle = C.ink;
+    fit(g, team.nickname, rw, 64, 900, 'semi-condensed');
+    g.fillText(team.nickname, rx, 238);
+    if (team.x) { g.fillStyle = C.ink2; setFont(g, 600, 26); g.fillText(`@${team.x}`, rx, 278); }
+    scoreCard(g, rx + 100, 430, 150, scored, score);
+    g.textAlign = 'left';
+    g.fillStyle = C.ink;
+    setFont(g, 800, 30);
+    g.fillText(scored ? t('share.from', { n: team.votes }) : t('share.judgeMy'), rx + 210, 420);
+    g.fillStyle = C.ink2;
+    setFont(g, 600, 24);
+    g.fillText('squadjury.com', rx + 210, 458);
   }
   const type = kind === 'og' ? 'image/jpeg' : 'image/png';
   return new Promise((resolve) => canvas.toBlob(resolve, type, 0.9));

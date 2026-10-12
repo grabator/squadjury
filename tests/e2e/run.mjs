@@ -37,7 +37,7 @@ try {
     await page.locator('#nick').fill(nick);
     await page.locator('#xh').fill('@grabator');
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
-    await page.getByText('Choose screenshot').waitFor();
+    await page.getByText('Upload screenshot').waitFor();
     await shot(page, 'e2e-1-post');
   });
 
@@ -45,7 +45,7 @@ try {
     await page.locator('#file').setInputFiles(fixture);
     await page.waitForTimeout(1200);
     await shot(page, 'e2e-2-reading');
-    await page.getByText('15 of 15 recognised').waitFor({ timeout: 90000 });
+    await page.getByText('15/15').waitFor({ timeout: 90000 });
     const names = await page.locator('#pitch .name').allTextContents();
     assert.equal(names.length, 15);
     for (const n of ['Leno', 'Hall', 'Saka', 'Haaland', 'Mitchell']) assert.ok(names.includes(n), `missing ${n}`);
@@ -62,7 +62,7 @@ try {
     await shot(page, 'e2e-4-live');
   });
 
-  await step('judge 5 squads with the gavel animation', async () => {
+  await step('judge 5 squads, the yellow card shows each verdict', async () => {
     await page.getByRole('link', { name: 'Start judging' }).click();
     for (let i = 0; i < 5; i++) {
       await page.locator('.vbtn').first().waitFor();
@@ -76,13 +76,14 @@ try {
 
   await step('my squad page shows the squad and share buttons', async () => {
     await page.goto(BASE + '/squad');
-    await page.getByRole('button', { name: 'Share link' }).waitFor();
+    await page.getByRole('link', { name: 'Post on X' }).waitFor();
+    await page.getByRole('button', { name: 'Copy link' }).waitFor();
     assert.equal(await page.locator('.pl').count(), 15);
     await page.waitForTimeout(1200);
     await shot(page, 'e2e-7-mysquad');
   });
 
-  await step('the share image renders at 1920x1080 and 1080x1920', async () => {
+  await step('the share images render at 1080x1080, 1080x1920 and 1200x630', async () => {
     const sizes = await page.evaluate(async () => {
       const { renderShareImage } = await import('/js/share.js');
       const { loadFpl } = await import('/js/fpl.js');
@@ -95,16 +96,16 @@ try {
         const blob = await renderShareImage(kind, fpl, { ...team, avg: 8.7, votes: 12 }, { rank: 3, total: 41 });
         const bmp = await createImageBitmap(blob);
         out[kind] = `${bmp.width}x${bmp.height}`;
-        if (kind !== 'og') window[`__${kind}`] = await new Promise((r) => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(blob); });
+        window[`__${kind}`] = await new Promise((r) => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(blob); });
       }
       return out;
     });
-    assert.deepEqual(sizes, { x: '1920x1080', story: '1080x1920', og: '1920x1005' });
+    assert.deepEqual(sizes, { x: '1080x1080', story: '1080x1920', og: '1200x630' });
     if (OUT) {
       const { writeFileSync } = await import('node:fs');
-      for (const k of ['x', 'story']) {
+      for (const k of ['x', 'story', 'og']) {
         const data = await page.evaluate((k) => window[`__${k}`], k);
-        writeFileSync(`${OUT}/share-${k}.png`, Buffer.from(data.split(',')[1], 'base64'));
+        writeFileSync(`${OUT}/share-${k}.${k === 'og' ? 'jpg' : 'png'}`, Buffer.from(data.split(',')[1], 'base64'));
       }
     }
   });

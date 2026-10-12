@@ -1,5 +1,5 @@
-// Renders public/img/og-default.png (1920x1005), the link card for pages without a squad.
-// Needs `npm run dev` running (it uses the site's own fonts and logo).
+// Renders public/img/og-default.png (1200x630), the link card for pages without a squad.
+// Needs `npm run dev` running (it uses the site's own font and logo).
 import { writeFileSync } from 'node:fs';
 import { launch } from './browser.mjs';
 
@@ -8,37 +8,34 @@ const browser = await launch();
 const page = await browser.newPage();
 await page.goto(BASE + '/how');
 const data = await page.evaluate(async () => {
-  await document.fonts.load('800 100px "Barlow Condensed"');
-  await document.fonts.load('700 40px Manrope');
+  const F = 'Archivo, sans-serif';
+  await document.fonts.load(`900 100px ${F}`);
+  await document.fonts.load(`600 30px ${F}`);
   const c = document.createElement('canvas');
-  c.width = 1920; c.height = 1005;
+  c.width = 1200; c.height = 630;
   const g = c.getContext('2d');
-  // Night stadium: dark navy, two floodlight cones and a lit pitch at the bottom.
-  const grad = g.createLinearGradient(0, 0, 0, 1005);
-  grad.addColorStop(0, '#04060c'); grad.addColorStop(0.6, '#0a0f1c'); grad.addColorStop(1, '#0b2a1d');
-  g.fillStyle = grad; g.fillRect(0, 0, 1920, 1005);
-  for (const [x, dir] of [[260, 1], [1660, -1]]) {
-    const cone = g.createLinearGradient(x, 0, x + dir * 420, 900);
-    cone.addColorStop(0, 'rgba(233,241,255,.16)'); cone.addColorStop(1, 'rgba(233,241,255,0)');
-    g.fillStyle = cone;
-    g.beginPath(); g.moveTo(x - 30, 0); g.lineTo(x + 30, 0); g.lineTo(x + dir * 620, 1005); g.lineTo(x + dir * 220, 1005); g.closePath(); g.fill();
-  }
-  const glow = g.createRadialGradient(960, 1005, 40, 960, 1005, 900);
-  glow.addColorStop(0, 'rgba(60,255,143,.22)'); glow.addColorStop(1, 'rgba(60,255,143,0)');
-  g.fillStyle = glow; g.fillRect(0, 0, 1920, 1005);
+  g.fillStyle = '#f6f6f3'; g.fillRect(0, 0, 1200, 630);
+  // A strip of bright pitch on the right with the yellow card on it.
+  const x0 = 820;
+  for (let i = 0; i < 10; i++) { g.fillStyle = i % 2 ? '#359452' : '#3da35d'; g.fillRect(x0, i * 63, 380, 64); }
+  g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 4;
+  g.beginPath(); g.moveTo(x0, 315); g.lineTo(1200, 315); g.stroke();
+  g.beginPath(); g.arc(x0 + 190, 315, 88, 0, Math.PI * 2); g.stroke();
+  g.save(); g.translate(x0 + 190, 315); g.rotate(0.14);
+  g.shadowColor = 'rgba(0,0,0,.25)'; g.shadowBlur = 30; g.shadowOffsetY = 12;
+  g.fillStyle = '#ffd400';
+  g.beginPath(); g.roundRect(-100, -133, 200, 266, 22); g.fill();
+  g.restore();
   const load = (src) => new Promise((r) => { const i = new Image(); i.onload = () => r(i); i.src = src; });
-  const mark = await load('/img/logo/mark.svg');
-  g.drawImage(mark, 1180, 190, 600, 600);
   const logo = await load('/img/logo/logo.svg');
-  g.drawImage(logo, 120, 150, 640, 640 * (logo.height / logo.width));
-  g.fillStyle = '#e9f1ff'; g.font = '800 132px "Barlow Condensed"';
-  g.fillText('Post your squad.', 120, 470);
-  g.fillStyle = '#3cff8f';
-  g.fillText('The jury decides.', 120, 600);
-  g.fillStyle = 'rgba(233,241,255,.75)'; g.font = '700 42px Manrope';
-  g.fillText('Rate FPL squads from 1 to 10 before the deadline', 120, 720);
-  g.fillStyle = '#9cc8ff'; g.font = '800 48px "Barlow Condensed"';
-  g.fillText('squadjury.com', 120, 860);
+  g.drawImage(logo, 72, 82, 300, 300 * (logo.height / logo.width));
+  g.fillStyle = '#111418'; g.font = `900 68px ${F}`;
+  g.fillText('Post your squad.', 72, 300);
+  g.fillText('The jury decides.', 72, 384);
+  g.fillStyle = '#5e6670'; g.font = `600 30px ${F}`;
+  g.fillText('Rate FPL squads from 1 to 10 before the deadline', 72, 470);
+  g.fillStyle = '#111418'; g.font = `800 30px ${F}`;
+  g.fillText('squadjury.com', 72, 548);
   return c.toDataURL('image/png');
 });
 writeFileSync(new URL('../public/img/og-default.png', import.meta.url), Buffer.from(data.split(',')[1], 'base64'));

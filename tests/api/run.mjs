@@ -107,6 +107,18 @@ await check('the owner sees the vote distribution', async () => {
   assert.equal(t.dist[8], 1);
 });
 
+await check('your verdicts come one page at a time', async () => {
+  const keyC = (await C.call('GET', '/api/state')).data.mine.key;
+  assert.equal((await B.call('POST', '/api/votes', { key: keyC, score: 6 })).status, 200);
+  const p1 = (await B.call('GET', '/api/me/verdicts?size=1')).data;
+  assert.deepEqual([p1.total, p1.pages, p1.page, p1.items.length, p1.open], [2, 2, 1, 1, true]);
+  const p2 = (await B.call('GET', `/api/me/verdicts?gw=${p1.gw}&page=2&size=1`)).data;
+  assert.equal(p2.items.length, 1);
+  assert.notEqual(p2.items[0].key, p1.items[0].key);
+  assert.deepEqual(p1.gws, [{ gw: p1.gw, count: 2 }]);
+  assert.equal((await fetch(BASE + '/api/me/verdicts')).status, 401);
+});
+
 await check('cross site writes are refused', async () => {
   const r = await fetch(BASE + '/api/votes', { method: 'POST', headers: { origin: 'https://evil.example', 'content-type': 'application/json' }, body: JSON.stringify({ key: keyA, score: 1 }) });
   assert.equal(r.status, 403);
