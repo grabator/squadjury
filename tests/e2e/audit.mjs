@@ -18,6 +18,8 @@ for (const w of [390, 1280]) RUNS.push({ signedIn: true, w, scheme: 'dark' });
 for (const { signedIn, w, scheme } of RUNS) {
   {
     const ctx = await browser.newContext({ viewport: { width: w, height: 860 }, isMobile: w < 800, hasTouch: w < 800, reducedMotion: 'reduce', colorScheme: scheme, bypassCSP: true });
+    // The first visit intro is tested in run.mjs; here it would cover the screens.
+    await ctx.addInitScript(() => { try { localStorage.setItem('sj-intro', '1'); } catch {} });
     const page = await ctx.newPage();
     const errs = [];
     page.on('pageerror', (e) => errs.push(String(e)));

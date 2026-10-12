@@ -7,6 +7,7 @@ const PAGES = {
   how: () => html`<div class="prose">
     <h1 class="title">${t('page.how')}</h1>
     <p class="sub">Post your squad. The jury decides.</p>
+    <button class="btn" data-intro>${t('intro.again')}</button>
     <h2>1. Post your squad</h2>
     <p>Sign in with Google, then upload a screenshot of the <strong>Pick Team</strong> screen from the official FPL app. SquadJury reads your 15 players, captain and vice captain right in your browser. Check them, fix anything we missed and send your squad to the jury.</p>
     <h2>2. Judge other squads</h2>
@@ -64,6 +65,7 @@ const PAGES = {
 export function mount(el, which) {
   const page = PAGES[which] || PAGES[404];
   el.innerHTML = page().s;
+  el.querySelector('[data-intro]')?.addEventListener('click', () => import('../intro.js').then((m) => m.showIntro({ force: true })));
   document.title = `${which === '404' ? t('page.notFound') : t(`page.${which}`)} | SquadJury`;
 }
 

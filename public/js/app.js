@@ -208,6 +208,8 @@ addEventListener('pageshow', () => { leaving = false; });
   setInterval(tickClock, 1000);
   offlineBanner();
   await render();
+  // First visit: a short intro that says what this is.
+  import('./intro.js').then((m) => m.showIntro()).catch(() => {});
   if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }

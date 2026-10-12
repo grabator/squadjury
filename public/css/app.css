@@ -497,3 +497,132 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; transition-duration: 0.001ms !important; }
 }
+
+/* ============================================================ first visit intro */
+.intro {
+  position: fixed; inset: 0; z-index: 60; background: var(--bg); color: var(--ink);
+  display: flex; flex-direction: column; padding: calc(14px + var(--safe-t)) 20px calc(18px + var(--safe-b));
+  animation: fade 0.2s ease-out both;
+}
+.intro.closing { animation: fade 0.2s ease-in reverse both; }
+.in-top { display: flex; align-items: center; justify-content: space-between; min-height: 40px; }
+.in-top img { display: block; height: 26px; width: auto; }
+.in-skip { background: none; border: 0; font: inherit; font-weight: 600; color: var(--ink-2); padding: 10px 4px; cursor: pointer; }
+.in-slide { flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 440px; width: 100%; margin: 0 auto; min-height: 0; }
+.in-stage {
+  position: relative; height: min(46vh, 330px); min-height: 230px; border-radius: 18px; background: var(--card);
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--line); overflow: hidden; margin-bottom: 22px;
+}
+.in-title { font-size: clamp(26px, 7.4vw, 34px); font-weight: 900; font-stretch: 92%; letter-spacing: -0.02em; line-height: 1.02; margin: 0 0 10px; animation: in-up 0.35s var(--ease) both; }
+.in-text { color: var(--ink-2); font-size: 17px; line-height: 1.45; margin: 0; animation: in-up 0.35s 0.06s var(--ease) both; }
+.in-bottom { max-width: 440px; width: 100%; margin: 0 auto; }
+.in-dots { display: flex; gap: 6px; justify-content: center; margin: 14px 0 16px; }
+.in-dots i { width: 8px; height: 8px; border-radius: 4px; background: var(--line-2); transition: width 0.25s var(--ease), background 0.25s; }
+.in-dots i.on { width: 22px; background: var(--yellow); }
+.in-actions { display: flex; gap: 10px; }
+.in-actions .btn { flex: 1; min-height: 52px; font-size: 17px; }
+@keyframes in-up { from { opacity: 0; transform: translateY(12px); } }
+
+/* the yellow card, same as the verdict card in Judge */
+.in-card {
+  position: absolute; left: 50%; top: 44%; width: 104px; height: 136px; border-radius: 12px; background: var(--yellow); color: #111418;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translate(-50%, -50%) rotate(-8deg);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+}
+.in-card small { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; }
+.in-card b { font-size: 50px; font-weight: 900; font-stretch: 90%; line-height: 1; }
+@keyframes in-drop {
+  0% { opacity: 0; transform: translate(-50%, -120%) rotate(6deg) scale(0.9); }
+  70% { opacity: 1; transform: translate(-50%, -48%) rotate(-10deg) scale(1.02); }
+  100% { opacity: 1; transform: translate(-50%, -50%) rotate(-8deg) scale(1); }
+}
+
+/* 1: the posts everyone sees before a deadline */
+.in-posts { position: absolute; inset: 0; padding: 20px 18px; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+.in-post {
+  display: flex; align-items: center; gap: 10px; background: var(--bg); border-radius: 14px; padding: 10px 12px; font-weight: 600; font-size: 15px;
+  box-shadow: inset 0 0 0 1px var(--line); animation: in-up 0.4s var(--d) var(--ease) both;
+}
+.in-post { width: 74%; }
+.in-post:nth-child(2) { margin-left: 16px; }
+.in-post i { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--ink); color: var(--bg); font-style: normal; font-size: 12px; font-weight: 800; display: grid; place-items: center; }
+.in-post:nth-child(2) i { background: var(--yellow); color: #111418; }
+.in-post:nth-child(3) i { background: var(--grass-1); color: #111418; }
+.in-stamp { top: 50%; left: 84%; width: 84px; height: 110px; animation: in-drop 0.45s 1.1s var(--ease) both; }
+
+/* 2: judge */
+.in-judge { position: absolute; inset: 0; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.in-pitch {
+  flex: 1; border-radius: 10px; display: flex; flex-direction: column; justify-content: space-around; padding: 6px 0;
+  background: repeating-linear-gradient(180deg, var(--grass-1) 0 12.5%, var(--grass-2) 12.5% 25%);
+}
+.in-line { display: flex; justify-content: space-evenly; }
+.in-shirt { width: 30px; animation: in-pop 0.3s var(--d) var(--ease) both; }
+.in-shirt svg { display: block; width: 100%; height: auto; }
+@keyframes in-pop { from { opacity: 0; transform: scale(0.6); } }
+.in-vrow { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.in-vrow span {
+  height: 34px; border-radius: 8px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line-2); display: grid; place-items: center;
+  font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums;
+}
+.in-vrow .in-pick { animation: in-pick 0.2s 1.35s var(--ease) both; }
+@keyframes in-pick { to { background: var(--yellow); color: #111418; box-shadow: none; transform: translateY(-2px) rotate(-4deg); } }
+.in-finger {
+  position: absolute; width: 38px; height: 38px; border-radius: 50%; background: rgba(17, 20, 24, 0.22); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9);
+  left: 72.5%; bottom: 10px; margin-left: -19px; animation: in-finger 1.6s 0.5s var(--ease) both;
+}
+@keyframes in-finger {
+  0% { opacity: 0; transform: translate(40px, 40px); }
+  20% { opacity: 1; }
+  55% { transform: translate(0, 0) scale(1); }
+  62% { transform: scale(0.86); }
+  70% { transform: scale(1); opacity: 1; }
+  100% { opacity: 0; transform: scale(1); }
+}
+.in-verdict { top: 40%; animation: in-drop 0.45s 1.45s var(--ease) both; }
+
+/* 3: post a screenshot */
+.in-post-shot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 18px; padding: 16px; }
+.in-phone {
+  position: relative; width: 132px; height: 100%; max-height: 270px; border-radius: 22px; background: #111418; padding: 8px; display: flex; overflow: hidden;
+  box-shadow: 0 0 0 1px var(--line-2);
+  animation: in-up 0.4s var(--ease) both;
+}
+.in-phone .in-pitch { border-radius: 14px; }
+.in-phone .in-shirt { width: 20px; }
+.in-scan {
+  position: absolute; left: 8px; right: 8px; top: 8px; height: 3px; background: var(--yellow); box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.2);
+  animation: in-scan 1.2s 0.5s cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+@keyframes in-scan { 0% { opacity: 1; top: 8px; } 92% { opacity: 1; top: calc(100% - 11px); } 100% { opacity: 0; top: calc(100% - 11px); } }
+.in-found { display: flex; flex-direction: column; animation: in-pop 0.35s 1.75s var(--ease) both; }
+.in-found b { font-size: 46px; font-weight: 900; font-stretch: 90%; letter-spacing: -0.03em; line-height: 1; }
+.in-found span { font-weight: 700; color: var(--ink-2); margin-top: 4px; }
+.in-found::before { content: ''; width: 34px; height: 8px; border-radius: 4px; background: var(--yellow); margin-bottom: 10px; }
+
+/* 4: leaderboard climb */
+.in-board { position: absolute; inset: 0; padding: 18px 14px; }
+.in-row {
+  position: absolute; left: 14px; right: 14px; height: 52px; top: calc(18px + var(--r) * 58px); display: grid; grid-template-columns: 34px 1fr auto;
+  align-items: center; padding: 0 14px 0 6px; border-radius: 12px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line);
+  font-weight: 700; animation: in-shift 0.6s 1.1s var(--ease) both;
+}
+@keyframes in-shift { to { transform: translateY(58px); } }
+.in-row .pos { text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; position: relative; }
+.in-row .sc { font-weight: 800; font-size: 19px; font-variant-numeric: tabular-nums; position: relative; }
+.in-row.me {
+  --r: 3; z-index: 2; background: var(--card); box-shadow: inset 4px 0 0 var(--yellow), 0 6px 18px rgba(0, 0, 0, 0.12);
+  animation: in-climb 0.6s 1.1s var(--ease) both;
+}
+@keyframes in-climb { from { transform: translateY(0); } to { transform: translateY(-174px); } }
+.in-row i { font-style: normal; display: block; }
+.in-row i + i { position: absolute; inset: 0; opacity: 0; animation: in-in 0.2s 1.4s both; }
+.in-row i:first-child { animation: in-out 0.2s 1.4s both; }
+@keyframes in-out { to { opacity: 0; } }
+@keyframes in-in { to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .intro *, .intro { animation-duration: 0.01ms !important; animation-delay: 0s !important; }
+  .in-finger { display: none; }
+}
+.in-stamp b { font-size: 38px; }

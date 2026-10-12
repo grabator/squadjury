@@ -29,6 +29,20 @@ page.on('console', (m) => m.type() === 'error' && !/Failed to load resource/.tes
 const nick = `Graba${Date.now() % 100000}`;
 
 try {
+  await step('first visit: the intro explains the app in 4 screens, then gets out of the way', async () => {
+    await page.goto(BASE + '/');
+    await page.locator('.intro').waitFor();
+    await page.getByRole('heading', { name: 'Rate my team? Ask the jury.' }).waitFor();
+    await shot(page, 'e2e-0-intro');
+    for (let i = 0; i < 3; i++) await page.locator('[data-next]').click();
+    await page.getByRole('heading', { name: 'Climb before the deadline' }).waitFor();
+    await page.getByRole('link', { name: 'Start judging' }).click();
+    await page.locator('.intro').waitFor({ state: 'detached' });
+    await page.reload();
+    await page.locator('.vbtn, .empty').first().waitFor();
+    assert.equal(await page.locator('.intro').count(), 0, 'the intro shows only once');
+  });
+
   await step('sign in from the Post tab (dev login) and pick a nickname', async () => {
     await page.goto(BASE + '/post');
     await page.getByRole('button', { name: 'Continue with Google' }).click();

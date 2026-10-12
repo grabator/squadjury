@@ -3,6 +3,8 @@ import { launch } from '../../scripts/browser.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+// The first visit intro is tested in run.mjs; here it would cover the screens.
+await ctx.addInitScript(() => { try { localStorage.setItem('sj-intro', '1'); } catch {} });
 const page = await ctx.newPage();
 const cdp = await ctx.newCDPSession(page);
 await cdp.send('Network.enable');
