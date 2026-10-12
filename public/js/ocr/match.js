@@ -282,6 +282,23 @@ export function readSquad(passes, ctx) {
     slots = slots.map((s) => (s.player ? s : { ...resolve(s.cand, labels, { ...ctx, gw }), cand: s.cand }));
   }
 
+  // A name that fits a player whose club does not play the fixture under it ("Fernandes"
+  // read for "B.Fernandes"): take the one player of the right club with that name in his.
+  if (gw) {
+    const taken = new Set(slots.map((s) => s.player?.id).filter(Boolean));
+    slots = slots.map((s) => {
+      if (!s.player || !s.label) return s;
+      const fits = (p) => fixtureFor(p.team, gw, ctx.fixtures, ctx.teams).some((f) => f.code === s.label.code && (!s.label.venue || f.venue === s.label.venue));
+      if (fits(s.player)) return s;
+      const k = norm(s.cand.text);
+      const alt = ctx.players.filter((p) => !taken.has(p.id) && fits(p) && (norm(p.web_name).includes(k) || lev(k, norm(p.web_name), 2) <= 1));
+      if (alt.length !== 1) return s;
+      taken.delete(s.player.id);
+      taken.add(alt[0].id);
+      return { ...s, player: alt[0] };
+    });
+  }
+
   // Starters above the bench header, bench below it.
   const rowGap = (ctx.height || 2000) * 0.04;
   const starters = [], bench = [];

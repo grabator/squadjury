@@ -37,6 +37,13 @@ const cases = [
     captain: 'Cherki', vice: 'Haaland',
   },
   {
+    // The same squad sent through a chat app: 720 px wide and compressed again.
+    file: 'pick-team-6.jpg', gw: 7,
+    xi: ['Verbruggen', 'Calafiori', 'Muharemović', 'Konsa', 'Yalcouyé', 'Mbeumo', 'B.Fernandes', 'Cherki', 'Groß', 'João Pedro', 'Haaland'],
+    bench: ['Kinsky', 'Calvert-Lewin', 'Maguire', 'Davis'],
+    captain: 'Cherki', vice: 'Haaland',
+  },
+  {
     // The same squad from another Android phone, at a different size.
     file: 'pick-team-5.jpg', gw: 7,
     xi: ['Verbruggen', 'Calafiori', 'Muharemović', 'Konsa', 'Yalcouyé', 'Mbeumo', 'B.Fernandes', 'Cherki', 'Groß', 'João Pedro', 'Haaland'],
