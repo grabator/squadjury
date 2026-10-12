@@ -50,6 +50,7 @@ try {
     for (const n of ['Leno', 'Hall', 'Saka', 'Haaland', 'Mitchell']) assert.ok(names.includes(n), `missing ${n}`);
     assert.equal(await page.locator('#pitch .armband.c').count(), 1);
     assert.equal(await page.locator('#pitch .armband.v').count(), 1);
+    await page.waitForTimeout(1200);
     await shot(page, 'e2e-3-confirm');
   });
 
@@ -76,6 +77,7 @@ try {
     await page.goto(BASE + '/squad');
     await page.getByRole('button', { name: 'Share link' }).waitFor();
     assert.equal(await page.locator('.pl').count(), 15);
+    await page.waitForTimeout(1200);
     await shot(page, 'e2e-7-mysquad');
   });
 

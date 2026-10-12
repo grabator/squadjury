@@ -85,7 +85,7 @@ async function deleteTeamFiles(env, t) {
   if (keys.length) await env.IMAGES.delete(keys);
 }
 
-// ----------------------------------------------------------------- routes
+// ==== routes
 
 const routes = [];
 const route = (method, pattern, handler) => routes.push({ method, re: new RegExp(`^${pattern}$`), handler });
@@ -120,7 +120,7 @@ route('GET', '/api/fpl', async (c) =>
   ),
 );
 
-// ---- auth
+// ==== auth
 
 route('POST', '/api/auth/google', async (c) => {
   await rateLimit(c.env, `auth:${clientIp(c.req)}`, 30, 3600, c.now);
@@ -216,7 +216,7 @@ route('GET', '/api/me/profile', async (c) => {
   });
 });
 
-// ---- squads
+// ==== squads
 
 route('POST', '/api/teams', async (c) => postTeam(c, false));
 route('PUT', '/api/teams/mine', async (c) => postTeam(c, true));
@@ -289,7 +289,7 @@ route('GET', '/api/teams/([A-Za-z0-9_-]{4,20})', async (c, key) => {
   return json({ team: out });
 });
 
-// ---- judging
+// ==== judging
 
 route('GET', '/api/judge/next', async (c) => {
   const open = await needOpen(c);
@@ -340,7 +340,7 @@ route('POST', '/api/votes', async (c) => {
   return json({ avg: avgOf(after), votes: after.vote_count, judged: await judgedCount(c.env, u.id, open.id) });
 });
 
-// ---- leaderboard
+// ==== leaderboard
 
 route('GET', '/api/leaderboard', async (c) => {
   const open = await c.open();
@@ -406,7 +406,7 @@ route('GET', '/api/season', async (c) => {
   });
 });
 
-// ---- reports and admin
+// ==== reports and admin
 
 route('POST', '/api/reports', async (c) => {
   const u = needUser(c);
@@ -469,7 +469,7 @@ route('POST', '/api/admin/users/(\\d+)/ban', async (c, id) => {
   return json({ ok: true });
 });
 
-// ----------------------------------------------------------------- pages
+// ==== pages
 
 /** Share page: the app shell with Open Graph and Twitter tags for this squad. */
 async function sharePage(c, key) {
@@ -513,7 +513,7 @@ async function image(c, key) {
   return new Response(obj.body, { headers });
 }
 
-// ----------------------------------------------------------------- entry
+// ==== entry
 
 const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',

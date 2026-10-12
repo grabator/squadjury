@@ -1,0 +1,116 @@
+<p align="center"><img src="public/img/logo/logo.svg" alt="SquadJury" width="360"></p>
+
+<p align="center"><strong>Post your squad. The jury decides.</strong></p>
+
+SquadJury is a web app for Fantasy Premier League players. You upload a screenshot of your squad from the official FPL app, SquadJury reads all 15 players for you, and the community judges it from 1 to 10. Verdicts stay open until the FPL deadline, the best rated squads top the leaderboard, and the top 10 of every gameweek is kept for good.
+
+Built mobile first, with no framework and no build step, on Cloudflare Workers.
+
+<p align="center">
+  <img src="docs/screenshots/judge.jpg" alt="Judge screen" width="240">
+  <img src="docs/screenshots/verdict.jpg" alt="The verdict animation" width="240">
+  <img src="docs/screenshots/leaderboard.jpg" alt="Live leaderboard" width="240">
+</p>
+<p align="center">
+  <img src="docs/screenshots/post-recognised.jpg" alt="15 of 15 players recognised from a screenshot" width="240">
+  <img src="docs/screenshots/my-squad.jpg" alt="My squad" width="240">
+</p>
+
+## Features
+
+- **Sign in with Google**, one tap, then pick a nickname (and optionally add your X username).
+- **Squad reader:** upload a Pick Team screenshot and the browser reads the 15 players, their positions, the bench, the captain and the vice captain. Nothing to type. Anything it misses can be fixed with a player search.
+- **Judge:** one squad at a time, tap 1 to 10, the gavel comes down and the next squad is dealt. Swipe left (or press S) to skip; on a keyboard, keys 1 to 9 and 0 give a verdict.
+- **Leaderboard:** live standings for the open gameweek, the final top 10 of every past gameweek, gameweek Champions and a Season table.
+- **Fair ranking:** a squad needs 5 verdicts, and its owner must judge 5 other squads, to be ranked. The rank uses a Bayesian average so a handful of 10s cannot beat a squad with many strong verdicts.
+- **My squad:** live verdict, rank, "better than X% of squads", how the jury voted, and sharing.
+- **Share:** each squad has its own link with a link preview card, a one tap "Post on X", and Full HD images (1920x1080 for X, 1080x1920 for stories).
+- **Deadlines from FPL:** voting closes at the official deadline, the gameweek locks and its results are frozen automatically.
+- **Fair play:** one squad per account per gameweek, one verdict per squad, no judging your own squad, rate limits, reduced weight for accounts that only give 1 or 10, and reports that hide a squad after 3 reports until an admin reviews it.
+- **Installable** as an app (PWA), accessible (keyboard, screen readers, reduced motion) and fast on phones.
+
+<p align="center"><img src="docs/screenshots/desktop.jpg" alt="Desktop layout" width="760"></p>
+<p align="center"><img src="docs/screenshots/share-x.jpg" alt="Share image for X" width="520"> <img src="docs/screenshots/share-story.jpg" alt="Story image" width="146"></p>
+
+## How it works
+
+| Part | Technology |
+| :-- | :-- |
+| App | Vanilla JavaScript (ES modules), no framework, no build step |
+| Hosting and API | One Cloudflare Worker with static assets |
+| Database | Cloudflare D1 (SQLite) |
+| Screenshots and share cards | Cloudflare R2 |
+| Deadlines and FPL data | Cloudflare Cron Triggers and the public FPL API |
+| Squad reader | Tesseract.js running in the browser, self hosted |
+| Sign in | Google Identity Services, with our own HttpOnly session cookie |
+
+The squad reader finds the white name cards on the screenshot, reads each card on its own, then double checks the whole image at several contrast levels. The words it reads are matched against all FPL players (with fuzzy matching for misreads), players with the same surname are told apart by the fixture under their name, and the squad is checked against FPL rules.
+
+## Run it locally
+
+Requirements: Node.js 20 or newer.
+
+```bash
+npm install
+npm run db:migrate      # create the local database
+npm run seed            # optional: example jurors and squads, marked "example data"
+npm run dev             # http://localhost:8787
+```
+
+Local development uses a bundled snapshot of FPL 2026/27 data and a developer sign in (no Google account needed). Add `?now=2026-10-17T12:00:00Z` to the URL to simulate a different time, for example to test a deadline.
+
+## Tests
+
+```bash
+npm test                # unit tests: ranking, squad rules, name matching, X post length
+npm run test:ocr        # reads two real Pick Team screenshots end to end (15 of 15)
+npm run test:api        # API tests on a throwaway database
+node tests/e2e/run.mjs      # full flow in a real browser (needs npm run dev)
+node tests/e2e/audit.mjs    # accessibility and layout on every page at 360 to 1280 px
+node tests/e2e/perf.mjs     # load time on a simulated phone over 4G
+```
+
+The browser tests look for Chromium in the usual places; set `CHROME_PATH` to point at a different browser.
+
+## Deploy
+
+1. Create the database and the bucket:
+   ```bash
+   npx wrangler d1 create squadjury
+   npx wrangler r2 bucket create squadjury-images
+   ```
+   Put the `database_id` printed by the first command into `wrangler.jsonc`.
+2. In Google Cloud, create an OAuth client id of type **Web application** with `https://squadjury.com` as an authorised JavaScript origin, and put the client id in `GOOGLE_CLIENT_ID` in `wrangler.jsonc`.
+3. Set `ADMIN_EMAILS` in `wrangler.jsonc` to the Google email(s) that may open `/admin`.
+4. Apply the schema and deploy:
+   ```bash
+   npx wrangler d1 migrations apply squadjury --remote
+   npm run deploy
+   ```
+5. In the Cloudflare dashboard, add `squadjury.com` as a custom domain of the `squadjury` Worker.
+
+## Project structure
+
+```
+public/            the app (HTML, CSS, JS, fonts, logo, icons)
+  js/views/        screens: judge, leaderboard, post, squad, me, team, pages, admin
+  js/ocr/          the squad reader (shared by the browser and the tests)
+src/               the Worker: API, sessions, FPL data, gameweek locking
+migrations/        D1 schema
+scripts/           logo, icons, share card, FPL snapshot, example data, vendor files
+tests/             unit, OCR, API and browser tests with real screenshot fixtures
+```
+
+The logo is generated by `scripts/logo.py`; five variants live in `public/img/logo/variants`. To switch, change `CHOSEN` in that script and run `npm run logo`.
+
+## Credits
+
+- Fonts: Barlow Condensed and Manrope, both under the SIL Open Font License.
+- Squad reader: Tesseract.js (Apache 2.0).
+- FPL snapshot for local development built from the public FPL data collected in [vaastav/Fantasy-Premier-League](https://github.com/vaastav/Fantasy-Premier-League).
+
+SquadJury is a fan project and is not affiliated with the Premier League or Fantasy Premier League. Shirts on the pitch are generic shapes in club colours; no club badges or official kits are used.
+
+## Author
+
+Ahmed Grabus ([grabator](https://github.com/grabator))
