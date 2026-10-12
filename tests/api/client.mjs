@@ -1,11 +1,12 @@
 // API smoke test against a running `npm run dev` (http://127.0.0.1:8787).
 import { readFileSync } from 'node:fs';
-const BASE = process.env.BASE || 'http://127.0.0.1:8787';
+const base = () => process.env.BASE || 'http://127.0.0.1:8787';
 const snap = JSON.parse(readFileSync(new URL('../../src/data/fpl-snapshot.json', import.meta.url)));
 
 export function client(name) {
   let cookie = '';
   const call = async (method, path, body, isForm) => {
+    const BASE = base();
     const headers = { origin: BASE, cookie };
     if (body && !isForm) headers['content-type'] = 'application/json';
     const res = await fetch(BASE + path, { method, headers, body: isForm ? body : body ? JSON.stringify(body) : undefined });
@@ -60,6 +61,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const lb = await b.call('GET', '/api/leaderboard');
   console.log('leaderboard', lb.status, 'ranked', lb.data.ranked.length, 'pending', lb.data.pending.length);
   console.log('state a', JSON.stringify((await a.call('GET', '/api/state')).data.mine?.place));
-  const bad = await fetch(BASE + '/api/votes', { method: 'POST', headers: { origin: 'https://evil.example', 'content-type': 'application/json' }, body: '{}' });
+  const bad = await fetch(base() + '/api/votes', { method: 'POST', headers: { origin: 'https://evil.example', 'content-type': 'application/json' }, body: '{}' });
   console.log('cross origin (403 expected)', bad.status);
 }

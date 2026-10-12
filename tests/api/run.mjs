@@ -1,0 +1,141 @@
+// API tests on a fresh, throwaway local database (separate from your dev data).
+// Starts its own Worker on port 8788, runs the checks, then stops it.
+// Usage: npm run test:api
+import { spawn, execSync } from 'node:child_process';
+import { rmSync, readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+import { client, randomSquad } from './client.mjs';
+
+const PORT = 8788;
+const BASE = `http://127.0.0.1:${PORT}`;
+process.env.BASE = BASE;
+const STATE = new URL('../../.wrangler/test-state', import.meta.url).pathname;
+const snap = JSON.parse(readFileSync(new URL('../../src/data/fpl-snapshot.json', import.meta.url)));
+
+rmSync(STATE, { recursive: true, force: true });
+execSync(`npx wrangler d1 migrations apply squadjury --local --persist-to ${STATE}`, { stdio: 'ignore' });
+const dev = spawn('npx', ['wrangler', 'dev', '--local', '--port', String(PORT), '--persist-to', STATE, '--var', 'DEV_LOGIN:1', '--var', 'FPL_SOURCE:snapshot'], { stdio: 'ignore', detached: true });
+const stop = () => { try { process.kill(-dev.pid); } catch {} };
+process.on('exit', stop);
+
+for (let i = 0; i < 60; i++) {
+  try { if ((await fetch(BASE + '/api/state')).ok) break; } catch {}
+  await new Promise((r) => setTimeout(r, 500));
+}
+
+const results = [];
+async function check(name, fn) {
+  try { await fn(); results.push(`ok   ${name}`); }
+  catch (e) { results.push(`FAIL ${name}: ${e.message}`); }
+}
+
+const form = (squad, extra = {}) => {
+  const fd = new FormData();
+  fd.set('picks', JSON.stringify(squad));
+  fd.set('captain', String(squad[5].id));
+  fd.set('vice', String(squad[6].id));
+  for (const [k, v] of Object.entries(extra)) fd.set(k, v);
+  return fd;
+};
+
+const users = await Promise.all(['ana', 'ben', 'cia', 'dan', 'eve', 'fox'].map(async (n) => { const c = client(`${n}${Date.now()}`); await c.login(); return c; }));
+const [A, B, C, D, E, F] = users;
+const state = (await A.call('GET', '/api/state')).data;
+const gw = state.gw;
+
+await check('posting a valid squad works, a second post is refused', async () => {
+  assert.equal((await A.call('POST', '/api/teams', form(randomSquad(11)), true)).status, 201);
+  assert.equal((await A.call('POST', '/api/teams', form(randomSquad(12)), true)).status, 409);
+});
+
+await check('squad rules: 4 players from one club are refused', async () => {
+  const type = (id) => snap.players.find((x) => x.id === id).element_type;
+  const club = (id) => snap.players.find((x) => x.id === id).team;
+  const squad = randomSquad(13);
+  const arsenal = snap.players.filter((p) => p.team === 1 && p.element_type > 1 && !squad.some((s) => s.id === p.id));
+  const done = new Set();
+  for (const p of arsenal) {
+    if (squad.filter((s) => club(s.id) === 1).length >= 4) break;
+    const i = squad.findIndex((s, k) => !done.has(k) && type(s.id) === p.element_type && club(s.id) !== 1);
+    if (i >= 0) { squad[i] = { id: p.id }; done.add(i); }
+  }
+  assert.equal(squad.filter((s) => club(s.id) === 1).length, 4);
+  const r = await B.call('POST', '/api/teams', form(squad), true);
+  assert.equal(r.status, 400, JSON.stringify(r.data));
+  assert.equal(r.data.error, 'squad_rules');
+});
+
+await check('a file that is not an image is refused', async () => {
+  const r = await C.call('POST', '/api/teams', form(randomSquad(14), { image: new Blob(['hello'], { type: 'image/png' }) }), true);
+  assert.equal(r.status, 415);
+});
+
+await check('a real screenshot uploads and is served back', async () => {
+  const img = new Blob([readFileSync(new URL('../fixtures/pick-team-2.jpg', import.meta.url))], { type: 'image/jpeg' });
+  const r = await C.call('POST', '/api/teams', form(randomSquad(15), { image: img }), true);
+  assert.equal(r.status, 201);
+  const res = await fetch(BASE + r.data.team.image);
+  assert.equal(res.status, 200, r.data.team.image);
+  assert.equal(res.headers.get('content-type'), 'image/jpeg');
+});
+
+const keyA = (await A.call('GET', '/api/state')).data.mine.key;
+
+await check('verdicts: 1 to 10 only, not on your own squad, average hidden until you judge', async () => {
+  assert.equal((await B.call('POST', '/api/votes', { key: keyA, score: 0 })).status, 400);
+  assert.equal((await A.call('POST', '/api/votes', { key: keyA, score: 10 })).status, 403);
+  assert.equal((await B.call('GET', `/api/teams/${keyA}`)).data.team.avg, null);
+  const v = await B.call('POST', '/api/votes', { key: keyA, score: 7 });
+  assert.equal(v.status, 200);
+  assert.equal((await B.call('GET', `/api/teams/${keyA}`)).data.team.avg, 7);
+});
+
+await check('changing a verdict replaces it instead of adding one', async () => {
+  const v = await B.call('POST', '/api/votes', { key: keyA, score: 9 });
+  assert.deepEqual([v.data.avg, v.data.votes], [9, 1]);
+});
+
+await check('the owner sees the vote distribution', async () => {
+  const t = (await A.call('GET', `/api/teams/${keyA}`)).data.team;
+  assert.equal(t.dist[8], 1);
+});
+
+await check('cross site writes are refused', async () => {
+  const r = await fetch(BASE + '/api/votes', { method: 'POST', headers: { origin: 'https://evil.example', 'content-type': 'application/json' }, body: JSON.stringify({ key: keyA, score: 1 }) });
+  assert.equal(r.status, 403);
+});
+
+await check('3 reports hide a squad from judging and from its link', async () => {
+  for (const u of [C, D, E]) assert.equal((await u.call('POST', '/api/reports', { key: keyA })).status, 200);
+  assert.equal((await F.call('GET', `/api/teams/${keyA}`)).status, 404);
+  const next = await F.call('GET', '/api/judge/next?n=5');
+  assert.ok(!next.data.teams.some((t) => t.key === keyA));
+});
+
+await check('at the deadline the gameweek locks and the next one opens', async () => {
+  const after = new Date(gw.deadline + 60_000).toISOString();
+  const call = async (u, m, p, b) => {
+    const res = await fetch(BASE + p, { method: m, headers: { origin: BASE, 'x-sj-now': after, 'content-type': 'application/json', cookie: '' }, body: b ? JSON.stringify(b) : undefined });
+    return { status: res.status, data: await res.json() };
+  };
+  const s = await call(null, 'GET', '/api/state');
+  assert.equal(s.data.gw.id, gw.id + 1);
+  const lb = await call(null, "GET", `/api/leaderboard?gw=${gw.id}`);
+  if (!lb.data.gameweeks) throw new Error(JSON.stringify(lb));
+  assert.equal(lb.data.live, false);
+  const gws = lb.data.gameweeks.find((g) => g.id === gw.id);
+  assert.ok(gws, JSON.stringify(lb.data.gameweeks));
+  assert.equal(gws.status, 'locked');
+});
+
+await check('deleting an account removes the user and their squad', async () => {
+  const keyC = (await C.call('GET', '/api/state')).data.mine?.key;
+  assert.equal((await C.call('DELETE', '/api/me')).status, 200);
+  assert.equal((await C.call('GET', '/api/state')).data.user, null);
+  if (keyC) assert.equal((await A.call('GET', `/api/teams/${keyC}`)).status, 404);
+});
+
+stop();
+console.log(results.join('\n'));
+if (results.some((r) => r.startsWith('FAIL'))) process.exit(1);
+process.exit(0);

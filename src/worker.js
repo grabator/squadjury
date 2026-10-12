@@ -244,8 +244,8 @@ async function postTeam(c, replace) {
 
   const key = existing?.share_key || randomKey(6);
   const stamp = randomKey(4); // new file names on replace, so caches never show the old squad
-  const imageKey = shot ? `shots/${open.id}/${key}-${stamp}.${shot.type.split('/')[1]}` : null;
-  const ogKey = og ? `og/${key}-${stamp}.${og.type.split('/')[1]}` : null;
+  const imageKey = shot ? `shot_${open.id}_${key}_${stamp}.${shot.type.split('/')[1]}` : null;
+  const ogKey = og ? `og_${key}_${stamp}.${og.type.split('/')[1]}` : null;
   const put = (k, f) => c.env.IMAGES.put(k, f.buf, { httpMetadata: { contentType: f.type, cacheControl: 'public, max-age=31536000, immutable' } });
   if (shot) await put(imageKey, shot);
   if (og) await put(ogKey, og);
@@ -480,7 +480,7 @@ async function sharePage(c, key) {
     const origin = new URL(c.req.url).origin;
     const title = `${t.nickname}'s GW${t.gw} squad on SquadJury`;
     const desc = t.vote_count ? `Jury verdict so far: ${avgOf(t)}/10 from ${t.vote_count} jurors. Give yours before the deadline.` : 'Judge this FPL squad from 1 to 10 before the deadline.';
-    const img = t.og_key ? `${origin}/img/${t.og_key}` : `${origin}/img/og-default.png`;
+    const img = t.og_key ? `${origin}/u/${t.og_key}` : `${origin}/img/og-default.png`;
     const meta = [
       `<meta property="og:title" content="${esc(title)}">`,
       `<meta property="og:description" content="${esc(desc)}">`,
@@ -505,10 +505,7 @@ async function sharePage(c, key) {
 
 async function image(c, key) {
   const obj = await c.env.IMAGES.get(key);
-  if (!obj) {
-    // Static fallback images live in /public/img.
-    return c.env.ASSETS.fetch(new Request(new URL(`/img/${key}`, c.req.url)));
-  }
+  if (!obj) return new Response('Not found', { status: 404 });
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
   headers.set('etag', obj.httpEtag);
@@ -530,7 +527,8 @@ export default {
     const now = clock(req, env);
     let res;
     try {
-      if (url.pathname.startsWith('/img/')) return await image({ env, req }, decodeURIComponent(url.pathname.slice(5)));
+      const upload = url.pathname.match(/^\/u\/([A-Za-z0-9_.-]{6,80})$/);
+      if (upload) return await image({ env, req }, upload[1]);
       checkOrigin(req);
       const fpl = await getFpl(env, now);
       let openMemo;

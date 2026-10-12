@@ -106,7 +106,7 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href]');
   if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
   const url = new URL(a.href, location.href);
-  if (url.origin !== location.origin || url.pathname.startsWith('/img/') || a.hasAttribute('download')) return;
+  if (url.origin !== location.origin || url.pathname.startsWith('/u/') || a.hasAttribute('download')) return;
   e.preventDefault();
   navigate(url.pathname + url.search);
 });

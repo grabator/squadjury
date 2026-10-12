@@ -17,7 +17,8 @@
     "db:reset": "rm -rf .wrangler/state && wrangler d1 migrations apply squadjury --local",
     "icons": "node scripts/icons.mjs",
     "logo": "python3 scripts/logo.py && node scripts/icons.mjs",
-    "predev": "node scripts/vendor.mjs"
+    "predev": "node scripts/vendor.mjs",
+    "test:api": "node tests/api/run.mjs"
   },
   "author": "Ahmed Grabus (grabator)",
   "license": "UNLICENSED",
