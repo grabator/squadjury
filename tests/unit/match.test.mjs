@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { norm, lev, buildIndex, lookup, validate } from '../../public/js/ocr/match.js';
+import { norm, lev, buildIndex, lookup, validate, guessGameweek } from '../../public/js/ocr/match.js';
 
 const players = [
   { id: 1, web_name: 'Ødegaard', team: 1, element_type: 3 },
@@ -40,4 +40,20 @@ test('validate checks squad shape and clubs', () => {
   const four = good.map((p, i) => (i < 4 ? { ...p, team: 1 } : p));
   assert.equal(validate(four, { teams: [] }).problems[0].code, 'club');
   assert.equal(validate(good.slice(0, 14), { teams: [] }).ok, false);
+});
+
+test('guessGameweek uses home or away and prefers the current gameweek', () => {
+  const teams = [{ id: 1, short_name: 'ARS' }, { id: 2, short_name: 'NFO' }];
+  const fixtures = [
+    { event: 7, team_h: 2, team_a: 1 },
+    { event: 36, team_h: 1, team_a: 2 },
+  ];
+  const slot = (venue) => ({ player: { team: 1 }, label: { code: 'NFO', venue } });
+  const ctx = { teams, fixtures };
+  // NFO (A) is only GW7; the return match is at home.
+  assert.equal(guessGameweek([slot('A'), slot('A')], [], ctx), 7);
+  assert.equal(guessGameweek([slot('H'), slot('H')], [], ctx), 36);
+  // Without home or away both fit, so the current gameweek wins, else the earlier one.
+  assert.equal(guessGameweek([slot(null)], [], { ...ctx, hintGw: 36 }), 36);
+  assert.equal(guessGameweek([slot(null)], [], ctx), 7);
 });

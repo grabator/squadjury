@@ -180,20 +180,29 @@ function resolve(cand, labels, ctx) {
   return { player: null, options, label };
 }
 
-/** Guesses the gameweek from fixture labels when it is not known. */
+/**
+ * Guesses the gameweek from fixture labels when it is not known.
+ * Every pair of teams meets twice a season, so a label with home or away counts fully and one
+ * without counts half. When the current gameweek (hintGw) fits about as well, it wins.
+ */
 export function guessGameweek(slots, labels, ctx) {
   const scores = new Map();
+  const events = [...new Set(ctx.fixtures.map((f) => f.event))].filter(Boolean);
   for (const s of slots) {
     if (!s.player || !s.label) continue;
-    for (const ev of new Set(ctx.fixtures.map((f) => f.event))) {
-      if (fixtureFor(s.player.team, ev, ctx.fixtures, ctx.teams).some((f) => f.code === s.label.code)) {
-        scores.set(ev, (scores.get(ev) || 0) + 1);
-      }
+    for (const ev of events) {
+      const fx = fixtureFor(s.player.team, ev, ctx.fixtures, ctx.teams).filter((f) => f.code === s.label.code);
+      if (!fx.length) continue;
+      const w = !s.label.venue ? 0.5 : fx.some((f) => f.venue === s.label.venue) ? 1 : 0;
+      if (w) scores.set(ev, (scores.get(ev) || 0) + w);
     }
   }
   let best = null;
-  for (const [ev, n] of scores) if (!best || n > best.n || (n === best.n && ev > best.ev)) best = { ev, n };
-  return best?.ev ?? null;
+  for (const [ev, n] of scores) if (!best || n > best.n || (n === best.n && ev < best.ev)) best = { ev, n };
+  if (!best) return null;
+  const hint = ctx.hintGw && scores.get(ctx.hintGw);
+  if (hint && hint >= best.n - 1) return ctx.hintGw;
+  return best.ev;
 }
 
 /**
