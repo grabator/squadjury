@@ -78,7 +78,7 @@ export async function mount(el) {
       <div class="stat"><span class="num">${st.best ? `#${st.best}` : '-'}</span><span>${t('me.best')}</span></div>
     </div>
 
-    <h2 class="section-h">${t('me.verdictsGw', { gw: cur.gw })}</h2>
+    <h2 class="section-h">${cur.gw ? t('me.verdictsGw', { gw: cur.gw }) : t('me.verdictsAll')}</h2>
     ${cur.total
       ? html`<ul class="list" id="cur">${verdictRows(cur.items)}</ul>
         ${cur.total > cur.items.length ? html`<a class="show-all" href="/me/verdicts?gw=${cur.gw}">${t('me.showAll', { n: cur.total })}</a>` : ''}`

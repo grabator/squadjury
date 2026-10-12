@@ -2,7 +2,7 @@
 // Your row is marked in yellow and stays pinned above the menu when it is off screen.
 
 import { t } from '../i18n.js';
-import { html, raw, $, $$, errText } from '../ui.js';
+import { html, raw, $, $$, errText, sheet } from '../ui.js';
 import { api } from '../api.js';
 import { store } from '../store.js';
 
@@ -49,7 +49,7 @@ function renderTabs(gameweeks, open) {
   tabs.push({ id: 'season', label: t('lb.season'), on: tab === 'season' });
   const box = $('#lbtabs', root);
   box.innerHTML = `<div class="tablist" role="tablist" aria-label="${t('lb.title')}">${tabs.map((x) => html`<button type="button" role="tab" class="lb-tab" data-tab="${x.id}" aria-selected="${String(x.on)}">${x.label}</button>`.s).join('')}</div>`
-    + (onPast ? html`<label class="gw-pick"><span class="sr-only">${t('lb.pickGw')}</span><select id="gwsel">${past.map((g) => html`<option value="gw${g}" ${g === +tab.slice(2) ? raw('selected') : ''}>GW${g}</option>`)}</select></label>`.s : '');
+    + (onPast ? html`<button type="button" class="gw-pick" id="gwpick" aria-haspopup="dialog" aria-label="${t('lb.pickGw')}: GW${tab.slice(2)}">GW${tab.slice(2)}<svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`.s : '');
   const go = (next) => {
     tab = next;
     shown = PAGE;
@@ -58,7 +58,18 @@ function renderTabs(gameweeks, open) {
     load();
   };
   $$('.lb-tab', box).forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
-  $('#gwsel', box)?.addEventListener('change', (e) => go(e.target.value));
+  // A sheet with every finished gameweek as a tile, the current one marked.
+  $('#gwpick', box)?.addEventListener('click', () => {
+    const cur = +tab.slice(2);
+    const sh = sheet(html`<h2>${t('lb.pickGw')}</h2><p>${t('lb.pickGwText')}</p>
+      <div class="gw-grid">${past.map((g) => html`<button type="button" class="gw-tile" data-gw="${g}" ${raw(g === cur ? 'aria-current="true"' : '')}>${g}</button>`)}</div>`, { label: t('lb.pickGw') });
+    sh.el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-gw]');
+      if (!b) return;
+      sh.close();
+      if (+b.dataset.gw !== cur) go(`gw${b.dataset.gw}`);
+    });
+  });
 }
 
 async function load(quiet = false) {
