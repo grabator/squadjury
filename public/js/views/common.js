@@ -76,4 +76,24 @@ export function xText(team, place) {
   return t('x.posted', base);
 }
 
+/** Phones with a share sheet get "Share image" (straight into the X app), others a download. */
+export const canShareFiles = () => {
+  try { return !!navigator.canShare?.({ files: [new File([''], 'x.png', { type: 'image/png' })] }); } catch { return false; }
+};
+
+export async function shareImage(fpl, team, place) {
+  const { renderShareImage, downloadBlob } = await import('../share.js');
+  const blob = await renderShareImage('x', fpl, team, place);
+  const name = `squadjury-gw${team.gw}.png`;
+  if (canShareFiles()) {
+    try {
+      await navigator.share({ files: [new File([blob], name, { type: 'image/png' })], text: xText(team, place) });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+  downloadBlob(blob, name);
+}
+
 export const xIntent = (text) => `https://x.com/intent/post?text=${encodeURIComponent(text)}`;

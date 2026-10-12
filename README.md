@@ -21,7 +21,7 @@ Built mobile first, with no framework and no build step, on Cloudflare Workers.
 - **Sign in with Google**, one tap, then pick a nickname (and optionally add your X username).
 - **Squad reader:** upload a Pick Team screenshot and the browser reads the 15 players, their positions, the bench, the captain and the vice captain. Nothing to type. Anything it misses can be fixed with a player search.
 - **Judge:** one squad at a time on a bright pitch that fills the screen. Tap 1 to 10, a yellow card shows your verdict and the next squad slides in. Swipe left (or press S) to skip; on a keyboard, keys 1 to 9 and 0 give a verdict.
-- **Leaderboard:** one clean list: live standings for the open gameweek, the final top 10 of every past gameweek and a Season table. Your row is marked and stays pinned while you scroll.
+- **Leaderboard:** one clean list: live standings for the open gameweek, the final top 10 of any past gameweek (picked from a list) and a Season table. Your row is marked and stays pinned while you scroll.
 - **Fair ranking:** a squad needs 5 verdicts, and its owner must judge 5 other squads, to be ranked. The rank uses a Bayesian average so a handful of 10s cannot beat a squad with many strong verdicts.
 - **My squad:** live verdict, rank, "better than X% of squads", how the jury voted, and sharing.
 - **Share:** each squad has its own link with a link preview card (1200x630), a one tap "Post on X", and images to post: a square 1080x1080 for X and 1080x1920 for stories.

@@ -196,6 +196,8 @@ addEventListener('pageshow', () => { leaving = false; });
 (async function boot() {
   // Squad data is needed by almost every screen: fetch it while the state loads.
   if (!location.pathname.startsWith('/admin')) import('./fpl.js').then((m) => m.loadFpl()).catch(() => {});
+  // On the Judge screen the first squads are fetched alongside, not after, the rest.
+  if (location.pathname === '/') import('./views/judge.js').then((m) => m.prefetch()).catch(() => {});
   $('#clock').addEventListener('click', openClockSheet);
   try {
     await refreshState();

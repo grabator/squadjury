@@ -10,8 +10,14 @@ import { ensureUser } from '../auth.js';
 import { teamCardHtml, wireTeamCard, verdictCard, xIntent, shareUrl } from './common.js';
 import { whistle } from '../sound.js';
 
-let root, fpl, queue = [], skipped = [], busy = false, unsub, onKey, asideTimer;
+let root, fpl, queue = [], skipped = [], busy = false, unsub, onKey, asideTimer, undoTimer;
 const HINT_KEY = 'sj-hint';
+let early = null;
+
+/** Called by the app shell on first load of "/": asks for squads while everything else is loading. */
+export function prefetch() {
+  early ??= api('/api/judge/next?n=4&skip=').catch(() => null);
+}
 
 export async function mount(el) {
   root = el;
@@ -44,7 +50,25 @@ export async function mount(el) {
 export function unmount() {
   unsub?.();
   clearInterval(asideTimer);
+  clearTimeout(undoTimer);
   document.removeEventListener('keydown', onKey);
+}
+
+/** For a few seconds after a verdict: "Gave 8 to Toni · Undo". Undo brings the squad back to judge again. */
+function offerUndo(team, score) {
+  const hint = $('.judge-hint', root);
+  if (!hint) return;
+  clearTimeout(undoTimer);
+  hint.dataset.text ??= hint.textContent;
+  hint.innerHTML = html`<button type="button" class="link-btn" id="undo" style="padding:4px 2px">${t('judge.undo')}</button> · ${t('judge.gave', { score, nick: team.nickname })}`.s;
+  $('#undo', hint).onclick = () => {
+    if (busy) return;
+    clearTimeout(undoTimer);
+    hint.textContent = hint.dataset.text;
+    queue.unshift(team);
+    show();
+  };
+  undoTimer = setTimeout(() => { hint.textContent = hint.dataset.text; }, 5000);
 }
 
 /** One line above the card: your squad's score, or how many squads you still need to judge. */
@@ -72,7 +96,9 @@ async function fill() {
   if (!store.state.gw) return;
   const have = queue.map((q) => q.key);
   try {
-    const { teams } = await api(`/api/judge/next?n=4&skip=${[...have, ...skipped].join(',')}`);
+    const first = !have.length && !skipped.length && early ? await early : null;
+    early = null;
+    const { teams } = first || (await api(`/api/judge/next?n=4&skip=${[...have, ...skipped].join(',')}`));
     for (const team of teams) if (!have.includes(team.key)) queue.push(team);
   } catch (e) {
     if (!queue.length) {
@@ -212,6 +238,7 @@ async function vote(score) {
 
   await new Promise((r) => setTimeout(r, reduceMotion() ? 450 : 750));
   await next();
+  offerUndo(team, score);
 }
 
 /** Desktop only: the live top 10 next to the card. */

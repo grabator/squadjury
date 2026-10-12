@@ -6,7 +6,7 @@ import { api } from '../api.js';
 import { loadFpl } from '../fpl.js';
 import { store } from '../store.js';
 import { navigate } from '../app.js';
-import { teamCardHtml, wireTeamCard, xText, xIntent, shareUrl } from './common.js';
+import { teamCardHtml, wireTeamCard, xText, xIntent, shareUrl, shareImage, canShareFiles } from './common.js';
 import { renderShareImage, downloadBlob } from '../share.js';
 
 export async function mount(el, keyFromRoute) {
@@ -46,7 +46,7 @@ export function renderMine(el, fpl, team) {
     <div class="share-row">
       <a class="btn btn-go" id="postx" href="${xIntent(xText(team, p))}" target="_blank" rel="noopener">${raw(ICONS.x)}${t('squad.postX')}</a>
       <button class="btn" id="copy">${raw(ICONS.link)}${t('squad.copy')}</button>
-      <button class="btn" id="dl">${raw(ICONS.download)}${t('squad.download')}</button>
+      <button class="btn" id="dl">${raw(canShareFiles() ? ICONS.share : ICONS.download)}${canShareFiles() ? t('squad.shareImage') : t('squad.download')}</button>
     </div>
     <article class="jcard">${teamCardHtml(fpl, team, { report: false })}</article>
     <p style="text-align:center;margin:12px 0 0"><button class="link-btn" id="story">${t('squad.story')}</button>${!team.locked ? html` · <button class="link-btn" id="replace">${t('squad.replace')}</button>` : ''}</p>
@@ -66,7 +66,10 @@ export function renderMine(el, fpl, team) {
       toast(errText(e), { bad: true });
     }
   };
-  $('#dl', el).onclick = download('x');
+  $('#dl', el).onclick = async () => {
+    toast(t('squad.making'), { ms: 1500 });
+    try { await shareImage(fpl, team, p); } catch (e) { toast(errText(e), { bad: true }); }
+  };
   $('#story', el).onclick = download('story');
   $('#replace', el)?.addEventListener('click', () => {
     const s = sheet(html`<h2>${t('post.replaceTitle')}</h2><p>${t('post.replaceText', { n: team.votes })}</p>

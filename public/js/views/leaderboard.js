@@ -2,7 +2,7 @@
 // Your row is marked in yellow and stays pinned above the menu when it is off screen.
 
 import { t } from '../i18n.js';
-import { html, $, $$, errText } from '../ui.js';
+import { html, raw, $, $$, errText } from '../ui.js';
 import { api } from '../api.js';
 import { store } from '../store.js';
 
@@ -15,7 +15,7 @@ export async function mount(el) {
   tab = q.get('tab') || (q.get('gw') ? `gw${q.get('gw')}` : 'live');
   shown = PAGE;
   el.innerHTML = html`<div class="lb-head"><h1 class="title">${t('lb.title')}</h1><span class="updated" id="lbmeta"></span></div>
-    <div class="lb-tabs" role="tablist" id="lbtabs" aria-label="${t('lb.title')}"></div>
+    <div class="lb-tabs" id="lbtabs"></div>
     <div id="lbbody" role="tabpanel"><div class="skeleton" style="height:420px"></div></div>
     <div id="sticky"></div>`.s;
   await load();
@@ -38,24 +38,27 @@ function age() {
 }
 
 let gwCache = null;
+/** Three tabs that never grow: the live gameweek, past gameweeks (picked from a list) and the season. */
 function renderTabs(gameweeks, open) {
   gwCache = gameweeks;
+  const past = gameweeks.filter((g) => g.status === 'locked').map((g) => g.id).sort((a, b) => b - a);
+  const onPast = tab.startsWith('gw');
   const tabs = [];
-  if (open) tabs.push({ id: 'live', label: t('lb.live', { gw: open }) });
-  for (const g of gameweeks) if (g.status === 'locked') tabs.push({ id: `gw${g.id}`, label: t('lb.gw', { gw: g.id }) });
-  tabs.push({ id: 'season', label: t('lb.season') });
+  if (open) tabs.push({ id: 'live', label: t('lb.live', { gw: open }), on: tab === 'live' });
+  if (past.length) tabs.push({ id: onPast ? tab : `gw${past[0]}`, label: t('lb.past'), on: onPast });
+  tabs.push({ id: 'season', label: t('lb.season'), on: tab === 'season' });
   const box = $('#lbtabs', root);
-  box.innerHTML = tabs.map((x) => html`<button type="button" role="tab" class="lb-tab" data-tab="${x.id}" aria-selected="${String(x.id === tab)}">${x.label}</button>`.s).join('');
-  $$('.lb-tab', box).forEach((b) =>
-    b.addEventListener('click', () => {
-      tab = b.dataset.tab;
-      shown = PAGE;
-      history.replaceState({ keepScroll: true }, '', tab === 'live' ? '/leaderboard' : `/leaderboard?tab=${tab}`);
-      $('#lbbody', root).innerHTML = '<div class="skeleton" style="height:420px"></div>';
-      load();
-    }),
-  );
-  box.querySelector('[aria-selected="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  box.innerHTML = `<div class="tablist" role="tablist" aria-label="${t('lb.title')}">${tabs.map((x) => html`<button type="button" role="tab" class="lb-tab" data-tab="${x.id}" aria-selected="${String(x.on)}">${x.label}</button>`.s).join('')}</div>`
+    + (onPast ? html`<label class="gw-pick"><span class="sr-only">${t('lb.pickGw')}</span><select id="gwsel">${past.map((g) => html`<option value="gw${g}" ${g === +tab.slice(2) ? raw('selected') : ''}>GW${g}</option>`)}</select></label>`.s : '');
+  const go = (next) => {
+    tab = next;
+    shown = PAGE;
+    history.replaceState({ keepScroll: true }, '', tab === 'live' ? '/leaderboard' : `/leaderboard?tab=${tab}`);
+    $('#lbbody', root).innerHTML = '<div class="skeleton" style="height:420px"></div>';
+    load();
+  };
+  $$('.lb-tab', box).forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
+  $('#gwsel', box)?.addEventListener('change', (e) => go(e.target.value));
 }
 
 async function load(quiet = false) {
@@ -69,7 +72,7 @@ async function load(quiet = false) {
     }
     const gw = tab.startsWith('gw') ? +tab.slice(2) : '';
     const lb = await api(`/api/leaderboard${gw ? `?gw=${gw}` : ''}`);
-    if (!quiet || !gwCache) renderTabs(lb.gameweeks, lb.live ? lb.gw : store.state.gw?.id);
+    if (!quiet || !gwCache) renderTabs(lb.gameweeks, store.state.gw?.id);
     last = lb;
     renderBoard(lb);
     updatedAt = Date.now();
@@ -101,7 +104,8 @@ function renderBoard(lb) {
   const pending = lb.pending?.length
     ? html`<h2 class="board-sub">${t('lb.waiting')}</h2><ol class="board pending">${lb.pending.map((r) => rowHtml(r, { pending: true }))}</ol>`
     : '';
-  body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}: ${t('lb.top10')}, GW${lb.gw}</p>` : ''}${ranked}${pending}`.s;
+  const how = lb.ranked.length ? html`<p class="lb-how">${t('lb.how')} <a href="/rules">${t('page.rules')}</a></p>` : '';
+  body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}: ${t('lb.top10')}, GW${lb.gw}</p>` : ''}${ranked}${how}${pending}`.s;
   $('#more', body)?.addEventListener('click', () => { shown += PAGE; renderBoard(last); });
   sticky(lb.me, body);
 }

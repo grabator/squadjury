@@ -287,7 +287,8 @@ main.fit > .view, .home { height: 100%; }
 .vbtn.chosen { background: var(--yellow); color: var(--on-yellow); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); transform: rotate(-6deg) scale(1.06); }
 @media (hover: hover) { .vbtn:hover { background: var(--soft); } .vbtn.chosen:hover { background: var(--yellow); } }
 .judge-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
-.judge-hint { color: var(--ink-2); font-size: 13px; }
+.judge-hint { color: var(--ink-2); font-size: 13px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.judge-hint .link-btn { color: var(--ink); font-weight: 700; }
 .skip { display: inline-flex; align-items: center; height: 40px; padding: 0 18px; border: 0; border-radius: 8px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line-2), var(--shadow); font-weight: 700; font-size: 14px; flex: none; }
 
 @media (max-height: 700px) {
@@ -307,8 +308,12 @@ main.fit > .view, .home { height: 100%; }
 .updated { color: var(--ink-2); font-size: 12px; white-space: nowrap; }
 .lb-tabs { display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px 12px; padding: 0 16px 2px; scrollbar-width: none; }
 .lb-tabs::-webkit-scrollbar { display: none; }
+.lb-tabs .tablist { display: flex; gap: 6px; flex: none; }
 .lb-tab { flex: none; height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); font-weight: 700; font-size: 14px; }
 .lb-tab[aria-selected='true'] { background: var(--ink); color: var(--bg); box-shadow: none; }
+.gw-pick { flex: none; }
+.gw-pick select { height: 36px; padding: 0 30px 0 12px; border: 0; border-radius: 999px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink); font: 700 14px var(--font);
+  appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: right 15px top 16px, right 10px top 16px; background-size: 5px 5px; background-repeat: no-repeat; }
 .board { list-style: none; margin: 0; padding: 0; background: var(--card); border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
 .board li + li { border-top: 1px solid var(--line); }
 .board a, .board .r { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 58px; padding: 8px 14px 8px 10px; color: var(--ink); text-decoration: none; }
@@ -324,6 +329,8 @@ main.fit > .view, .home { height: 100%; }
 .board.pending .pos { color: var(--ink-3); }
 .board-sub { font-size: 13px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); margin: 22px 0 8px; }
 .more { display: block; margin: 12px auto 0; }
+.lb-how { margin: 10px 4px 0; font-size: 12.5px; color: var(--ink-2); }
+.lb-how a { color: var(--ink-2); }
 .stickyme { position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + var(--safe-b) + 8px); z-index: 25; padding: 0 12px; }
 .stickyme a { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 8px; max-width: 576px; margin: 0 auto; min-height: 52px; padding: 6px 14px 6px 10px; border-radius: var(--r); background: var(--card); box-shadow: inset 4px 0 0 var(--yellow), inset 0 0 0 1px var(--line-2), 0 6px 18px rgba(0, 0, 0, 0.12); color: var(--ink); text-decoration: none; font-weight: 700; }
 .stickyme .pos { text-align: center; font-weight: 800; }

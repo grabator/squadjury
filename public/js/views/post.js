@@ -10,7 +10,7 @@ import { squadHtml } from '../pitch.js';
 import { navigate } from '../app.js';
 import { validate } from '../ocr/match.js';
 import { renderShareImage } from '../share.js';
-import { xIntent, xText, shareUrl } from './common.js';
+import { xIntent, xText, shareUrl, shareImage, canShareFiles } from './common.js';
 
 let root, fpl, draft, shotBitmap, replace = false, onPaste, onDrag;
 
@@ -107,8 +107,8 @@ async function read(file) {
     const result = await ocr.readSquadFromImage(imageData, fpl, {
       gw: store.state.gw.id,
       onProgress: (p) => {
-        if (p.step === 'cards') setProgress(0.2 + 0.65 * (p.done / p.total), html`${t('post.readingCards', { done: p.done, total: p.total })}`.s);
-        else setProgress(0.9, html`${t('post.readingPage')}`.s);
+        if (p.step === 'cards') setProgress(0.2 + 0.55 * (p.done / p.total));
+        else setProgress(p.step === 'found' ? 0.78 : Math.min(0.97, 0.78 + p.recognised / 100), html`${t('post.foundSoFar', { n: Math.min(15, p.recognised) })}`.s);
       },
     });
     setProgress(1, html`${t('post.checking')}`.s);
@@ -302,7 +302,9 @@ async function done() {
         <a class="btn btn-go" id="postx" href="${xIntent(xText(team, null))}" target="_blank" rel="noopener">${raw(ICONS.x)}${t('squad.postX')}</a>
         <button class="btn" id="copy">${raw(ICONS.link)}${t('squad.copy')}</button>
       </div>
+      ${canShareFiles() ? html`<button class="btn btn-block" id="shareimg" style="max-width:420px">${raw(ICONS.share)}${t('squad.shareImage')}</button>` : ''}
       <a class="btn btn-ghost btn-block" href="/" style="max-width:420px">${t('post.startJudging')}</a></div>`.s;
+  $('#shareimg', root)?.addEventListener('click', () => shareImage(fpl, team, null).catch((e) => toast(errText(e), { bad: true })));
   $('#copy', root).onclick = async () => {
     try { await navigator.clipboard.writeText(shareUrl(team)); toast(t('squad.copied')); } catch { toast(shareUrl(team)); }
   };
