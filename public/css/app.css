@@ -438,7 +438,7 @@ main.fit > .view { height: 100%; }
 }
 .deck .ghost.g2 { transform: translateX(-50%) translateY(-12px) scale(0.88); opacity: 0.35; }
 .jcard {
-  position: relative; z-index: 2; flex: 1 1 auto; min-height: 0; max-height: 100%; height: var(--ch, 100%); margin: 0 auto; width: 100%;
+  position: relative; z-index: 2; margin: 0 auto; width: 100%;
   display: flex; flex-direction: column;
   padding: 8px 8px 10px; border-radius: 22px;
   background: linear-gradient(180deg, #1a2640, #0f1729 60%);
@@ -463,9 +463,12 @@ main.fit > .view { height: 100%; }
 .owner a { color: var(--text-3); }
 .head-right { display: flex; align-items: center; gap: 2px; flex: none; }
 .gwchip { font: 800 14px/1 var(--display); padding: 6px 9px; border-radius: 9px; background: rgba(4, 6, 12, 0.6); color: var(--accent-2); letter-spacing: 0.06em; }
-.squad-box { flex: 1 1 auto; min-height: 0; display: grid; place-items: start center; container-type: size; }
-.squad-box > .squad, .squad-box > .shot { width: min(100cqw, 100cqh * 0.9); height: auto; max-height: 100cqh; }
-.squad-box > .shot { overflow: auto; max-height: 100cqh; }
+.squad-box { display: block; }
+/* In the Judge deck the card has a fixed height and the squad scales to fit it. */
+.deck .jcard { flex: 1 1 auto; min-height: 0; max-height: 100%; height: var(--ch, 100%); }
+.deck .squad-box { flex: 1 1 auto; min-height: 0; display: grid; place-items: start center; container-type: size; }
+.deck .squad-box > .squad, .deck .squad-box > .shot { width: min(100cqw, 100cqh * 0.9); height: auto; max-height: 100cqh; }
+.deck .squad-box > .shot { overflow: auto; }
 .icon-btn[aria-pressed='true'] { color: var(--accent); background: rgba(60, 255, 143, 0.12); }
 .view-toggle { display: flex; justify-content: center; margin-top: 6px; flex: none; }
 
@@ -680,9 +683,10 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 .scoreboard .meta b { font-size: 19px; line-height: 1.15; }
 .scoreboard .meta span { color: var(--text-2); font-size: 14px; }
 .chart { padding: 14px; border-radius: 16px; background: linear-gradient(180deg, var(--surface), #0d1424); box-shadow: 0 0 0 1px var(--line); margin-bottom: 14px; }
-.chart h2 { font: 800 18px/1 var(--display); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: baseline; }
+.chart h2 { font: 800 18px/1 var(--display); margin-bottom: 4px; }
+.chart .note2 { margin: 8px 0 0; font-size: 12px; color: var(--text-3); }
 .chart h2 small { font: 700 12px/1 var(--body); color: var(--text-3); }
-.hist { position: relative; display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; align-items: end; height: 96px; }
+.hist { position: relative; display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; align-items: end; height: 96px; margin-top: 22px; }
 .hist i { display: block; border-radius: 6px 6px 2px 2px; min-height: 3px; transform-origin: bottom; animation: grow 0.6s var(--ease-spring) both; animation-delay: calc(var(--i) * 40ms); background: linear-gradient(180deg, hsl(calc((var(--i) - 0) * 15.5) 92% 62%), hsl(calc((var(--i) - 0) * 15.5) 80% 38%)); opacity: 0.85; }
 .hist i.top { opacity: 1; box-shadow: 0 0 14px hsl(calc(var(--i) * 15.5) 92% 55% / 0.6); }
 @keyframes grow { from { transform: scaleY(0); } }

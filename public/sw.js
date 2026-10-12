@@ -1,7 +1,7 @@
 // Service worker: the app shell loads instantly on repeat visits.
 // Static files are cache first; the API, images and share pages always go to the network.
-const VERSION = 'sj-v1';
-const SHELL = ['/', '/css/app.css?v=1', '/js/app.js?v=1', '/img/logo/logo.svg', '/img/logo/mark.svg', '/manifest.webmanifest'];
+const VERSION = 'sj-v2';
+const SHELL = ['/', '/css/app.css?v=2', '/js/app.js?v=2', '/img/logo/logo.svg', '/img/logo/mark.svg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

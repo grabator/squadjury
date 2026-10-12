@@ -272,7 +272,7 @@ async function loadAside() {
     }
     box.innerHTML = html`<ol class="board">${lb.ranked.slice(0, 10).map((r) => html`
       <li class="${r.mine ? 'me' : ''}"><a href="/t/${r.key}">
-        <span class="pos">${r.rank}</span>${avatar(r.nickname)}<span class="who"><b>${r.nickname}</b><small>${t('lb.votes', { n: r.votes })}</small></span>
+        <span class="pos">${r.rank}</span>${avatar(r.nickname)}<span class="who"><b>${r.nickname}</b><small>${t('lb.votes', { n: r.votes })}${r.demo ? html` <span class="tag tag-demo">${t('judge.exampleShort')}</span>` : ''}</small></span>
         <span class="score"><span class="num">${r.avg.toFixed(1)}</span></span></a></li>`)}</ol>`.s;
   } catch {}
 }

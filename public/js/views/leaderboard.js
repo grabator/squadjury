@@ -119,6 +119,7 @@ function podiumHtml(top) {
       ${avatar(r.nickname)}
       <span class="nm">${r.nickname}</span>
       <span class="block"><span class="place">#${r.rank}</span><span class="num">${r.avg.toFixed(1)}</span><small>${t('lb.votes', { n: r.votes })}</small></span>
+      ${r.demo ? html`<span class="tag tag-demo">${t('judge.exampleShort')}</span>` : ''}
     </a>`)}</div>`;
 }
 

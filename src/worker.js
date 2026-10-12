@@ -197,7 +197,7 @@ route('GET', '/api/me/profile', async (c) => {
     c.env.DB.prepare('SELECT r.gw, r.rank, r.avg, r.votes, t.share_key FROM results r JOIN teams t ON t.id = r.team_id WHERE r.user_id = ? ORDER BY r.gw DESC').bind(u.id),
     c.env.DB.prepare('SELECT gw, share_key, vote_sum, vote_count FROM teams WHERE user_id = ? ORDER BY gw DESC').bind(u.id),
     c.env.DB.prepare(
-      `SELECT v.score, t.share_key, us.nickname FROM votes v JOIN teams t ON t.id = v.team_id JOIN users us ON us.id = t.user_id
+      `SELECT v.score, t.share_key, us.nickname, us.demo FROM votes v JOIN teams t ON t.id = v.team_id JOIN users us ON us.id = t.user_id
         WHERE v.user_id = ? AND v.gw = ? ORDER BY v.updated_at DESC LIMIT 200`,
     ).bind(u.id, open?.id ?? -1),
   ]);
@@ -217,7 +217,7 @@ route('GET', '/api/me/profile', async (c) => {
       trophies: finals.filter((r) => r.rank <= 3).map((r) => ({ gw: r.gw, rank: r.rank })),
     },
     squads,
-    verdicts: verdicts.results.map((v) => ({ key: v.share_key, nickname: v.nickname, score: v.score })),
+    verdicts: verdicts.results.map((v) => ({ key: v.share_key, nickname: v.nickname, score: v.score, demo: !!v.demo })),
   });
 });
 

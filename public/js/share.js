@@ -10,7 +10,7 @@ export const SIZES = {
   og: { w: 1920, h: 1005 },
 };
 
-const C = { night: '#1f0022', purple: '#37003c', purple2: '#46064c', green: '#00ff87', cyan: '#04f5ff', magenta: '#e90052', gold: '#ffd25a', silver: '#d7dce6', bronze: '#e39a5f', chalk: '#f7f2f8' };
+const C = { night: '#04060c', purple: '#111a2c', purple2: '#18233a', green: '#3cff8f', cyan: '#9cc8ff', magenta: '#ff3b5c', gold: '#ffc94a', silver: '#d5dceb', bronze: '#e8925a', chalk: '#f2f5fa' };
 const DISPLAY = '"Barlow Condensed", "Arial Narrow", sans-serif';
 const BODY = 'Manrope, system-ui, sans-serif';
 
@@ -57,22 +57,41 @@ function fitText(g, text, maxW, size, weight = 800, family = DISPLAY) {
   return s;
 }
 
+/** Night stadium: deep blue, two floodlight cones, a glow over the pitch and fine grain. */
 function background(g, w, h) {
-  const grad = g.createLinearGradient(0, 0, w, h);
-  grad.addColorStop(0, '#4b0752');
-  grad.addColorStop(0.55, C.purple);
-  grad.addColorStop(1, C.night);
+  const grad = g.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#0d1424');
+  grad.addColorStop(1, '#04060c');
   g.fillStyle = grad;
   g.fillRect(0, 0, w, h);
-  // quiet diagonal stripes
-  g.save();
-  g.globalAlpha = 0.05;
-  g.strokeStyle = '#ffffff';
-  g.lineWidth = 40;
-  for (let x = -h; x < w; x += 140) {
-    g.beginPath(); g.moveTo(x, h); g.lineTo(x + h, 0); g.stroke();
+  const cone = (x, dir) => {
+    g.save();
+    const lg = g.createRadialGradient(x, -h * 0.1, 0, x, -h * 0.1, h * 1.2);
+    lg.addColorStop(0, 'rgba(200,225,255,0.22)');
+    lg.addColorStop(1, 'rgba(200,225,255,0)');
+    g.fillStyle = lg;
+    g.beginPath();
+    g.moveTo(x, -h * 0.1);
+    g.lineTo(x + dir * w * 0.62, h);
+    g.lineTo(x + dir * w * 0.32, h);
+    g.closePath();
+    g.fill();
+    g.restore();
+  };
+  cone(w * 0.08, 1);
+  cone(w * 0.92, -1);
+  const glow = g.createRadialGradient(w / 2, h * 1.05, 0, w / 2, h * 1.05, h * 0.8);
+  glow.addColorStop(0, 'rgba(30,140,80,0.32)');
+  glow.addColorStop(1, 'rgba(30,140,80,0)');
+  g.fillStyle = glow;
+  g.fillRect(0, 0, w, h);
+  // grain
+  const img = g.getImageData(0, 0, w, h);
+  for (let i = 0; i < img.data.length; i += 4 * 3) {
+    const n = (Math.random() - 0.5) * 10;
+    img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n;
   }
-  g.restore();
+  g.putImageData(img, 0, 0);
 }
 
 /** Pitch with XI and bench, inside the box (x, y, w, h). */
@@ -84,18 +103,26 @@ async function drawSquad(g, fpl, team, x, y, w, h) {
   g.save();
   g.clip();
   for (let i = 0; i < 10; i++) {
-    g.fillStyle = i % 2 ? '#0c6c3c' : '#0f7a45';
+    g.fillStyle = i % 2 ? '#0c5a33' : '#0f6b3c';
     g.fillRect(x, y + (pitchH / 10) * i, w, pitchH / 10 + 1);
   }
-  g.strokeStyle = 'rgba(255,255,255,.18)';
+  const light = g.createRadialGradient(x + w / 2, y + pitchH * 0.42, 0, x + w / 2, y + pitchH * 0.42, w * 0.7);
+  light.addColorStop(0, 'rgba(210,255,225,0.22)');
+  light.addColorStop(1, 'rgba(0,0,0,0.35)');
+  g.fillStyle = light;
+  g.fillRect(x, y, w, pitchH);
+  g.strokeStyle = 'rgba(255,255,255,.26)';
   g.lineWidth = 4;
   g.beginPath(); g.moveTo(x, y + pitchH * 0.58); g.lineTo(x + w, y + pitchH * 0.58); g.stroke();
   g.beginPath(); g.arc(x + w / 2, y + pitchH * 0.58, w * 0.13, 0, Math.PI * 2); g.stroke();
   g.restore();
   // bench strip
   roundRect(g, x, y + pitchH + h * 0.025, w, benchH, 24);
-  g.fillStyle = 'rgba(255,255,255,.07)';
+  g.fillStyle = 'rgba(255,255,255,.06)';
   g.fill();
+  g.strokeStyle = 'rgba(255,255,255,.08)';
+  g.lineWidth = 2;
+  g.stroke();
 
   const picks = team.picks.map((p) => ({ ...p, pl: fpl.byId.get(p.id) }));
   const xi = picks.filter((p) => !p.bench);
@@ -144,14 +171,15 @@ async function drawPlayer(g, fpl, team, p, x, y, size) {
   roundRect(g, x, ny, size, nh + fh, size * 0.06);
   g.save(); g.clip();
   g.fillStyle = '#ffffff'; g.fillRect(x, ny, size, nh);
-  g.fillStyle = '#ece6ee'; g.fillRect(x, ny + nh, size, fh);
+  g.fillStyle = kit[0].toLowerCase() === '#ffffff' ? kit[1] : kit[0]; g.fillRect(x, ny, size * 0.05, nh);
+  g.fillStyle = 'rgba(6,12,24,0.92)'; g.fillRect(x, ny + nh, size, fh);
   g.restore();
   const name = p.pl?.web_name || '?';
-  g.fillStyle = C.purple;
+  g.fillStyle = '#0b1222';
   g.textAlign = 'center'; g.textBaseline = 'middle';
   fitText(g, name, size * 0.92, nh * 0.62, 700, BODY);
   g.fillText(name, x + size / 2, ny + nh * 0.54);
-  g.fillStyle = '#4b2a4f';
+  g.fillStyle = '#c9d6ee';
   g.font = `700 ${fh * 0.6}px ${BODY}`;
   g.fillText(fixtureLabel(fpl, p.pl?.team, team.gw).split(',')[0], x + size / 2, ny + nh + fh * 0.52);
 }

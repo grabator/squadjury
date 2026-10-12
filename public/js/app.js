@@ -47,6 +47,7 @@ async function render() {
   try {
     await mod.mount(view, ...params);
   } catch (e) {
+    if (leaving) return; // the page is being replaced, its requests were cut off
     console.error(e);
     view.innerHTML = html`<div class="empty"><h2>${t('err.generic')}</h2><button class="btn" onclick="location.reload()">${t('err.tryAgain')}</button></div>`.s;
   }
@@ -288,8 +289,14 @@ addEventListener('offline', offlineBanner);
 
 store.subscribe(() => { renderTabs(); tickClock(); });
 
+let leaving = false;
+addEventListener('beforeunload', () => { leaving = true; });
+addEventListener('pageshow', () => { leaving = false; });
+
 (async function boot() {
   splash();
+  // Squad data is needed by almost every screen: fetch it while the state loads.
+  if (!location.pathname.startsWith('/admin')) import('./fpl.js').then((m) => m.loadFpl()).catch(() => {});
   $('#clock').addEventListener('click', openClockSheet);
   try {
     await refreshState();
