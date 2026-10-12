@@ -29,8 +29,6 @@
     "wrangler": "^4.149.0"
   },
   "dependencies": {
-    "@fontsource/barlow-condensed": "^5.3.0",
-    "@fontsource/manrope": "^5.3.0",
     "@tesseract.js-data/eng": "^1.0.0",
     "tesseract.js": "^5.1.1"
   }

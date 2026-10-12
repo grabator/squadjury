@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>SquadJury: Rate FPL Teams and Squads Before the Deadline</title>
     <meta name="description" content="Post your Fantasy Premier League squad and let the community judge it from 1 to 10. Top rated squads of every gameweek make the leaderboard.">
-    <meta name="theme-color" content="#04060C">
+    <meta name="theme-color" content="#F6F6F3" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0F1215" media="(prefers-color-scheme: dark)">
+    <meta name="color-scheme" content="light dark">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/img/icons/favicon-32.png" sizes="32x32" type="image/png">
     <link rel="apple-touch-icon" href="/img/icons/apple-touch-icon.png">
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="preload" href="/fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/fonts/manrope-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="/css/app.css?v=3">
+    <link rel="preload" href="/fonts/archivo-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/css/app.css?v=4">
     <link rel="modulepreload" href="/js/views/judge.js">
     <link rel="modulepreload" href="/js/views/common.js">
     <link rel="modulepreload" href="/js/fpl.js">
@@ -31,7 +32,7 @@
   <body>
     <a class="sr-only" href="#app">Skip to content</a>
     <header class="topbar">
-      <a class="brand" href="/" aria-label="SquadJury home"><img src="/img/logo/logo.svg" alt="SquadJury" width="146" height="28"></a>
+      <a class="brand" href="/" aria-label="SquadJury home"><picture><source srcset="/img/logo/logo-white.svg" media="(prefers-color-scheme: dark)"><img src="/img/logo/logo.svg" alt="SquadJury" width="86" height="24"></picture></a>
       <button type="button" class="clock" id="clock" aria-label="Deadline"></button>
     </header>
     <nav class="tabs" id="tabs" aria-label="Main"></nav>
@@ -39,6 +40,6 @@
       <div class="skeleton" style="height:70vh"></div>
     </main>
     <noscript><p style="padding:16px">SquadJury needs JavaScript to run.</p></noscript>
-    <script type="module" src="/js/app.js?v=3"></script>
+    <script type="module" src="/js/app.js?v=4"></script>
   </body>
 </html>
