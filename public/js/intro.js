@@ -55,6 +55,8 @@ const STAGES = [
 export function showIntro({ force = false } = {}) {
   if (!force && (seen() || store.state.user || SKIP_PATHS.test(location.pathname))) return;
   if ($('.intro')) return;
+  // Texts from an older cached copy of the app: skip this time, the next visit has them.
+  if (t('intro.t1') === 'intro.t1') return;
   const prev = document.activeElement;
   const root = document.createElement('div');
   root.className = 'intro';
