@@ -3,6 +3,7 @@ import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readFile, stop } from './node-ocr.mjs';
+import { fileURLToPath } from 'node:url';
 
 const snap = JSON.parse(readFileSync(new URL('../../src/data/fpl-snapshot.json', import.meta.url)));
 after(stop);
@@ -24,7 +25,7 @@ const cases = [
 
 for (const c of cases) {
   test(`reads all 15 players from ${c.file}`, async () => {
-    const s = await readFile(new URL(`../fixtures/${c.file}`, import.meta.url).pathname, snap);
+    const s = await readFile(fileURLToPath(new URL(`../fixtures/${c.file}`, import.meta.url)), snap);
     const name = (id) => snap.players.find((p) => p.id === id)?.web_name;
     assert.equal(s.recognised, 15);
     assert.equal(s.ok, true, JSON.stringify(s.problems));

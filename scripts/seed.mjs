@@ -7,6 +7,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const remote = process.argv.includes('--remote');
 if (remote && process.env.DEMO_MODE !== '1') {
@@ -85,7 +86,7 @@ for (const gw of gws) {
 }
 
 mkdirSync(new URL('../.wrangler/', import.meta.url), { recursive: true });
-const file = new URL('../.wrangler/seed.sql', import.meta.url).pathname;
+const file = fileURLToPath(new URL('../.wrangler/seed.sql', import.meta.url));
 writeFileSync(file, sql.join('\n'));
-execSync(`npx wrangler d1 execute squadjury ${remote ? '--remote' : '--local'} --file=${file}`, { stdio: 'inherit' });
+execSync(`npx wrangler d1 execute squadjury ${remote ? '--remote' : '--local'} --file="${file}"`, { stdio: 'inherit' });
 console.log(`Seeded ${NICKS.length} example jurors over gameweeks ${gws.join(', ')}. Past gameweeks lock on the next request.`);

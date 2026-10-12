@@ -4,6 +4,7 @@ import { deflateSync } from 'node:zlib';
 import jpeg from 'jpeg-js';
 import Tesseract from 'tesseract.js';
 import { readScreenshot } from '../../public/js/ocr/pipeline.js';
+import { fileURLToPath } from 'node:url';
 
 // Minimal 8-bit grayscale PNG encoder (Tesseract in Node wants an encoded image).
 const CRC = new Int32Array(256).map((_, n) => {
@@ -33,7 +34,7 @@ export function pngGray({ gray, width, height }) {
 let worker;
 async function getWorker() {
   if (worker) return worker;
-  const langPath = new URL('../../node_modules/@tesseract.js-data/eng/4.0.0_best_int/', import.meta.url).pathname;
+  const langPath = fileURLToPath(new URL('../../node_modules/@tesseract.js-data/eng/4.0.0_best_int/', import.meta.url));
   worker = await Tesseract.createWorker('eng', 1, { langPath, gzip: true, cachePath: (await import('node:os')).tmpdir() });
   return worker;
 }

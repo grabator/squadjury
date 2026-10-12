@@ -2,10 +2,11 @@
 // Usage: node tests/e2e/run.mjs [screenshot folder]
 import { launch } from '../../scripts/browser.mjs';
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const OUT = process.argv[2];
-const fixture = new URL('../fixtures/pick-team-2.jpg', import.meta.url).pathname;
+const fixture = fileURLToPath(new URL('../fixtures/pick-team-2.jpg', import.meta.url));
 const shot = async (p, name) => OUT && p.screenshot({ path: `${OUT}/${name}.png` });
 const results = [];
 const step = async (name, fn) => {

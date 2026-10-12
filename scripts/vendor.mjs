@@ -1,9 +1,10 @@
 // Copies the OCR engine (tesseract.js, its WebAssembly core and English data) into
 // public/vendor so the browser loads it from our own domain. Runs before dev and deploy.
 import { mkdirSync, copyFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const nm = new URL('../node_modules/', import.meta.url).pathname;
-const out = new URL('../public/vendor/tesseract/', import.meta.url).pathname;
+const nm = fileURLToPath(new URL('../node_modules/', import.meta.url));
+const out = fileURLToPath(new URL('../public/vendor/tesseract/', import.meta.url));
 mkdirSync(out + 'core', { recursive: true });
 mkdirSync(out + 'lang', { recursive: true });
 

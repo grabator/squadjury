@@ -14,7 +14,7 @@
     "test:ocr": "node --test tests/ocr/*.test.mjs",
     "test:e2e": "node tests/e2e/run.mjs",
     "deploy": "node scripts/vendor.mjs && wrangler deploy",
-    "db:reset": "rm -rf .wrangler/state && wrangler d1 migrations apply squadjury --local",
+    "db:reset": "node scripts/reset-db.mjs",
     "icons": "node scripts/icons.mjs",
     "logo": "python3 scripts/logo.py && node scripts/icons.mjs",
     "predev": "node scripts/vendor.mjs",

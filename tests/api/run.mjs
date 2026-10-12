@@ -5,17 +5,24 @@ import { spawn, execSync } from 'node:child_process';
 import { rmSync, readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { client, randomSquad } from './client.mjs';
+import { fileURLToPath } from 'node:url';
 
 const PORT = 8788;
 const BASE = `http://127.0.0.1:${PORT}`;
 process.env.BASE = BASE;
-const STATE = new URL('../../.wrangler/test-state', import.meta.url).pathname;
+const STATE = fileURLToPath(new URL('../../.wrangler/test-state', import.meta.url));
 const snap = JSON.parse(readFileSync(new URL('../../src/data/fpl-snapshot.json', import.meta.url)));
 
 rmSync(STATE, { recursive: true, force: true });
-execSync(`npx wrangler d1 migrations apply squadjury --local --persist-to ${STATE}`, { stdio: 'ignore' });
-const dev = spawn('npx', ['wrangler', 'dev', '--local', '--port', String(PORT), '--persist-to', STATE, '--var', 'DEV_LOGIN:1', '--var', 'FPL_SOURCE:snapshot'], { stdio: 'ignore', detached: true });
-const stop = () => { try { process.kill(-dev.pid); } catch {} };
+execSync(`npx wrangler d1 migrations apply squadjury --local --persist-to "${STATE}"`, { stdio: 'ignore' });
+const WIN = process.platform === 'win32';
+const dev = spawn('npx', ['wrangler', 'dev', '--local', '--port', String(PORT), '--persist-to', `"${STATE}"`, '--var', 'DEV_LOGIN:1', '--var', 'FPL_SOURCE:snapshot'], { stdio: 'ignore', detached: !WIN, shell: true });
+const stop = () => {
+  try {
+    if (WIN) execSync(`taskkill /pid ${dev.pid} /T /F`, { stdio: 'ignore' });
+    else process.kill(-dev.pid);
+  } catch {}
+};
 process.on('exit', stop);
 
 for (let i = 0; i < 60; i++) {

@@ -2,8 +2,9 @@
 // Usage: npm run icons
 import { readFileSync } from 'node:fs';
 import { launch } from './browser.mjs';
+import { fileURLToPath } from 'node:url';
 
-const root = new URL('../public/', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../public/', import.meta.url));
 const mark = readFileSync(root + 'img/logo/mark.svg', 'utf8');
 const b64 = Buffer.from(mark).toString('base64');
 
