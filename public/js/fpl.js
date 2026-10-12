@@ -68,20 +68,24 @@ const GK_COLORS = ['#a7e83a', '#1a1a1a', 'solid'];
 export function kitFor(fpl, player) {
   if (player?.element_type === 1) return GK_COLORS;
   const short = fpl?.teamsById.get(player?.team)?.short_name;
-  return CLUB_COLORS[short] || ['#5a1561', '#ffffff', 'solid'];
+  return CLUB_COLORS[short] || ['#34445f', '#ffffff', 'solid'];
 }
 
-/** SVG markup of a generic shirt. */
+/** SVG markup of a generic shirt with light, folds and a collar. */
 export function shirtSvg([main, second, pattern], id) {
   const body = 'M18 4 L8 9 L2 22 L11 26 L14 21 L14 54 L50 54 L50 21 L53 26 L62 22 L56 9 L46 4 Q40 10 32 10 Q24 10 18 4 Z';
-  const clip = `sh${id}`;
+  const clip = `sh${id}`, shade = `sd${id}`, side = `sg${id}`;
   let deco = '';
   if (pattern === 'stripes') deco = [18, 30, 42].map((x) => `<rect x="${x}" y="0" width="6" height="56" fill="${second}"/>`).join('');
   if (pattern === 'sleeves') deco = `<path d="M18 4 L8 9 L2 22 L11 26 L14 21 L14 12 Z M46 4 L56 9 L62 22 L53 26 L50 21 L50 12 Z" fill="${second}"/>`;
-  const light = main.toLowerCase() === '#ffffff';
-  return `<svg viewBox="0 0 64 56" aria-hidden="true"><defs><clipPath id="${clip}"><path d="${body}"/></clipPath></defs>
+  const light = ['#ffffff', '#fff'].includes(main.toLowerCase());
+  return `<svg viewBox="0 0 64 56" aria-hidden="true"><defs>
+    <clipPath id="${clip}"><path d="${body}"/></clipPath>
+    <linearGradient id="${shade}" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
+    <linearGradient id="${side}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".14"/><stop offset=".2" stop-color="#000" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".14"/></linearGradient></defs>
     <g clip-path="url(#${clip})"><path d="${body}" fill="${main}"/>${deco}
-    <path d="M24 5 Q32 13 40 5" fill="none" stroke="${light ? '#d8d8d8' : 'rgba(0,0,0,.25)'}" stroke-width="3"/>
-    <path d="M14 21 L14 54 L50 54 L50 21" fill="none" stroke="rgba(0,0,0,.12)" stroke-width="2"/></g>
-    <path d="${body}" fill="none" stroke="${light ? '#cfcfcf' : 'rgba(0,0,0,.25)'}" stroke-width="1.5"/></svg>`;
+    <rect width="64" height="56" fill="url(#${side})"/><rect width="64" height="56" fill="url(#${shade})"/>
+    <path d="M14 21 L14 54 M50 21 L50 54" stroke="rgba(0,0,0,.12)" stroke-width="2"/>
+    <path d="M23 5 Q32 14 41 5" fill="none" stroke="${light ? '#c9ced8' : 'rgba(0,0,0,.28)'}" stroke-width="3.2"/></g>
+    <path d="${body}" fill="none" stroke="${light ? '#b8bfcc' : 'rgba(0,0,0,.35)'}" stroke-width="1.2"/></svg>`;
 }

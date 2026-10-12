@@ -16,7 +16,7 @@ export async function mount(el) {
   el.innerHTML = html`<div class="page-head"><h1 class="title">Reports</h1><p class="sub">${teams.length} squads reported or hidden</p></div>
     <div style="display:grid;gap:16px">${teams.map((tm) => html`
       <article class="jcard" data-key="${tm.key}">
-        <div class="jcard-head"><div class="owner"><b>${tm.nickname}</b></div><span class="gwchip">GW${tm.gw}</span></div>
+        <div class="jcard-head"><div class="who"><b>${tm.nickname}</b><span>GW${tm.gw}</span></div></div>
         <p class="sub">${tm.reports} reports${tm.hidden ? ', hidden' : ''}</p>
         ${tm.image ? html`<div class="shot" style="max-width:280px;margin:8px 0"><img src="${tm.image}" alt="Reported screenshot"></div>` : ''}
         ${squadHtml(fpl, tm)}

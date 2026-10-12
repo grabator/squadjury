@@ -108,6 +108,11 @@ route('GET', '/api/state', async (c) => {
     mine,
     judged,
     minJudged: MIN_JUDGED,
+    // Deadline of the gameweek before the open one: the clock shows how much of the window is gone.
+    prevDeadline: open ? (() => {
+      const prev = c.fpl.events.filter((e) => Date.parse(e.deadline_time) <= c.now).pop();
+      return prev ? Date.parse(prev.deadline_time) : null;
+    })() : null,
     googleClientId: c.env.GOOGLE_CLIENT_ID || null,
     devLogin: c.env.DEV_LOGIN === '1',
   });
@@ -188,13 +193,9 @@ route('DELETE', '/api/me', async (c) => {
 route('GET', '/api/me/profile', async (c) => {
   const u = needUser(c);
   const open = await c.open();
-  const [results, teams, verdicts] = await c.env.DB.batch([
+  const [results, teams] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT r.gw, r.rank, r.avg, r.votes, t.share_key FROM results r JOIN teams t ON t.id = r.team_id WHERE r.user_id = ? ORDER BY r.gw DESC').bind(u.id),
     c.env.DB.prepare('SELECT gw, share_key, vote_sum, vote_count FROM teams WHERE user_id = ? ORDER BY gw DESC').bind(u.id),
-    c.env.DB.prepare(
-      `SELECT v.score, t.share_key, us.nickname FROM votes v JOIN teams t ON t.id = v.team_id JOIN users us ON us.id = t.user_id
-        WHERE v.user_id = ? AND v.gw = ? ORDER BY v.updated_at DESC LIMIT 200`,
-    ).bind(u.id, open?.id ?? -1),
   ]);
   const res = results.results;
   const byGw = new Map(res.map((r) => [r.gw, r]));
@@ -212,7 +213,28 @@ route('GET', '/api/me/profile', async (c) => {
       trophies: finals.filter((r) => r.rank <= 3).map((r) => ({ gw: r.gw, rank: r.rank })),
     },
     squads,
-    verdicts: verdicts.results.map((v) => ({ key: v.share_key, nickname: v.nickname, score: v.score })),
+  });
+});
+
+// Your verdicts, one gameweek and one page at a time (no endless lists).
+route('GET', '/api/me/verdicts', async (c) => {
+  const u = needUser(c);
+  const open = await c.open();
+  const url = new URL(c.req.url);
+  const size = Math.min(50, Math.max(1, +url.searchParams.get('size') || 20));
+  const counts = await c.env.DB.prepare('SELECT gw, COUNT(*) AS n FROM votes WHERE user_id = ? GROUP BY gw ORDER BY gw DESC').bind(u.id).all();
+  const gws = counts.results.map((r) => ({ gw: r.gw, count: r.n }));
+  const gw = +url.searchParams.get('gw') || open?.id || gws[0]?.gw || 0;
+  const total = gws.find((g) => g.gw === gw)?.count || 0;
+  const pages = Math.max(1, Math.ceil(total / size));
+  const page = Math.min(pages, Math.max(1, +url.searchParams.get('page') || 1));
+  const rows = await c.env.DB.prepare(
+    `SELECT v.score, t.share_key, us.nickname, us.demo FROM votes v JOIN teams t ON t.id = v.team_id JOIN users us ON us.id = t.user_id
+      WHERE v.user_id = ? AND v.gw = ? ORDER BY v.updated_at DESC LIMIT ? OFFSET ?`,
+  ).bind(u.id, gw, size, (page - 1) * size).all();
+  return json({
+    gw, open: gw === open?.id, total, page, pages, size, gws,
+    items: rows.results.map((v) => ({ key: v.share_key, nickname: v.nickname, score: v.score, demo: !!v.demo })),
   });
 });
 
@@ -285,6 +307,8 @@ route('GET', '/api/teams/([A-Za-z0-9_-]{4,20})', async (c, key) => {
   if (mineFlag || locked) {
     const d = await c.env.DB.prepare('SELECT score, COUNT(*) AS n FROM votes WHERE team_id = ? GROUP BY score').bind(t.id).all();
     out.dist = Array.from({ length: 10 }, (_, i) => d.results.find((r) => r.score === i + 1)?.n ?? 0);
+    const m = await c.env.DB.prepare('SELECT AVG(score) AS avg FROM votes WHERE gw = ?').bind(t.gw).first();
+    out.gwAvg = m.avg != null ? Math.round(m.avg * 10) / 10 : null;
   }
   return json({ team: out });
 });
@@ -486,7 +510,7 @@ async function sharePage(c, key) {
       `<meta property="og:description" content="${esc(desc)}">`,
       `<meta property="og:url" content="${esc(`${origin}/t/${key}`)}">`,
       `<meta property="og:image" content="${esc(img)}">`,
-      '<meta property="og:image:width" content="1920"><meta property="og:image:height" content="1005">',
+      '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">',
       '<meta name="twitter:card" content="summary_large_image">',
       `<meta name="twitter:title" content="${esc(title)}">`,
       `<meta name="twitter:description" content="${esc(desc)}">`,

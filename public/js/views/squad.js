@@ -1,4 +1,4 @@
-// My squad: verdict, rank, how the jury voted, sharing and replacing the screenshot.
+// My squad: the verdict, the rank, how the jury voted, sharing and replacing the screenshot.
 
 import { t } from '../i18n.js';
 import { html, raw, $, sheet, toast, errText, ICONS } from '../ui.js';
@@ -6,7 +6,7 @@ import { api } from '../api.js';
 import { loadFpl } from '../fpl.js';
 import { store } from '../store.js';
 import { navigate } from '../app.js';
-import { teamCardHtml, wireTeamCard, xText, xIntent, shareUrl } from './common.js';
+import { teamCardHtml, wireTeamCard, xText, xIntent, shareUrl, shareImage, canShareFiles } from './common.js';
 import { renderShareImage, downloadBlob } from '../share.js';
 
 export async function mount(el, keyFromRoute) {
@@ -14,9 +14,9 @@ export async function mount(el, keyFromRoute) {
   const fpl = await loadFpl();
   const key = keyFromRoute || s.mine?.key;
   if (!key) {
-    el.innerHTML = html`<div class="empty"><img class="big" src="/img/logo/mark.svg" alt="" width="88" height="88">
-      <h2>${t('squad.title')}</h2><p>${s.gw ? t('squad.none', { gw: s.gw.id }) : t('clock.season')}</p>
-      ${s.gw ? html`<a class="btn btn-go" href="/post">${raw(ICONS.post)}${t('judge.postCta')}</a>` : ''}</div>`.s;
+    el.innerHTML = html`<div class="empty"><span class="ycard"></span>
+      <h1 class="title" style="margin-bottom:8px">${t('squad.title')}</h1><p>${s.gw ? t('squad.none', { gw: s.gw.id }) : t('clock.season')}</p>
+      ${s.gw ? html`<a class="btn btn-go" href="/post">${t('judge.postSquad')}</a>` : ''}</div>`.s;
     return;
   }
   const { team } = await api(`/api/teams/${key}`);
@@ -34,45 +34,28 @@ export function renderMine(el, fpl, team) {
     : team.votes
       ? html`<b>${t('lb.waiting')}</b><span>${p.needsVotes ? t('squad.needs', { votes: p.needsVotes }) : p.needsJudged ? t('squad.needsJudge', { n: p.needsJudged }) : ''}</span>`
       : html`<b>${t('lb.waiting')}</b><span>${t('squad.noVerdicts')}</span>`;
-  el.innerHTML = html`<div class="squad-wrap">
-    <div class="page-head"><h1 class="title">${t('squad.title')}</h1></div>
-    <div class="hero-score">
-      <div class="big num ${team.avg == null ? 'none' : ''}">${team.avg != null ? team.avg.toFixed(1) : '?'}</div>
+  el.innerHTML = html`<div>
+    <div class="page-head"><h1 class="title">${t('squad.title')}, GW${team.gw}</h1></div>
+    <div class="scoreboard"><span class="ycard" aria-hidden="true"></span>
+      <div class="big ${team.avg == null ? 'none' : ''}">${team.avg != null ? team.avg.toFixed(1) : '-'}</div>
       <div class="meta">${status}<span>${team.votes === 1 ? t('squad.verdict1') : t('squad.verdicts', { n: team.votes })}</span></div>
     </div>
-    ${team.votes ? html`<h2 class="sr-only">${t('squad.dist')}</h2>
-      <div class="hist" role="img" aria-label="${t('squad.dist')}: ${dist.map((n, i) => `${i + 1}: ${n}`).join(', ')}">${dist.map((n, i) => raw(`<i class="${i === top ? 'top' : ''}" style="height:${Math.round((n / max) * 100)}%"></i>`))}</div>
-      <div class="hist-x" aria-hidden="true">${dist.map((_, i) => raw(`<span>${i + 1}</span>`))}</div>` : ''}
-    <div class="row" style="margin:18px 0">
-      <button class="btn btn-go" id="share">${raw(ICONS.share)}${t('squad.share')}</button>
-      <a class="btn" id="postx" href="${xIntent(xText(team, p))}" target="_blank" rel="noopener">${raw(ICONS.x)}${t('squad.postX')}</a>
+    ${team.votes ? html`<section class="chart" aria-labelledby="dist-h"><h2 id="dist-h">${t('squad.dist')}</h2>
+      <div class="hist" role="img" aria-label="${t('squad.dist')}: ${dist.map((n, i) => `${i + 1}: ${n}`).join(', ')}">${dist.map((n, i) => raw(`<i class="${i === top ? 'top' : ''}" style="height:${Math.max(3, Math.round((n / max) * 100))}%"></i>`))}</div>
+      <div class="hist-x" aria-hidden="true">${dist.map((_, i) => raw(`<span>${i + 1}</span>`))}</div></section>` : ''}
+    <div class="share-row">
+      <a class="btn btn-go" id="postx" href="${xIntent(xText(team, p))}" target="_blank" rel="noopener">${raw(ICONS.x)}${t('squad.postX')}</a>
+      <button class="btn" id="copy">${raw(ICONS.link)}${t('squad.copy')}</button>
+      <button class="btn" id="dl">${raw(canShareFiles() ? ICONS.share : ICONS.download)}${canShareFiles() ? t('squad.shareImage') : t('squad.download')}</button>
     </div>
-    <article class="jcard" style="margin-top:6px">${teamCardHtml(fpl, team, { report: false })}</article>
-    <div class="row" style="margin-top:14px">
-      <button class="btn btn-ghost" id="dl">${raw(ICONS.download)}${t('squad.download')}</button>
-      <button class="btn btn-ghost" id="story">${raw(ICONS.download)}${t('squad.story')}</button>
-    </div>
-    ${!team.locked ? html`<p style="text-align:center;margin-top:14px"><button class="link-btn" id="replace">${t('squad.replace')}</button></p>` : ''}
+    <article class="jcard">${teamCardHtml(fpl, team, { report: false })}</article>
+    <p style="text-align:center;margin:12px 0 0"><button class="link-btn" id="story">${t('squad.story')}</button>${!team.locked ? html` · <button class="link-btn" id="replace">${t('squad.replace')}</button>` : ''}</p>
   </div>`.s;
   wireTeamCard($('.jcard', el), fpl, team);
 
-  $('#share', el).onclick = async () => {
+  $('#copy', el).onclick = async () => {
     const url = shareUrl(team);
-    const text = xText(team, p);
-    try {
-      if (navigator.canShare) {
-        const blob = await renderShareImage('x', fpl, team, p);
-        const file = new File([blob], `squadjury-gw${team.gw}.png`, { type: 'image/png' });
-        if (navigator.canShare({ files: [file] })) return await navigator.share({ files: [file], text, url });
-        return await navigator.share({ text, url });
-      }
-      await navigator.clipboard.writeText(url);
-      toast(t('squad.copied'));
-    } catch (e) {
-      if (e.name !== 'AbortError') {
-        try { await navigator.clipboard.writeText(url); toast(t('squad.copied')); } catch { toast(url); }
-      }
-    }
+    try { await navigator.clipboard.writeText(url); toast(t('squad.copied')); } catch { toast(url); }
   };
   const download = (kind) => async () => {
     toast(t('squad.making'), { ms: 1500 });
@@ -83,7 +66,10 @@ export function renderMine(el, fpl, team) {
       toast(errText(e), { bad: true });
     }
   };
-  $('#dl', el).onclick = download('x');
+  $('#dl', el).onclick = async () => {
+    toast(t('squad.making'), { ms: 1500 });
+    try { await shareImage(fpl, team, p); } catch (e) { toast(errText(e), { bad: true }); }
+  };
   $('#story', el).onclick = download('story');
   $('#replace', el)?.addEventListener('click', () => {
     const s = sheet(html`<h2>${t('post.replaceTitle')}</h2><p>${t('post.replaceText', { n: team.votes })}</p>

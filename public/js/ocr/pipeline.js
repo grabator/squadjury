@@ -33,6 +33,7 @@ export async function readScreenshot(img, data, { recognize, onProgress = () => 
   }
   const passes = [cardWords];
   let squad = readSquad(passes, ctx);
+  onProgress({ step: 'found', recognised: squad.recognised });
 
   // 2) Whole screenshot passes until all 15 are found (cards the detector missed,
   //    usually the bench on its pale background).

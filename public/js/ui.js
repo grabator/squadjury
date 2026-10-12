@@ -1,4 +1,4 @@
-// Small DOM helpers: escaping, sheets, toasts, confetti, haptics.
+// Small DOM helpers: escaping, sheets, toasts and haptics.
 
 import { t } from './i18n.js';
 
@@ -32,7 +32,7 @@ export function haptic(ms = 18) {
   } catch {}
 }
 
-export function toast(msg, { bad = false, ms = 2600 } = {}) {
+export function toast(msg, { bad = false, ms = 2800 } = {}) {
   let box = $('.toasts');
   if (!box) {
     box = document.createElement('div');
@@ -45,7 +45,7 @@ export function toast(msg, { bad = false, ms = 2600 } = {}) {
   el.className = 'toast' + (bad ? ' bad' : '');
   el.textContent = msg;
   box.append(el);
-  setTimeout(() => el.remove(), ms);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 260); }, ms);
 }
 
 /** Bottom sheet (a centred dialog on wide screens). Returns { el, close }. */
@@ -89,44 +89,6 @@ export function sheet(content, { label, onClose } = {}) {
   return { el, close };
 }
 
-/** A short burst of confetti in the palette colours. */
-export function confetti() {
-  if (reduceMotion()) return;
-  const c = document.createElement('canvas');
-  c.className = 'confetti';
-  const dpr = Math.min(2, devicePixelRatio || 1);
-  c.width = innerWidth * dpr;
-  c.height = innerHeight * dpr;
-  document.body.append(c);
-  const g = c.getContext('2d');
-  g.scale(dpr, dpr);
-  const colors = ['#00ff87', '#04f5ff', '#e90052', '#ffd25a', '#ffffff'];
-  const bits = Array.from({ length: 110 }, () => ({
-    x: innerWidth / 2 + (Math.random() - 0.5) * 120,
-    y: innerHeight * 0.35,
-    vx: (Math.random() - 0.5) * 12,
-    vy: -Math.random() * 13 - 4,
-    r: Math.random() * Math.PI,
-    vr: (Math.random() - 0.5) * 0.3,
-    w: 6 + Math.random() * 6,
-    h: 4 + Math.random() * 4,
-    c: colors[(Math.random() * colors.length) | 0],
-  }));
-  const t0 = performance.now();
-  const step = (now) => {
-    const k = (now - t0) / 1000;
-    g.clearRect(0, 0, innerWidth, innerHeight);
-    for (const b of bits) {
-      b.vy += 0.35; b.x += b.vx; b.y += b.vy; b.r += b.vr; b.vx *= 0.99;
-      g.save(); g.translate(b.x, b.y); g.rotate(b.r); g.globalAlpha = Math.max(0, 1 - k / 2.4);
-      g.fillStyle = b.c; g.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); g.restore();
-    }
-    if (k < 2.4) requestAnimationFrame(step);
-    else c.remove();
-  };
-  requestAnimationFrame(step);
-}
-
 export function fmtCountdown(ms) {
   if (ms <= 0) return '0m';
   const s = Math.floor(ms / 1000);
@@ -143,16 +105,23 @@ export const errText = (e) => {
   return s === k ? t('err.generic') : s;
 };
 
+// One icon family: thin lines on a 24 grid, used only where a word alone is not enough.
+const ic = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 export const ICONS = {
-  judge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3.5l6 6M12 6l6 6M5 19l7.5-7.5M3 21h8"/><path d="M11.5 4.5l8 8-3 3-8-8z"/></svg>',
-  board: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>',
-  post: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg>',
-  shirt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3l-5 3 2 5 2-1v11h10V10l2 1 2-5-5-3a4 4 0 0 1-8 0z"/></svg>',
-  me: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  judge: ic('<path d="M4 20h10M9.5 4.5l5 5M7 7l6.5-3 3.5 3.5L14 14zM12.5 12.5L19 19"/>'),
+  board: ic('<path d="M5 20V11M12 20V5M19 20v-6"/>'),
+  post: ic('<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5"/>'),
+  shirt: ic('<path d="M8 3l-5 3 2 4 2-1v11h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z"/>'),
+  me: ic('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
   x: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z"/></svg>',
-  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
-  download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>',
-  upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>',
-  flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
-  trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>',
+  share: ic('<path d="M12 3v12M7.5 7.5L12 3l4.5 4.5M5 13v7h14v-7"/>'),
+  link: ic('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'),
+  download: ic('<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>'),
+  upload: ic('<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>'),
+  shot: ic('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.2"/>'),
+  pitch: ic('<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M4 12h16"/><circle cx="12" cy="12" r="2.5"/>'),
+  flag: ic('<path d="M5 21V4h11l-2 4 2 4H5"/>'),
+  check: ic('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+  alert: ic('<path d="M12 7v6M12 16.5v.5"/><circle cx="12" cy="12" r="9"/>'),
+  calendar: ic('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
 };

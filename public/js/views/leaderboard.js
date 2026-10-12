@@ -1,107 +1,127 @@
-// Leaderboard: live gameweek, past gameweeks (top 10), champions and the season table.
+// Leaderboard: one clean list. The live gameweek, past gameweeks (final top 10) and the season.
+// Your row is marked in yellow and stays pinned above the menu when it is off screen.
 
 import { t } from '../i18n.js';
-import { html, raw, $, $$, errText, ICONS, reduceMotion } from '../ui.js';
+import { html, raw, $, $$, errText, sheet } from '../ui.js';
 import { api } from '../api.js';
 import { store } from '../store.js';
 
-let root, timer, observer, tab;
+const PAGE = 50;
+let root, timer, observer, tab, updatedAt = 0, ageTimer, shown = PAGE, last = null;
 
 export async function mount(el) {
   root = el;
   const q = new URLSearchParams(location.search);
   tab = q.get('tab') || (q.get('gw') ? `gw${q.get('gw')}` : 'live');
-  el.innerHTML = html`<div class="page-head"><h1 class="title">${t('lb.title')}</h1></div>
-    <div class="lb-tabs" role="tablist" id="lbtabs" aria-label="${t('lb.title')}"></div>
+  shown = PAGE;
+  el.innerHTML = html`<div class="lb-head"><h1 class="title">${t('lb.title')}</h1><span class="updated" id="lbmeta"></span></div>
+    <div class="lb-tabs" id="lbtabs"></div>
     <div id="lbbody" role="tabpanel"><div class="skeleton" style="height:420px"></div></div>
     <div id="sticky"></div>`.s;
   await load();
   timer = setInterval(() => tab === 'live' && document.visibilityState === 'visible' && load(true), 20000);
+  ageTimer = setInterval(age, 5000);
 }
 
 export function unmount() {
   clearInterval(timer);
+  clearInterval(ageTimer);
   observer?.disconnect();
 }
 
-function tabsHtml(gameweeks, open) {
+function age() {
+  const m = $('#lbmeta', root);
+  if (!m) return;
+  if (tab !== 'live' || !updatedAt) { m.textContent = ''; return; }
+  const s = Math.round((Date.now() - updatedAt) / 1000);
+  m.textContent = s < 5 ? t('lb.justNow') : t('lb.ago', { s });
+}
+
+let gwCache = null;
+/** Three tabs that never grow: the live gameweek, past gameweeks (picked from a list) and the season. */
+function renderTabs(gameweeks, open) {
+  gwCache = gameweeks;
+  const past = gameweeks.filter((g) => g.status === 'locked').map((g) => g.id).sort((a, b) => b - a);
+  const onPast = tab.startsWith('gw');
   const tabs = [];
-  if (open) tabs.push({ id: 'live', label: raw(`<span class="live-dot" aria-hidden="true"></span>${html`${t('lb.live', { gw: open })}`.s}`) });
-  for (const g of gameweeks) if (g.status === 'locked') tabs.push({ id: `gw${g.id}`, label: t('lb.gw', { gw: g.id }) });
-  tabs.push({ id: 'champions', label: t('lb.champions') }, { id: 'season', label: t('lb.season') });
-  return tabs.map((x) => html`<button type="button" role="tab" class="lb-tab" data-tab="${x.id}" aria-selected="${String(x.id === tab)}">${x.label}</button>`.s).join('');
+  if (open) tabs.push({ id: 'live', label: t('lb.live', { gw: open }), on: tab === 'live' });
+  if (past.length) tabs.push({ id: onPast ? tab : `gw${past[0]}`, label: t('lb.past'), on: onPast });
+  tabs.push({ id: 'season', label: t('lb.season'), on: tab === 'season' });
+  const box = $('#lbtabs', root);
+  box.innerHTML = `<div class="tablist" role="tablist" aria-label="${t('lb.title')}">${tabs.map((x) => html`<button type="button" role="tab" class="lb-tab" data-tab="${x.id}" aria-selected="${String(x.on)}">${x.label}</button>`.s).join('')}</div>`
+    + (onPast ? html`<button type="button" class="gw-pick" id="gwpick" aria-haspopup="dialog" aria-label="${t('lb.pickGw')}: GW${tab.slice(2)}">GW${tab.slice(2)}<svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`.s : '');
+  const go = (next) => {
+    tab = next;
+    shown = PAGE;
+    history.replaceState({ keepScroll: true }, '', tab === 'live' ? '/leaderboard' : `/leaderboard?tab=${tab}`);
+    $('#lbbody', root).innerHTML = '<div class="skeleton" style="height:420px"></div>';
+    load();
+  };
+  $$('.lb-tab', box).forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
+  // A sheet with every finished gameweek as a tile, the current one marked.
+  $('#gwpick', box)?.addEventListener('click', () => {
+    const cur = +tab.slice(2);
+    const sh = sheet(html`<h2>${t('lb.pickGw')}</h2><p>${t('lb.pickGwText')}</p>
+      <div class="gw-grid">${past.map((g) => html`<button type="button" class="gw-tile" data-gw="${g}" ${raw(g === cur ? 'aria-current="true"' : '')}>${g}</button>`)}</div>`, { label: t('lb.pickGw') });
+    sh.el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-gw]');
+      if (!b) return;
+      sh.close();
+      if (+b.dataset.gw !== cur) go(`gw${b.dataset.gw}`);
+    });
+  });
 }
 
 async function load(quiet = false) {
   const body = $('#lbbody', root);
   try {
-    if (tab === 'champions') return renderChampions(await api('/api/champions'), await gwList());
-    if (tab === 'season') return renderSeason(await api('/api/season'), await gwList());
+    if (tab === 'season') {
+      if (!gwCache) gwCache = (await api('/api/leaderboard')).gameweeks;
+      renderTabs(gwCache, store.state.gw?.id);
+      age();
+      return renderSeason(await api('/api/season'));
+    }
     const gw = tab.startsWith('gw') ? +tab.slice(2) : '';
     const lb = await api(`/api/leaderboard${gw ? `?gw=${gw}` : ''}`);
-    renderTabs(lb.gameweeks, lb.live ? lb.gw : store.state.gw?.id);
-    renderBoard(lb, quiet);
+    if (!quiet || !gwCache) renderTabs(lb.gameweeks, store.state.gw?.id);
+    last = lb;
+    renderBoard(lb);
+    updatedAt = Date.now();
+    age();
   } catch (e) {
-    body.innerHTML = html`<div class="empty"><h2>${t('err.generic')}</h2><p>${errText(e)}</p></div>`.s;
+    body.innerHTML = html`<div class="empty"><h2>${t('err.generic')}</h2><p>${errText(e)}</p><button class="btn" id="retry">${t('err.tryAgain')}</button></div>`.s;
+    $('#retry', body).onclick = () => load();
   }
-}
-
-let gwCache = null;
-async function gwList() {
-  if (!gwCache) gwCache = (await api('/api/leaderboard')).gameweeks;
-  renderTabs(gwCache, store.state.gw?.id);
-  return gwCache;
-}
-
-function renderTabs(gameweeks, open) {
-  gwCache = gameweeks;
-  const box = $('#lbtabs', root);
-  box.innerHTML = tabsHtml(gameweeks, open);
-  $$('.lb-tab', box).forEach((b) =>
-    b.addEventListener('click', () => {
-      tab = b.dataset.tab;
-      history.replaceState({ keepScroll: true }, '', tab === 'live' ? '/leaderboard' : `/leaderboard?tab=${tab}`);
-      $('#lbbody', root).innerHTML = '<div class="skeleton" style="height:420px"></div>';
-      load();
-    }),
-  );
-  box.querySelector('[aria-selected="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
 }
 
 function rowHtml(r, { pending = false } = {}) {
   const sub = pending
     ? r.needsVotes ? t('lb.needs', { n: r.needsVotes }) : t('lb.needsJudge', { n: r.needsJudged })
-    : t('lb.votes', { n: r.votes });
-  return html`<li class="${r.rank && r.rank <= 3 ? `p${r.rank}` : ''} ${r.mine ? 'me' : ''} ${pending ? 'pending' : ''}" data-key="${r.key}">
+    : r.x ? `@${r.x}` : '';
+  const place = !pending && r.rank <= 3 ? `p${r.rank}` : '';
+  return html`<li class="${r.mine ? 'me' : ''} ${place}" data-key="${r.key}">
     <a href="/t/${r.key}"><span class="pos">${pending ? '-' : r.rank}</span>
-      <span class="who"><b>${r.nickname}${r.mine ? ` (${t('lb.you')})` : ''}</b><small>${sub}${r.demo ? html` <span class="tag tag-demo">${t('judge.example')}</span>` : ''}</small></span>
-      <span class="score"><span class="num">${r.votes ? r.avg.toFixed(1) : '-'}</span></span></a></li>`;
+      <span class="who"><b>${r.nickname}${r.mine ? ` (${t('lb.you')})` : ''}${r.demo ? html`<span class="tag">${t('judge.exampleShort')}</span>` : ''}</b>${sub ? html`<span>${sub}</span>` : ''}</span>
+      <span class="score"><span class="num">${r.votes ? r.avg.toFixed(1) : '-'}</span><small>${t('lb.votes', { n: r.votes })}</small></span></a></li>`;
 }
 
-function renderBoard(lb, quiet) {
+function renderBoard(lb) {
   const body = $('#lbbody', root);
-  // FLIP: remember where rows were, then animate them to their new places.
-  const before = new Map($$('.board li', body).map((li) => [li.dataset.key, li.getBoundingClientRect().top]));
+  const list = lb.ranked.slice(0, shown);
   const ranked = lb.ranked.length
-    ? html`<ol class="board" aria-label="${lb.live ? t('lb.live', { gw: lb.gw }) : t('lb.top10')}">${lb.ranked.map((r) => rowHtml(r))}</ol>`
-    : html`<p class="sub" style="padding:24px 0">${t('lb.empty')}</p>`;
+    ? html`<ol class="board" aria-label="${lb.live ? t('lb.live', { gw: lb.gw }) : t('lb.top10')}">${list.map((r) => rowHtml(r))}</ol>
+      ${lb.ranked.length > shown ? html`<button class="btn btn-ghost more" id="more">${t('lb.more')}</button>` : ''}`
+    : html`<div class="empty"><span class="ycard"></span><h2>${t('lb.emptyTitle')}</h2><p>${t('lb.empty')}</p><a class="btn btn-go" href="/">${t('nav.judge')}</a></div>`;
   const pending = lb.pending?.length
-    ? html`<h2 class="board-sub">${t('lb.waiting')}</h2><ol class="board">${lb.pending.map((r) => rowHtml(r, { pending: true }))}</ol>`
+    ? html`<h2 class="board-sub">${t('lb.waiting')}</h2><ol class="board pending">${lb.pending.map((r) => rowHtml(r, { pending: true }))}</ol>`
     : '';
-  body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin-bottom:6px">${t('lb.final')}: ${t('lb.top10')}, GW${lb.gw}</p>` : ''}${ranked}${pending}`.s;
-  if (quiet && !reduceMotion()) {
-    for (const li of $$('.board li', body)) {
-      const old = before.get(li.dataset.key);
-      if (old == null) continue;
-      const dy = old - li.getBoundingClientRect().top;
-      if (!dy) continue;
-      li.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 450, easing: 'cubic-bezier(.2,.8,.2,1)' });
-    }
-  }
+  const how = lb.ranked.length ? html`<p class="lb-how">${t('lb.how')} <a href="/rules">${t('page.rules')}</a></p>` : '';
+  body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}: ${t('lb.top10')}, GW${lb.gw}</p>` : ''}${ranked}${how}${pending}`.s;
+  $('#more', body)?.addEventListener('click', () => { shown += PAGE; renderBoard(last); });
   sticky(lb.me, body);
 }
 
-/** "You: #34" pinned at the bottom when your row is off screen. */
+/** Your row pinned above the menu while the real one is off screen. */
 function sticky(me, body) {
   observer?.disconnect();
   const box = $('#sticky', root);
@@ -114,22 +134,12 @@ function sticky(me, body) {
   observer.observe(row);
 }
 
-function renderChampions({ champions }) {
-  $('#sticky', root).innerHTML = '';
-  $('#lbbody', root).innerHTML = champions.length
-    ? html`<div class="champs">${champions.map((c) => html`
-        <a class="champ" href="/t/${c.key}"><span>${raw(ICONS.trophy.replace('<svg', '<svg class="trophy" style="color:var(--gold)"'))}</span>
-          <span><span class="gw">GW${c.gw}</span><br><b>${c.nickname}</b> ${c.demo ? html`<span class="tag tag-demo">${t('judge.example')}</span>` : ''}<br><small style="color:var(--faint)">${t('lb.votes', { n: c.votes })}</small></span>
-          <span class="num">${c.avg.toFixed(1)}</span></a>`)}</div>`.s
-    : html`<p class="sub" style="padding:24px 0">${t('lb.championsEmpty')}</p>`.s;
-}
-
 function renderSeason({ season }) {
   $('#sticky', root).innerHTML = '';
   $('#lbbody', root).innerHTML = season.length
-    ? html`<ol class="board">${season.map((r) => html`<li class="${r.place <= 3 ? `p${r.place}` : ''} ${r.mine ? 'me' : ''}"><div class="r">
+    ? html`<ol class="board">${season.map((r) => html`<li class="${r.mine ? 'me' : ''} ${r.place <= 3 ? `p${r.place}` : ''}"><div class="r">
         <span class="pos">${r.place}</span>
-        <span class="who"><b>${r.nickname}</b><small>${t('lb.seasonCols', { top10: r.top10, best: r.best })}${r.demo ? html` <span class="tag tag-demo">${t('judge.example')}</span>` : ''}</small></span>
+        <span class="who"><b>${r.nickname}${r.demo ? html`<span class="tag">${t('judge.exampleShort')}</span>` : ''}</b><span>${t('lb.seasonCols', { wins: r.wins || 0, best: r.best })}</span></span>
         <span class="score"><span class="num">${r.top10}</span><small>${t('lb.top10')}</small></span></div></li>`)}</ol>`.s
-    : html`<p class="sub" style="padding:24px 0">${t('lb.seasonEmpty')}</p>`.s;
+    : html`<div class="empty"><h2>${t('lb.season')}</h2><p>${t('lb.seasonEmpty')}</p></div>`.s;
 }
