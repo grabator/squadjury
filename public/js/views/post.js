@@ -114,7 +114,7 @@ async function read(file) {
     setProgress(1, html`${t('post.checking')}`.s);
     if (result.recognised < 8) return notFpl(url);
     draft = {
-      picks: result.picks.map((p) => ({ id: p.id, bench: p.bench, pos: p.pos ?? posForSlot(result.picks, p), name: p.name, options: p.options })),
+      picks: padSquad(result.picks.map((p) => ({ id: p.id, bench: p.bench, pos: p.pos ?? posForSlot(result.picks, p), name: p.name, options: p.options }))),
       captain: result.captain,
       vice: result.vice,
       seenGw: result.gw,
@@ -127,6 +127,15 @@ async function read(file) {
     root.insertAdjacentHTML('beforeend', html`<div class="row" style="justify-content:center;margin-top:12px"><button class="btn" id="again">${t('post.tryAgain')}</button></div>`.s);
     $('#again', root).onclick = chooser;
   }
+}
+
+/** Adds empty slots for players the reader did not find, so each one can be filled in by hand. */
+function padSquad(picks) {
+  const empty = (bench) => ({ id: null, bench, pos: null, name: '', options: [] });
+  const xi = picks.filter((p) => !p.bench), bench = picks.filter((p) => p.bench);
+  while (xi.length < 11) xi.push(empty(false));
+  while (bench.length < 4) bench.push(empty(true));
+  return [...xi, ...bench];
 }
 
 /** Guesses the position of an unread slot from where it sits in the formation. */

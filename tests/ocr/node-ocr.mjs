@@ -53,6 +53,25 @@ export function decode(file) {
   return jpeg.decode(readFileSync(file), { useTArray: true, formatAsRGBA: true });
 }
 
+/** Scales to 1080 px wide with bilinear filtering, like the browser does before reading. */
+export function to1080(img) {
+  if (img.width === 1080) return img;
+  const s = img.width / 1080, W = 1080, H = Math.round(img.height / s);
+  const out = new Uint8ClampedArray(W * H * 4), src = img.data, w = img.width, h = img.height;
+  for (let y = 0; y < H; y++) {
+    const fy = Math.min(h - 1, (y + 0.5) * s - 0.5), y0 = Math.max(0, Math.floor(fy)), y1 = Math.min(h - 1, y0 + 1), dy = Math.max(0, fy - y0);
+    for (let x = 0; x < W; x++) {
+      const fx = Math.min(w - 1, (x + 0.5) * s - 0.5), x0 = Math.max(0, Math.floor(fx)), x1 = Math.min(w - 1, x0 + 1), dx = Math.max(0, fx - x0);
+      for (let c = 0; c < 4; c++) {
+        const a = src[(y0 * w + x0) * 4 + c] * (1 - dx) + src[(y0 * w + x1) * 4 + c] * dx;
+        const b = src[(y1 * w + x0) * 4 + c] * (1 - dx) + src[(y1 * w + x1) * 4 + c] * dx;
+        out[(y * W + x) * 4 + c] = a * (1 - dy) + b * dy;
+      }
+    }
+  }
+  return { data: out, width: W, height: H };
+}
+
 export async function readFile(file, data) {
-  return readScreenshot(decode(file), data, { recognize });
+  return readScreenshot(to1080(decode(file)), data, { recognize });
 }

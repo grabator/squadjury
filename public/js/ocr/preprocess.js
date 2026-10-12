@@ -111,7 +111,7 @@ export function badgeLetter(img, box) {
  */
 export function findCards(img) {
   const { data, width: w, height: h } = img;
-  const minW = w * 0.12, maxW = w * 0.21, maxGap = w * 0.02;
+  const minW = w * 0.12, maxW = w * 0.21, maxGap = w * 0.025;
   const rows = [];
   for (let y = 0; y < h; y++) {
     // White runs on this row, merging runs split by letters (short dark gaps).
@@ -122,7 +122,8 @@ export function findCards(img) {
       const r = data[i], g = data[i + 1], bl = data[i + 2];
       // Bright white only (the name row). The bench background is a pale green with
       // red and blue around 240, so it stays out; the grey fixture row is added later.
-      const white = x < w && r > 246 && g > 236 && bl > 246;
+      // A flagged player (injury or doubt) has a yellow name row instead.
+      const white = x < w && ((r > 246 && g > 236 && bl > 246) || (r > 235 && g > 200 && bl < 170 && r - bl > 90));
       if (white && start < 0) start = x;
       else if (!white && start >= 0) {
         const last = runs[runs.length - 1];
@@ -136,17 +137,22 @@ export function findCards(img) {
       if (len >= minW && len <= maxW) rows.push({ y, x0: r.x0, x1: r.x1 });
     }
   }
-  // Stack rows that line up into boxes. Rows with letters can fail, so small gaps are fine.
+  // Stack rows that line up into boxes. Rows with letters, or a pitch line running through
+  // the name, can fail, so small gaps are fine.
   const boxes = [];
   for (const r of rows) {
-    const b = boxes.find((b) => r.y - b.y1 <= 3 && Math.abs(r.x0 - b.x0) <= 6 && Math.abs(r.x1 - b.x1) <= 6);
-    if (b) { b.y1 = r.y; b.n++; }
-    else boxes.push({ x0: r.x0, x1: r.x1, y0: r.y, y1: r.y, n: 1 });
+    const b = boxes.find((b) => r.y - b.y1 <= 6 && Math.abs(r.x0 - b.x0) <= 6 && Math.abs(r.x1 - b.x1) <= 6);
+    if (b) { b.y1 = r.y; b.n++; b.xs0.push(r.x0); b.xs1.push(r.x1); }
+    else boxes.push({ x0: r.x0, x1: r.x1, y0: r.y, y1: r.y, n: 1, xs0: [r.x0], xs1: [r.x1] });
   }
+  // Edges from the typical row, so a pitch line touching the first row does not widen the box.
+  const median = (a) => a.slice().sort((p, q) => p - q)[a.length >> 1];
+  for (const b of boxes) { b.x0 = median(b.xs0); b.x1 = median(b.xs1); }
   return boxes
-    .filter((b) => b.y1 - b.y0 >= w * 0.022 && b.n >= (b.y1 - b.y0) * 0.8)
+    .filter((b) => b.y1 - b.y0 >= w * 0.022 && b.n >= (b.y1 - b.y0) * 0.7)
     // The name row plus the grey fixture row right under it.
-    .map((b) => ({ x: b.x0, y: b.y0, w: b.x1 - b.x0 + 1, h: Math.min(h - b.y0, Math.round(w * 0.082)) }))
+    // A few pixels in from the sides, past the rounded corners.
+    .map((b) => ({ x: b.x0 + 3, y: b.y0, w: b.x1 - b.x0 - 5, h: Math.min(h - b.y0, Math.round(w * 0.082)) }))
     .sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
