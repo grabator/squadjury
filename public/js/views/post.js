@@ -1,8 +1,7 @@
 // Post: upload a Pick Team screenshot, we read the 15 players, you confirm, the jury judges.
 
 import { t } from '../i18n.js';
-import { html, raw, $, $$, sheet, toast, errText, ICONS, confetti, haptic } from '../ui.js';
-import { chime } from '../sound.js';
+import { html, raw, $, $$, sheet, toast, errText, ICONS, haptic } from '../ui.js';
 import { api } from '../api.js';
 import { loadFpl, POS, POS_LONG, kitFor, shirtSvg } from '../fpl.js';
 import { store, refreshState } from '../store.js';
@@ -11,6 +10,7 @@ import { squadHtml } from '../pitch.js';
 import { navigate } from '../app.js';
 import { validate } from '../ocr/match.js';
 import { renderShareImage } from '../share.js';
+import { xIntent, xText, shareUrl } from './common.js';
 
 let root, fpl, draft, shotBitmap, replace = false, onPaste, onDrag;
 
@@ -39,18 +39,18 @@ export function unmount() {
   document.removeEventListener('drop', onDrag);
 }
 
-/** The entry screen: a phone with an example screenshot, three steps and one big button. */
+/** The entry screen: an example screenshot, three steps and one big button, all on one screen. */
 function entryHtml(signedIn) {
   const gw = store.state.gw.id;
   return html`<div class="post-entry">
-    <div class="page-head"><h1 class="title">${replace ? t('squad.replace') : html`${t('post.titleA')} <span class="hl">${t('post.titleB')}</span>`}</h1><p class="sub">${t('post.sub')}</p></div>
-    <div class="post-stage"><div class="phone"><div class="notch"></div><div class="screen"><img src="/img/example-pick-team.svg" alt="${t('post.exampleAlt')}"><div class="scanline"></div></div></div></div>
+    <div class="page-head"><h1 class="title">${replace ? t('squad.replace') : t('post.title')}</h1><p class="sub">${t('post.sub')}</p></div>
+    <div class="example"><img src="/img/example-pick-team.svg" alt="${t('post.exampleAlt')}"></div>
     <ol class="steps"><li>${t('post.step1')}</li><li>${t('post.step2', { gw })}</li><li>${t('post.step3')}</li></ol>
     ${signedIn
-      ? html`<label class="btn btn-go btn-block" for="file" style="min-height:56px;font-size:18px">${raw(ICONS.upload)}${t('post.choose')}</label>
+      ? html`<label class="btn btn-go btn-block" for="file">${raw(ICONS.upload)}${t('post.choose')}</label>
         <input type="file" id="file" accept="image/*" class="sr-only">
         <p class="drop-hint">${matchMedia('(hover: hover)').matches ? t('post.dropDesk') : t('post.dropHint')}</p>`
-      : html`<button class="btn btn-go btn-block" id="signin" style="min-height:56px;font-size:18px">${t('auth.google')}</button>`}
+      : html`<button class="btn btn-go btn-block" id="signin">${t('auth.google')}</button>`}
   </div>`.s;
 }
 
@@ -82,12 +82,9 @@ function chooser() {
   document.addEventListener('drop', onDrag);
 }
 
-function setPhase(i, pct, label) {
-  $$('.phase', root).forEach((el, k) => {
-    el.classList.toggle('done', k < i);
-    el.classList.toggle('active', k === i);
-    if (k === i) $('.bar i', el).style.width = `${Math.round(pct * 100)}%`;
-  });
+function setProgress(pct, label) {
+  const bar = $('#progress i', root);
+  if (bar) bar.style.width = `${Math.round(pct * 100)}%`;
   const st = $('#status', root);
   if (st && label) st.innerHTML = label;
 }
@@ -95,40 +92,27 @@ function setPhase(i, pct, label) {
 async function read(file) {
   if (file.size > 15 * 1024 * 1024) return toast(t('err.image_too_large'), { bad: true });
   const url = URL.createObjectURL(file);
-  root.innerHTML = html`<div class="page-head"><h1 class="title">${t('post.reading')}</h1></div>
-    <div class="post-stage" style="height:min(52dvh,420px)"><div class="phone"><div class="notch"></div><div class="screen" id="screen"><img src="${url}" alt="" style="object-fit:contain;background:#0a0f1c"><div class="scanline"></div></div></div></div>
-    <div class="phases" aria-hidden="true">
-      <div class="phase active"><div class="bar"><i></i></div>${t('post.phase1')}</div>
-      <div class="phase"><div class="bar"><i></i></div>${t('post.phase2')}</div>
-      <div class="phase"><div class="bar"><i></i></div>${t('post.phase3')}</div>
-    </div>
-    <p class="status" id="status" role="status">${t('post.loadingEngine')}<small>${t('post.firstTime')}</small></p>`.s;
+  root.innerHTML = html`<div class="reading">
+    <div class="page-head" style="margin:0"><h1 class="title">${t('post.reading')}</h1></div>
+    <div class="preview"><img src="${url}" alt=""></div>
+    <div class="progress" id="progress" aria-hidden="true"><i></i></div>
+    <p class="status" id="status" role="status">${t('post.loadingEngine')}<small>${t('post.firstTime')}</small></p></div>`.s;
   try {
     const ocr = await import('../ocr/client.js');
     const { imageData, bitmap } = await ocr.decodeFile(file);
     shotBitmap = bitmap;
-    setPhase(0, 0.4);
+    setProgress(0.08);
     await ocr.warmUp();
-    setPhase(1, 0, html`${t('post.readingPlayers')}`.s);
+    setProgress(0.2, html`${t('post.readingPlayers')}`.s);
     const result = await ocr.readSquadFromImage(imageData, fpl, {
       gw: store.state.gw.id,
       onProgress: (p) => {
-        if (p.step === 'cards') setPhase(1, p.done / p.total, html`${t('post.readingCards', { done: p.done, total: p.total })}`.s);
-        else setPhase(2, 0.5, html`${t('post.readingPage')}`.s);
+        if (p.step === 'cards') setProgress(0.2 + 0.65 * (p.done / p.total), html`${t('post.readingCards', { done: p.done, total: p.total })}`.s);
+        else setProgress(0.9, html`${t('post.readingPage')}`.s);
       },
     });
-    setPhase(3, 1, html`${t('post.checking')}`.s);
+    setProgress(1, html`${t('post.checking')}`.s);
     if (result.recognised < 8) return notFpl(url);
-    // Light up each name where it was found on the screenshot.
-    const screen = $('#screen', root);
-    const img = $('img', screen);
-    const box = img.getBoundingClientRect(), sb = screen.getBoundingClientRect();
-    const scale = Math.min(box.width / imageData.width, box.height / imageData.height);
-    const ox = (box.width - imageData.width * scale) / 2 + box.left - sb.left, oy = (box.height - imageData.height * scale) / 2 + box.top - sb.top;
-    for (const p of result.picks.filter((x) => x.id && x.at)) {
-      screen.insertAdjacentHTML('beforeend', html`<span class="tagname" style="left:${ox + p.at.x * scale}px;top:${oy + p.at.y * scale}px">${p.name}</span>`.s);
-      await new Promise((r) => setTimeout(r, 55));
-    }
     draft = {
       picks: result.picks.map((p) => ({ id: p.id, bench: p.bench, pos: p.pos ?? posForSlot(result.picks, p), name: p.name, options: p.options })),
       captain: result.captain,
@@ -136,7 +120,6 @@ async function read(file) {
       seenGw: result.gw,
       url,
     };
-    await new Promise((r) => setTimeout(r, 600));
     confirmView();
   } catch (e) {
     console.error(e);
@@ -155,8 +138,8 @@ function posForSlot(picks, p) {
 function notFpl(url) {
   root.innerHTML = html`<div class="empty">
       <div class="row" style="justify-content:center;gap:18px;margin-bottom:14px;align-items:center">
-        <img src="${url}" alt="" style="width:96px;border-radius:12px;opacity:.55;transform:rotate(-6deg);box-shadow:0 0 0 3px var(--hot)">
-        <img src="/img/example-pick-team.svg" alt="${t('post.exampleAlt')}" style="width:96px;border-radius:12px;transform:rotate(5deg);box-shadow:0 0 0 3px var(--accent)">
+        <img src="${url}" alt="" style="width:96px;border-radius:12px;opacity:.6;box-shadow:0 0 0 3px var(--red)">
+        <img src="/img/example-pick-team.svg" alt="${t('post.exampleAlt')}" style="width:96px;border-radius:12px;box-shadow:0 0 0 3px var(--green)">
       </div>
       <h2>${t('post.notFpl')}</h2><p>${t('post.notFplText')}</p>
       <button class="btn btn-go" id="again">${t('post.tryAgain')}</button></div>`.s;
@@ -197,17 +180,14 @@ function confirmView() {
   const v = validate(picks, fpl);
   const missing = picks.filter((p) => !p.id).length;
   const ready = v.ok && !missing;
-  root.innerHTML = html`<div class="squad-wrap confirm-grid">
-    <div>
-      <div class="recog"><span class="num">${15 - missing}</span><b>${t('post.recognised', { n: 15 - missing })}</b></div>
-      <p class="sub" style="margin-top:0">${ready ? t('post.allGood') : t('post.fix')}</p>
-      ${checks(picks)}
-      ${draft.seenGw && draft.seenGw !== gw ? html`<p class="note">${t('post.gwNote', { seen: draft.seenGw, gw })}</p>` : ''}
-      ${!ready && v.problems.some((p) => p.code === 'formation') ? html`<p class="note" role="alert">${t('problem.formation')}</p>` : ''}
-    </div>
-    <div id="pitch">${squadHtml(fpl, { picks, captain: draft.captain, vice: draft.vice, gw }, { editable: true })}</div>
+  root.innerHTML = html`<div class="confirm">
+    <div class="recog"><span class="num">${15 - missing}/15</span><b>${t('post.found')}</b></div>
+    <p class="sub" style="margin:0">${ready ? t('post.allGood') : t('post.fix')}</p>
+    ${checks(picks)}
+    ${draft.seenGw && draft.seenGw !== gw ? html`<p class="note">${t('post.gwNote', { seen: draft.seenGw, gw })}</p>` : ''}
+    ${!ready && v.problems.some((p) => p.code === 'formation') ? html`<p class="note" role="alert">${t('problem.formation')}</p>` : ''}
+    <div class="jcard" id="pitch">${squadHtml(fpl, { picks, captain: draft.captain, vice: draft.vice, gw }, { editable: true })}</div>
     <p class="sub" style="font-size:13px;margin:0">${t('post.tapPlayer')}</p>
-    ${ready ? html`<div class="preview-card" id="preview"><span class="skeleton" style="width:120px;height:63px"></span><p>${t('post.previewText')}</p></div>` : ''}
     <div class="row">
       <button class="btn btn-ghost" id="again">${t('post.retake')}</button>
       <button class="btn btn-go" id="send" ${raw(ready ? '' : 'disabled')}>${t('post.send')}</button>
@@ -215,15 +195,6 @@ function confirmView() {
   $$('.pick', root).forEach((b) => b.addEventListener('click', () => playerMenu(+b.dataset.index)));
   $('#again', root).onclick = chooser;
   $('#send', root).onclick = send;
-  if (ready) {
-    // Small preview of the link card the jury will see.
-    renderShareImage('og', fpl, previewTeam(), null).then((blob) => {
-      const box = $('#preview', root);
-      if (!box || !blob) return;
-      draft.og = blob;
-      box.firstElementChild.outerHTML = `<img src="${URL.createObjectURL(blob)}" alt="${t('post.previewAlt')}">`;
-    }).catch(() => {});
-  }
 }
 
 function previewTeam() {
@@ -299,7 +270,7 @@ async function send() {
   try {
     const ocr = await import('../ocr/client.js');
     const picks = draft.picks.map((p) => ({ id: p.id }));
-    const [shot, og] = await Promise.all([ocr.compress(shotBitmap), draft.og || renderShareImage('og', fpl, previewTeam(), null)]);
+    const [shot, og] = await Promise.all([ocr.compress(shotBitmap), renderShareImage('og', fpl, previewTeam(), null)]);
     const form = new FormData();
     form.set('picks', JSON.stringify(picks));
     if (draft.captain) form.set('captain', String(draft.captain));
@@ -317,18 +288,27 @@ async function send() {
   }
 }
 
-function done() {
+/** Posted: the square image for X, one big "Post on X" button and the link. */
+async function done() {
   const s = store.state;
   const left = Math.max(0, s.minJudged - s.judged);
-  confetti({ n: 160, spread: 200 });
-  haptic([30, 50, 40]);
-  chime();
-  root.innerHTML = html`<div class="empty" style="padding-top:18px">
-      <img src="/img/logo/mark.svg" alt="" width="96" height="96" style="width:96px;margin:0 auto 14px">
-      <h2 style="font-size:40px">${t('post.liveTitle')}</h2>
-      <p>${left ? t('post.liveText', { n: left }) : t('judge.unlocked')}</p>
-      <div class="row" style="justify-content:center">
-        <a class="btn btn-go" href="/">${t('post.startJudging')}</a>
-        <a class="btn" href="/squad">${t('nav.mySquad')}</a>
-      </div></div>`.s;
+  haptic(30);
+  const team = { ...previewTeam(), key: s.mine?.key, avg: null, votes: 0 };
+  root.innerHTML = html`<div class="done">
+      <h1>${t('post.liveTitle')}</h1>
+      <p class="sub" style="margin:0">${left ? t('post.liveText', { n: left }) : t('judge.unlocked')}</p>
+      <div class="square skeleton" id="sq" role="img" aria-label="${t('post.squareAlt')}"></div>
+      <div class="row">
+        <a class="btn btn-go" id="postx" href="${xIntent(xText(team, null))}" target="_blank" rel="noopener">${raw(ICONS.x)}${t('squad.postX')}</a>
+        <button class="btn" id="copy">${raw(ICONS.link)}${t('squad.copy')}</button>
+      </div>
+      <a class="btn btn-ghost btn-block" href="/" style="max-width:420px">${t('post.startJudging')}</a></div>`.s;
+  $('#copy', root).onclick = async () => {
+    try { await navigator.clipboard.writeText(shareUrl(team)); toast(t('squad.copied')); } catch { toast(shareUrl(team)); }
+  };
+  try {
+    const blob = await renderShareImage('x', fpl, team, null);
+    const box = $('#sq', root);
+    if (box && blob) box.outerHTML = `<img class="square" src="${URL.createObjectURL(blob)}" alt="${t('post.squareAlt')}">`;
+  } catch {}
 }

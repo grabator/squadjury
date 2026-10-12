@@ -12,9 +12,9 @@ const PAGES = {
     <h2>2. Judge other squads</h2>
     <p>Squads appear one at a time. Tap a number from 1 to 10 and the next squad comes up. You see the jury average only after you give your own verdict, and nobody ever sees who gave which verdict.</p>
     <h2>3. Climb the leaderboard</h2>
-    <p>Verdicts stay open until the FPL deadline of the gameweek. At the deadline the gameweek locks, the final standings are saved and the top 10 enter the archive. Gameweek winners are crowned on the Champions tab.</p>
+    <p>Verdicts stay open until the FPL deadline of the gameweek. At the deadline the gameweek locks and the final top 10 is saved on the leaderboard.</p>
     <h2>Share it</h2>
-    <p>Every squad has its own link. Send it to your mini league, or post the Full HD image on X with one tap.</p>
+    <p>Every squad has its own link. Send it to your mini league, or post the square image of your squad on X with one tap.</p>
   </div>`,
   rules: () => html`<div class="prose">
     <h1 class="title">${t('page.rules')}</h1>
@@ -56,7 +56,7 @@ const PAGES = {
     <p>Go to <a href="/me">Me</a> and choose <strong>Delete my account</strong>. Your account, squads, screenshots and verdicts are removed straight away.</p>
     <p>${t('footer.fan')}</p>
   </div>`,
-  404: () => html`<div class="empty"><img class="big" src="/img/logo/mark.svg" alt="" width="88" height="88">
+  404: () => html`<div class="empty"><span class="ycard"></span>
     <h1 class="title" style="margin-bottom:8px">${t('page.notFound')}</h1><p>${t('page.notFoundText')}</p>
     <a class="btn btn-go" href="/">${t('page.home')}</a></div>`,
 };
