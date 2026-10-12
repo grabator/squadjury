@@ -11,7 +11,7 @@ const PAGES = {
     <h2>1. Post your squad</h2>
     <p>Sign in with Google, then upload a screenshot of the <strong>Pick Team</strong> screen from the official FPL app. SquadJury reads your 15 players, captain and vice captain right in your browser. Check them, fix anything we missed and send your squad to the jury.</p>
     <h2>2. Judge other squads</h2>
-    <p>Squads appear one at a time. Tap a number from 1 to 10 and the next squad comes up. You see the jury average only after you give your own verdict, and nobody ever sees who gave which verdict.</p>
+    <p>Squads appear one at a time. Tap how much you like the squad, from 1 to 10, and the next one comes up. There is no right answer: love the differentials, hate the template, think the captain is a gamble? Your call, that is what a jury is for. You see the jury average only after you give your own verdict, and nobody ever sees who gave which verdict.</p>
     <h2>3. Climb the leaderboard</h2>
     <p>Verdicts stay open until the FPL deadline of the gameweek. At the deadline the gameweek locks and the final top 10 is saved on the leaderboard.</p>
     <h2>Share it</h2>

@@ -34,7 +34,7 @@ function draw(el, fpl, team) {
     <article class="jcard">${teamCardHtml(fpl, team)}</article>
     ${canVote
       ? html`<div class="controls" style="padding:0">
-          <div class="vscale"><b>${team.myVote ? `${t('judge.yourVerdict')}: ${team.myVote}` : t('judge.yourVerdict')}</b><span>${t('judge.scale')}</span></div>
+          <div class="vscale"><b>${team.myVote ? `${t('judge.yourVerdict')}: ${team.myVote}` : t('judge.question')}</b><span>${t('judge.scale')}</span></div>
           <div class="verdicts" role="group" aria-label="${t('judge.rate')}">${Array.from({ length: 10 }, (_, i) => html`<button type="button" class="vbtn ${team.myVote === i + 1 ? 'chosen' : ''}" data-score="${i + 1}" aria-label="${t('judge.score', { n: i + 1 })}">${i + 1}</button>`)}</div></div>`
       : ''}
     <div class="row">${!store.state.mine && store.state.gw ? html`<a class="btn btn-go" href="/post">${t('judge.postSquad')}</a>` : ''}<a class="btn" href="/">${t('page.home')}</a></div>

@@ -135,7 +135,7 @@ function show() {
     controls.innerHTML = html`
       ${firstTime()
         ? html`<p class="first-hint" id="first-hint">${t('judge.firstHint')}</p>`
-        : html`<div class="vscale" aria-hidden="true"><b>${t('judge.yourVerdict')}</b><span>${t('judge.scale')}</span></div>`}
+        : html`<div class="vscale" aria-hidden="true"><b>${t('judge.question')}</b><span>${t('judge.scale')}</span></div>`}
       <div class="verdicts" role="group" aria-label="${t('judge.rate')}">
         ${Array.from({ length: 10 }, (_, i) => html`<button type="button" class="vbtn" data-score="${i + 1}" aria-label="${t('judge.score', { n: i + 1 })}">${i + 1}</button>`)}
       </div>
@@ -217,7 +217,7 @@ async function vote(score) {
   $(`.vbtn[data-score="${score}"]`, root)?.classList.add('chosen');
   if (firstTime()) {
     try { localStorage.setItem(HINT_KEY, '1'); } catch {}
-    $('#first-hint', root)?.replaceWith(Object.assign(document.createElement('div'), { className: 'vscale', innerHTML: html`<b>${t('judge.yourVerdict')}</b><span>${t('judge.scale')}</span>`.s }));
+    $('#first-hint', root)?.replaceWith(Object.assign(document.createElement('div'), { className: 'vscale', innerHTML: html`<b>${t('judge.question')}</b><span>${t('judge.scale')}</span>`.s }));
   }
   const card = $('#deck .jcard', root);
   card?.classList.add('judged');
