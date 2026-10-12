@@ -1,31 +1,50 @@
 // Cloudflare Worker config for SquadJury.
 // Before the first production deploy, replace the D1 database_id (see README, "Deploy").
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "squadjury",
-  "main": "src/worker.js",
-  "compatibility_date": "2026-10-06",
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/t/*", "/u/*"]
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "squadjury",
-      "database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "migrations"
-    }
-  ],
-  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "squadjury-images" }],
-  "triggers": { "crons": ["*/5 * * * *", "0 * * * *"] },
-  // ADMIN_EMAILS (Google emails that can open /admin) is a secret, so no email ends up in the repo:
-  //   npx wrangler secret put ADMIN_EMAILS
-  "vars": {
-    // Public OAuth client id from Google Cloud (not a secret).
-    "GOOGLE_CLIENT_ID": ""
-  },
-  "observability": { "enabled": true, "traces": { "enabled": true } }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "squadjury",
+	"main": "src/worker.js",
+	"compatibility_date": "2026-10-06",
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": [
+			"/api/*",
+			"/t/*",
+			"/u/*"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "squadjury",
+			"database_id": "51c7e7f2-dd20-47d7-b0b6-dbabbad7844f",
+			"migrations_dir": "migrations"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "IMAGES",
+			"bucket_name": "squadjury-images"
+		}
+	],
+	"triggers": {
+		"crons": [
+			"*/5 * * * *",
+			"0 * * * *"
+		]
+	},
+	// ADMIN_EMAILS (Google emails that can open /admin) is a secret, so no email ends up in the repo:
+	//   npx wrangler secret put ADMIN_EMAILS
+	"vars": {
+		// Public OAuth client id from Google Cloud (not a secret).
+		"GOOGLE_CLIENT_ID": "897611394397-qvujljt62q2coact1p0rdtua0egtv3p4.apps.googleusercontent.com"
+	},
+	"observability": {
+		"enabled": true,
+		"traces": {
+			"enabled": true
+		}
+	}
 }
