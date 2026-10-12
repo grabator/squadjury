@@ -108,6 +108,11 @@ route('GET', '/api/state', async (c) => {
     mine,
     judged,
     minJudged: MIN_JUDGED,
+    // Deadline of the gameweek before the open one: the clock shows how much of the window is gone.
+    prevDeadline: open ? (() => {
+      const prev = c.fpl.events.filter((e) => Date.parse(e.deadline_time) <= c.now).pop();
+      return prev ? Date.parse(prev.deadline_time) : null;
+    })() : null,
     googleClientId: c.env.GOOGLE_CLIENT_ID || null,
     devLogin: c.env.DEV_LOGIN === '1',
   });
@@ -285,6 +290,8 @@ route('GET', '/api/teams/([A-Za-z0-9_-]{4,20})', async (c, key) => {
   if (mineFlag || locked) {
     const d = await c.env.DB.prepare('SELECT score, COUNT(*) AS n FROM votes WHERE team_id = ? GROUP BY score').bind(t.id).all();
     out.dist = Array.from({ length: 10 }, (_, i) => d.results.find((r) => r.score === i + 1)?.n ?? 0);
+    const m = await c.env.DB.prepare('SELECT AVG(score) AS avg FROM votes WHERE gw = ?').bind(t.gw).first();
+    out.gwAvg = m.avg != null ? Math.round(m.avg * 10) / 10 : null;
   }
   return json({ team: out });
 });

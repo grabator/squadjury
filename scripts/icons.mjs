@@ -21,7 +21,7 @@ const browser = await launch();
 const page = await browser.newPage();
 for (const j of jobs) {
   const inner = j.pad ? `<img src="data:image/svg+xml;base64,${b64}" style="position:absolute;inset:${j.pad * 100}%;width:${100 - j.pad * 200}%">` : `<img src="data:image/svg+xml;base64,${b64}" style="width:100%;height:100%">`;
-  const html = `<html><body style="margin:0"><div style="position:relative;width:${j.size}px;height:${j.size}px;background:${j.square ? '#37003C' : 'transparent'};overflow:hidden">${inner}</div></body></html>`;
+  const html = `<html><body style="margin:0"><div style="position:relative;width:${j.size}px;height:${j.size}px;background:${j.square ? '#14203A' : 'transparent'};overflow:hidden">${inner}</div></body></html>`;
   await page.setViewportSize({ width: j.size, height: j.size });
   await page.setContent(html);
   await page.locator('div').screenshot({ path: root + j.file, omitBackground: !j.square });

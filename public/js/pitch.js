@@ -14,7 +14,7 @@ function shortName(name, max = 11) {
 
 function playerCell(fpl, pick, gw, { captain, vice, row, col, editable, index }) {
   const p = pick.id != null ? fpl.byId.get(pick.id) : null;
-  const kit = p ? kitFor(fpl, p) : ['#5a1561', '#ffffff', 'solid'];
+  const kit = p ? kitFor(fpl, p) : ['#34445f', '#ffffff', 'solid'];
   const name = p?.web_name ?? pick.name ?? '?';
   const fix = p ? fixtureLabel(fpl, p.team, gw) : POS[pick.pos] || '';
   const isC = p && p.id === captain, isV = p && p.id === vice;
@@ -22,13 +22,14 @@ function playerCell(fpl, pick, gw, { captain, vice, row, col, editable, index })
     ? `${name}, ${fpl.teamsById.get(p.team)?.name ?? ''}, ${POS[p.element_type]}${isC ? `, ${t('judge.captain')}` : isV ? `, ${t('judge.vice')}` : ''}`
     : `${t('post.pick', { pos: POS[pick.pos] || 'player' })}`;
   const inner = html`
-    <span class="shirt">${raw(shirtSvg(kit, `${uid}-${index}`))}${isC ? raw('<span class="armband c" aria-hidden="true">C</span>') : ''}${isV ? raw('<span class="armband v" aria-hidden="true">V</span>') : ''}</span>
+    <span class="shirt">${raw(shirtSvg(kit, `${uid}-${index}`))}${!p && editable ? raw('<span class="plus" aria-hidden="true">+</span>') : ''}${isC ? raw('<span class="armband c" aria-hidden="true">C</span>') : ''}${isV ? raw('<span class="armband v" aria-hidden="true">V</span>') : ''}</span>
     <span class="card"><span class="name">${shortName(name)}</span><span class="fix">${fix}</span></span>`;
   const cls = `pl${p ? '' : ' missing'}`;
+  const style = `--row:${row};--col:${col};--kit:${kit[0] === '#ffffff' ? kit[1] : kit[0]}`;
   if (editable) {
-    return html`<div class="${cls}" style="--row:${row};--col:${col}"><button type="button" class="pick" data-index="${index}" aria-label="${label}">${inner}</button></div>`;
+    return html`<div class="${cls}" style="${style}"><button type="button" class="pick" data-index="${index}" aria-label="${label}">${inner}</button></div>`;
   }
-  return html`<div class="${cls}" style="--row:${row};--col:${col}" role="listitem" aria-label="${label}">${inner}</div>`;
+  return html`<div class="${cls}" style="${style}" role="listitem" aria-label="${label}">${inner}</div>`;
 }
 
 /**

@@ -14,7 +14,8 @@ OUT = ROOT / 'public' / 'img' / 'logo' / 'variants'
 OUT.mkdir(parents=True, exist_ok=True)
 FONT = ROOT / 'node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-800-normal.woff2'
 
-PURPLE, NIGHT, GREEN, CYAN, MAGENTA, WHITE = '#37003C', '#1F0022', '#00FF87', '#04F5FF', '#E90052', '#FFFFFF'
+# Night stadium palette (style A): deep blue tile, electric green gavel, floodlight blue arcs.
+PURPLE, NIGHT, GREEN, CYAN, MAGENTA, WHITE = '#14203A', '#060A14', '#3CFF8F', '#9CC8FF', '#FF7A2F', '#FFFFFF'
 
 
 def text_path(text, size, x=0, y=0, tracking=0):
