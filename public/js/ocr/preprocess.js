@@ -110,6 +110,15 @@ export function badgeLetter(img, box) {
  * Pitch lines are either too thin or too long to pass.
  */
 export function findCards(img) {
+  const cards = scanCards(img, false);
+  if (cards.length >= 15) return cards;
+  // Some phones show the bench on an almost white background, so the loose test above
+  // sees one long white row. Pure white only, with room for the line of text in the middle.
+  const more = scanCards(img, true).filter((b) => !cards.some((c) => Math.abs(c.x + c.w / 2 - (b.x + b.w / 2)) < c.w / 2 && Math.abs(c.y - b.y) < c.h));
+  return [...cards, ...more].sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+function scanCards(img, strict) {
   const { data, width: w, height: h } = img;
   const minW = w * 0.12, maxW = w * 0.21, maxGap = w * 0.025;
   const rows = [];
@@ -123,7 +132,9 @@ export function findCards(img) {
       // Bright white only (the name row). The bench background is a pale green with
       // red and blue around 240, so it stays out; the grey fixture row is added later.
       // A flagged player (injury or doubt) has a yellow name row instead.
-      const white = x < w && ((r > 246 && g > 236 && bl > 246) || (r > 235 && g > 200 && bl < 170 && r - bl > 90));
+      const white = x < w && (strict
+        ? r >= 253 && g >= 251 && bl >= 253
+        : (r > 246 && g > 236 && bl > 246) || (r > 235 && g > 200 && bl < 170 && r - bl > 90));
       if (white && start < 0) start = x;
       else if (!white && start >= 0) {
         const last = runs[runs.length - 1];
@@ -141,7 +152,7 @@ export function findCards(img) {
   // the name, can fail, so small gaps are fine.
   const boxes = [];
   for (const r of rows) {
-    const b = boxes.find((b) => r.y - b.y1 <= 6 && Math.abs(r.x0 - b.x0) <= 6 && Math.abs(r.x1 - b.x1) <= 6);
+    const b = boxes.find((b) => r.y - b.y1 <= (strict ? 22 : 6) && Math.abs(r.x0 - b.x0) <= (strict ? 16 : 6) && Math.abs(r.x1 - b.x1) <= (strict ? 16 : 6));
     if (b) { b.y1 = r.y; b.n++; b.xs0.push(r.x0); b.xs1.push(r.x1); }
     else boxes.push({ x0: r.x0, x1: r.x1, y0: r.y, y1: r.y, n: 1, xs0: [r.x0], xs1: [r.x1] });
   }
@@ -149,7 +160,7 @@ export function findCards(img) {
   const median = (a) => a.slice().sort((p, q) => p - q)[a.length >> 1];
   for (const b of boxes) { b.x0 = median(b.xs0); b.x1 = median(b.xs1); }
   return boxes
-    .filter((b) => b.y1 - b.y0 >= w * 0.022 && b.n >= (b.y1 - b.y0) * 0.7)
+    .filter((b) => b.y1 - b.y0 >= w * 0.022 && b.n >= (b.y1 - b.y0) * (strict ? 0.3 : 0.7))
     // The name row plus the grey fixture row right under it.
     // A few pixels in from the sides, past the rounded corners.
     .map((b) => ({ x: b.x0 + 3, y: b.y0, w: b.x1 - b.x0 - 5, h: Math.min(h - b.y0, Math.round(w * 0.082)) }))

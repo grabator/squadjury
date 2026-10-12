@@ -29,6 +29,20 @@ const cases = [
     bench: ['Kinsky', 'Muharemović', 'Calvert-Lewin', 'Shaw'],
     captain: 'De Cuyper', vice: 'B.Fernandes',
   },
+  {
+    // Android: the bench sits on an almost white background, "Muharemo..." is cut short.
+    file: 'pick-team-4.jpg', gw: 7,
+    xi: ['Verbruggen', 'Calafiori', 'Muharemović', 'Konsa', 'Yalcouyé', 'Mbeumo', 'B.Fernandes', 'Cherki', 'Groß', 'João Pedro', 'Haaland'],
+    bench: ['Kinsky', 'Calvert-Lewin', 'Maguire', 'Davis'],
+    captain: 'Cherki', vice: 'Haaland',
+  },
+  {
+    // The same squad from another Android phone, at a different size.
+    file: 'pick-team-5.jpg', gw: 7,
+    xi: ['Verbruggen', 'Calafiori', 'Muharemović', 'Konsa', 'Yalcouyé', 'Mbeumo', 'B.Fernandes', 'Cherki', 'Groß', 'João Pedro', 'Haaland'],
+    bench: ['Kinsky', 'Calvert-Lewin', 'Maguire', 'Davis'],
+    captain: 'Cherki', vice: 'Haaland',
+  },
 ];
 
 for (const c of cases) {

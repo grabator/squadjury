@@ -297,9 +297,12 @@ export function readSquad(passes, ctx) {
   // Captain and vice: badge sits above the name, near the card's left edge.
   let captain = null, vice = null;
   for (const b of ctx.badges || []) {
+    // The badge sits in the top left corner of its player's card, so the name is below it
+    // and a little to the right; the card on the left is never the owner.
+    const W = ctx.width || 1080;
     const owner = [...starters, ...bench]
-      .filter((s) => s.cand.cy > b.cy && s.cand.cy - b.cy < (ctx.width || 1080) * 0.22 && Math.abs(s.cand.cx - b.cx) < (ctx.width || 1080) * 0.12)
-      .sort((x, y) => (x.cand.cy - b.cy) - (y.cand.cy - b.cy))[0];
+      .filter((s) => s.cand.cy > b.cy && s.cand.cy - b.cy < W * 0.22 && s.cand.cx > b.cx - W * 0.02 && s.cand.cx - b.cx < W * 0.12)
+      .sort((x, y) => Math.hypot(x.cand.cx - b.cx, x.cand.cy - b.cy) - Math.hypot(y.cand.cx - b.cx, y.cand.cy - b.cy))[0];
     if (!owner?.player) continue;
     if (b.letter === 'C' && !captain) captain = owner.player.id;
     else if (b.letter === 'V' && !vice) vice = owner.player.id;
