@@ -18,6 +18,8 @@ const PAGES = {
     <p>When the gameweek is over, SquadJury adds up the real FPL points of every squad: the starting XI, the captain doubled and automatic substitutions from the bench. Then you see if the jury got it right. Add your <strong>FPL team ID</strong> in your profile and your exact points from FPL are used, with transfer hits and chips.</p>
     <h2>Scout points</h2>
     <p>Your verdict is also a forecast. After the gameweek every squad gets a true score from 1 to 10 by its real FPL points (the best squad 10, the worst 1). A verdict right on it earns 10 scout points, 1 away 8, 2 away 6, 3 away 3, more than that 0. A duel pick earns 5 when the squad you picked scored more. Your scout score for the gameweek is the average, once you gave at least 10 verdicts. The season adds up the gameweeks. See it under Scouts on the leaderboard and on your profile.</p>
+    <h2>Badges and streak</h2>
+    <p>There are 18 badges for jurors, managers, scouts, duels and bringing friends. Your profile shows the ones you unlocked; tap the row to see all of them, with how far you are on each. Your streak counts the gameweeks in a row in which you gave at least 5 verdicts or duels. Miss a gameweek and it starts again, but your best streak stays.</p>
     <h2>Duels</h2>
     <p>Switch Judge to <strong>Duel</strong> and you see two squads at once. Tap the better one. Every pick moves the squads' duel rating (it starts at 1500, like chess ratings) and their win and loss record, shown on the leaderboard under Duels. A duel counts as one judged squad. Picks made in under a second, or always on the same side, do not move the rating.</p>
     <h2>Plan A vs Plan B</h2>

@@ -10,6 +10,7 @@ import { ensureUser } from '../auth.js';
 import { teamCardHtml, wireTeamCard, verdictCard, xIntent, shareUrl } from './common.js';
 import { whistle } from '../sound.js';
 import { squadHtml, formationOf } from '../pitch.js';
+import { toastBadges } from '../badges.js';
 
 let root, fpl, queue = [], skipped = [], busy = false, unsub, onKey, asideTimer, undoTimer;
 const HINT_KEY = 'sj-hint';
@@ -45,6 +46,7 @@ export async function mount(el) {
   renderBar();
   unsub = store.subscribe(renderBar);
   scoutNews();
+  toastBadges(store.state.newBadges);
   el.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
   mode = savedMode() === 'duel' && store.state.user?.nickname ? 'duel' : 'rate';
   paintMode();
@@ -256,6 +258,7 @@ async function vote(score) {
       line.innerHTML = html`<span>${r.votes > 1 ? `${t('judge.juryAvg')} ${r.avg.toFixed(1)}` : t('judge.firstVerdict')}</span>`.s;
       store.set({ judged: r.judged });
       if (before < store.state.minJudged && r.judged >= store.state.minJudged && store.state.mine) toast(t('judge.unlocked'), { ms: 3600 });
+      afterJudged(before, r);
     })
     .catch((e) => toast(e.code === 'offline' ? t('judge.sentFail') : errText(e), { bad: true }));
 
@@ -264,6 +267,17 @@ async function vote(score) {
   offerUndo(team, score);
 }
 
+
+/** After each verdict or duel: new badges, and the streak when the 5th one of the gameweek goes in. */
+function afterJudged(before, r) {
+  toastBadges(r.badges);
+  const st = store.state.streak;
+  if (st && before < 5 && r.judged >= 5) {
+    const n = st.thisGw ? st.current : st.current + 1;
+    store.set({ streak: { ...st, current: n, best: Math.max(st.best, n), thisGw: true } });
+    setTimeout(() => toast(n > 1 ? t('badge.streakToast', { n }) : t('badge.streakToast1'), { ms: 3200 }), r.badges?.length ? 4200 : 300);
+  }
+}
 
 /** Once per gameweek, after it is scored: "Your GW7 verdicts are in: 7.4 scout score, #12". */
 function scoutNews() {
@@ -421,6 +435,7 @@ async function duelPick(side) {
       if (r.judged != null) {
         store.set({ judged: r.judged });
         if (before < store.state.minJudged && r.judged >= store.state.minJudged && store.state.mine) toast(t('judge.unlocked'), { ms: 3600 });
+        afterJudged(before, r);
       }
     })
     .catch((e) => toast(e.code === 'offline' ? t('judge.sentFail') : errText(e), { bad: true }));

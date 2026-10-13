@@ -59,7 +59,7 @@ const openGw = snap.events.find((e) => Date.parse(e.deadline_time) > now)?.id ??
 const gws = [openGw - 3, openGw - 2, openGw - 1, openGw].filter((g) => g >= 1);
 const season = seasonOf(snap);
 
-const sql = ["DELETE FROM h2h WHERE league_id = 900;", "DELETE FROM leagues WHERE code = 'EXAMP7';",
+const sql = ["DELETE FROM badges WHERE user_id IN (SELECT id FROM users WHERE demo = 1);", "DELETE FROM h2h WHERE league_id = 900;", "DELETE FROM leagues WHERE code = 'EXAMP7';",
   'DELETE FROM votes WHERE user_id IN (SELECT id FROM users WHERE demo = 1);',
   'DELETE FROM duels WHERE user_id IN (SELECT id FROM users WHERE demo = 1);',
   'DELETE FROM results WHERE user_id IN (SELECT id FROM users WHERE demo = 1);',
@@ -120,6 +120,10 @@ for (const num of gws) {
   sql.push(...duels);
   for (const v of votes) sql.push(`INSERT INTO votes (team_id, user_id, gw, season, score, created_at, updated_at) VALUES (${v.team}, ${v.user}, ${gw}, ${q(season.label)}, ${v.score}, ${deadline - 864e5}, ${deadline - 864e5});`);
 }
+
+// Every example juror has judged and posted, so they have the first two badges.
+sql.push('DELETE FROM badges WHERE user_id IN (SELECT id FROM users WHERE demo = 1);');
+NICKS.forEach((_, i) => ['first-verdict', 'on-the-pitch'].forEach((b) => sql.push(`INSERT INTO badges (user_id, badge, season, gw, unlocked_at, seen) VALUES (${1000 + i}, '${b}', ${q(season.label)}, ${gwKey(season, gws[0])}, ${now - 864e5 * 30}, 1);`)));
 
 // An example league with 12 of the example jurors. Join it with the code EXAMP7 to try leagues.
 sql.push(`INSERT INTO leagues (id, code, name, owner_id, created_at) VALUES (900, 'EXAMP7', 'Example League', 1000, ${now - 864e5 * 30});`);

@@ -12,6 +12,8 @@ import { runBackup, listBackups } from './lib/backup.js';
 import { pointsJob, scoreGameweek, fetchLive } from './lib/pointsjob.js';
 import { juryCall, pointsRanks } from './lib/points.js';
 import { scoreScouts } from './lib/scoutjob.js';
+import { evaluateBadges, badgeJob } from './lib/badgejob.js';
+import { BADGES, GROUPS, byId as badgeById, progressOf, streaks } from './lib/badges.js';
 import { MIN_VERDICTS, MIN_TEAMS } from './lib/scouts.js';
 import { elo, pairKey, biasedSide, pickPairs, roundRobin, h2hResult, h2hTable, DUEL_LIMIT, MIN_MS, MIN_DUELS, H2H_MIN_MEMBERS } from './lib/duels.js';
 import { newCode, parseCode, checkLeagueName, rerank, seasonTable, MAX_LEAGUES_PER_USER, MAX_MEMBERS, NEW_LEAGUES_PER_DAY } from './lib/leagues.js';
@@ -148,6 +150,7 @@ route('GET', '/api/state', async (c) => {
     judged,
     minJudged,
     scoutNews: u ? await scoutNews(c, u) : null,
+    ...(u?.nickname ? await badgeState(c, u, open) : {}),
     // Deadline of the gameweek before the open one: the clock shows how much of the window is gone.
     prevDeadline: open ? (() => {
       const prev = c.fpl.events.filter((e) => Date.parse(e.deadline_time) <= c.now).pop();
@@ -157,6 +160,22 @@ route('GET', '/api/state', async (c) => {
     devLogin: c.env.DEV_LOGIN === '1',
   });
 });
+
+/** New badges (not seen yet) and the streak, for the toasts while judging. */
+async function badgeState(c, u, open) {
+  const [fresh, perGw, gws] = await c.env.DB.batch([
+    c.env.DB.prepare('SELECT badge FROM badges WHERE user_id = ? AND seen = 0').bind(u.id),
+    c.env.DB.prepare(
+      `SELECT gw, SUM(n) AS n FROM (SELECT gw, COUNT(*) AS n FROM votes WHERE user_id = ?1 GROUP BY gw
+         UNION ALL SELECT gw, COUNT(*) AS n FROM duels WHERE user_id = ?1 AND counted = 1 GROUP BY gw) GROUP BY gw`,
+    ).bind(u.id),
+    c.env.DB.prepare('SELECT id FROM gameweeks WHERE id <= COALESCE(?, (SELECT MAX(id) FROM gameweeks)) ORDER BY id').bind(open?.id ?? null),
+  ]);
+  return {
+    newBadges: fresh.results.map((b) => ({ id: b.badge, name: badgeName(b.badge) })),
+    streak: streaks(gws.results.map((g) => g.id), new Map(perGw.results.map((r) => [r.gw, r.n])), open?.id ?? null),
+  };
+}
 
 /** The juror's score of the latest scored gameweek, for the "Your verdicts are in" message. */
 async function scoutNews(c, u) {
@@ -251,6 +270,7 @@ route('DELETE', '/api/me', async (c) => {
     c.env.DB.prepare('DELETE FROM duels WHERE user_id = ?1 OR a_id IN (SELECT id FROM teams WHERE user_id = ?1) OR b_id IN (SELECT id FROM teams WHERE user_id = ?1)').bind(u.id),
     c.env.DB.prepare('DELETE FROM duel_offers WHERE user_id = ?').bind(u.id),
     c.env.DB.prepare('DELETE FROM scouts WHERE user_id = ?').bind(u.id),
+    c.env.DB.prepare('DELETE FROM badges WHERE user_id = ?').bind(u.id),
     c.env.DB.prepare('DELETE FROM plan_votes WHERE user_id = ?1 OR plan_id IN (SELECT id FROM plans WHERE user_id = ?1)').bind(u.id),
     c.env.DB.prepare('DELETE FROM plans WHERE user_id = ?').bind(u.id),
     c.env.DB.prepare('DELETE FROM teams WHERE user_id = ?').bind(u.id),
@@ -283,7 +303,10 @@ route('GET', '/api/me/profile', async (c) => {
     ).bind(u.id, c.season.base, c.season.base + 100),
   ]);
   const ls = lastScout.results[0], ss = seasonScout.results[0];
+  const { stats: bstats } = await evaluateBadges(c.env, u.id, open, c.now);
+  const got = (await c.env.DB.prepare('SELECT badge, seen FROM badges WHERE user_id = ? ORDER BY unlocked_at DESC, rowid DESC').bind(u.id).all()).results;
   return json({
+    badges: { list: got.map((b) => ({ id: b.badge, name: badgeName(b.badge), isNew: !b.seen })), total: BADGES.length, streak: bstats.streak },
     scouts: {
       last: ls ? { gw: gwNum(ls.gw), score: Math.round(ls.score * 10) / 10, rank: ls.rank, total: ls.total } : null,
       season: ss ? { score: Math.round(ss.score * 10) / 10, gws: ss.gws, rank: ss.rank } : null,
@@ -433,6 +456,8 @@ route('GET', '/api/teams/([A-Za-z0-9_-]{4,20})', async (c, key) => {
     out.pointsTotal = all.results.length;
     out.call = juryCall(out.place?.rank, out.pointsRank, Math.min(out.place?.total || 0, out.pointsTotal));
   }
+  // The owner's badges (just the unlocked ones, newest first).
+  out.ownerBadges = (await c.env.DB.prepare('SELECT badge FROM badges WHERE user_id = ? ORDER BY unlocked_at DESC LIMIT 12').bind(t.user_id).all()).results.map((b) => ({ id: b.badge, name: badgeName(b.badge) }));
   // Plan B, for the owner only.
   if (mineFlag) {
     const plan = await c.env.DB.prepare('SELECT * FROM plans WHERE team_id = ?').bind(t.id).first();
@@ -515,8 +540,56 @@ route('POST', '/api/votes', async (c) => {
   }
   c.ctx.waitUntil(refreshVoterWeight(c.env, u.id));
   const after = await c.env.DB.prepare('SELECT vote_sum, vote_count FROM teams WHERE id = ?').bind(t.id).first();
-  return json({ avg: avgOf(after), votes: after.vote_count, judged: await judgedCount(c.env, u.id, open.id) });
+  const judged = await judgedCount(c.env, u.id, open.id);
+  return json({ avg: avgOf(after), votes: after.vote_count, judged, badges: old ? [] : await badgesAfter(c, open, judged) });
 });
+
+// ==== badges and streak
+
+const badgeName = (id) => badgeById.get(id)?.name || id;
+const MILESTONES = new Set([1, 5, 10, 25, 50, 100, 200, 500]);
+
+/** After a verdict or duel: badges are checked right away at round numbers (the cron does the rest). */
+async function badgesAfter(c, open, judged) {
+  if (!MILESTONES.has(judged)) return [];
+  const { fresh } = await evaluateBadges(c.env, c.user.id, open, c.now);
+  return fresh.map((id) => ({ id, name: badgeName(id) }));
+}
+
+route('GET', '/api/me/badges', async (c) => {
+  const u = needUser(c);
+  const open = await c.open();
+  const { stats } = await evaluateBadges(c.env, u.id, open, c.now);
+  const [mine, counts, jurors] = await c.env.DB.batch([
+    c.env.DB.prepare('SELECT badge, gw, unlocked_at, seen FROM badges WHERE user_id = ?').bind(u.id),
+    c.env.DB.prepare('SELECT badge, COUNT(*) AS n FROM badges GROUP BY badge'),
+    c.env.DB.prepare('SELECT COUNT(*) AS n FROM users WHERE nickname IS NOT NULL AND banned = 0'),
+  ]);
+  const got = new Map(mine.results.map((b) => [b.badge, b]));
+  const share = new Map(counts.results.map((r) => [r.badge, r.n]));
+  const total = Math.max(1, jurors.results[0].n);
+  return json({
+    total: BADGES.length, unlocked: got.size, streak: stats.streak,
+    groups: GROUPS.map((g) => ({
+      name: g,
+      badges: BADGES.filter((b) => b.group === g).map((b) => {
+        const have = got.get(b.id);
+        return {
+          id: b.id, name: b.name, desc: b.desc, progress: progressOf(b, stats),
+          unlocked: have ? { gw: have.gw ? gwNum(have.gw) : null, at: have.unlocked_at } : null, isNew: have ? !have.seen : false,
+          pct: Math.round(((share.get(b.id) || 0) / total) * 100),
+        };
+      }),
+    })),
+  });
+});
+
+route('POST', '/api/me/badges/seen', async (c) => {
+  const u = needUser(c);
+  await c.env.DB.prepare('UPDATE badges SET seen = 1 WHERE user_id = ? AND seen = 0').bind(u.id).run();
+  return json({ ok: true });
+});
+
 
 // ==== Plan B
 
@@ -759,7 +832,8 @@ route('POST', '/api/duels', async (c) => {
   }
   await c.env.DB.batch(stmts);
   const agree = await c.env.DB.prepare('SELECT COUNT(*) AS n, SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) AS same FROM duels WHERE a_id = ? AND b_id = ?').bind(winner.id, lo.id, hi.id).first();
-  return json({ counted: !!counted, votes: agree.n, agree: Math.round((agree.same / agree.n) * 100), judged: await judgedCount(c.env, u.id, open.id) });
+  const judged = await judgedCount(c.env, u.id, open.id);
+  return json({ counted: !!counted, votes: agree.n, agree: Math.round((agree.same / agree.n) * 100), judged, badges: counted ? await badgesAfter(c, open, judged) : [] });
 });
 
 // The last 10 duels of a squad: who it met and whether it won. Jurors are never shown.
@@ -1509,6 +1583,7 @@ export default {
     const open = await syncGameweeks(env, fpl, now);
     await autoChoosePlans(env, now).catch((e) => console.log(JSON.stringify({ msg: 'plan pick failed', error: String(e) })));
     if (open) await ensureFixtures(env, open.id, open.season).catch((e) => console.log(JSON.stringify({ msg: 'fixtures failed', error: String(e) })));
+    ctx.waitUntil(badgeJob(env, open, now, hourly ? 2 * 3600e3 : 10 * 60e3).catch((e) => console.log(JSON.stringify({ msg: 'badges failed', error: String(e) }))));
     if (hourly) {
       ctx.waitUntil(cleanupImages(env));
       ctx.waitUntil(env.DB.prepare('DELETE FROM duel_offers WHERE at < ?').bind(now - 86400000).run());

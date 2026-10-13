@@ -269,6 +269,26 @@ await check('league H2H: 4 members get fixtures, everyone plays once, members ju
   assert.equal((await B.call('GET', `/api/leagues/${made.code}/h2h`)).data.matches.length, 2);
 });
 
+await check('badges: 18 in groups with progress, first verdict unlocks, the new mark goes once seen, others see only the row', async () => {
+  const b = (await B.call('GET', '/api/me/badges')).data;
+  assert.equal(b.total, 18);
+  assert.deepEqual(b.groups.map((g) => g.name), ['Juror', 'Manager', 'Scout', 'Duels', 'Community']);
+  const first = b.groups[0].badges.find((x) => x.id === 'first-verdict');
+  assert.ok(first.unlocked, JSON.stringify(first));
+  assert.equal(first.isNew, true);
+  const regular = b.groups[0].badges.find((x) => x.id === 'regular');
+  assert.equal(regular.unlocked, null);
+  assert.equal(regular.progress.target, 50);
+  assert.ok((await B.call('GET', '/api/state')).data.newBadges.some((x) => x.id === 'first-verdict'));
+  assert.equal((await B.call('POST', '/api/me/badges/seen')).status, 200);
+  assert.deepEqual((await B.call('GET', '/api/state')).data.newBadges, []);
+  const keyA = (await A.call('GET', '/api/state')).data.mine.key;
+  await A.call('GET', '/api/me/badges');
+  const pub = (await B.call('GET', `/api/teams/${keyA}`)).data.team.ownerBadges;
+  assert.ok(pub.some((x) => x.id === 'on-the-pitch'), JSON.stringify(pub));
+  assert.equal((await fetch(BASE + '/api/me/badges')).status, 401);
+});
+
 await check('3 reports hide a squad from judging and from its link', async () => {
   for (const u of [C, D, E]) assert.equal((await u.call('POST', '/api/reports', { key: keyA })).status, 200);
   assert.equal((await F.call('GET', `/api/teams/${keyA}`)).status, 404);

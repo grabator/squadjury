@@ -1,6 +1,7 @@
 // Me: your numbers, your verdicts (by gameweek, 10 at a time), your squads, settings and About.
 
 import { t } from '../i18n.js';
+import { badgeRowHtml, openBadgesSheet, toastBadges } from '../badges.js';
 import { html, raw, $, $$, sheet, toast, errText, ICONS } from '../ui.js';
 import { api } from '../api.js';
 import { store, refreshState } from '../store.js';
@@ -78,6 +79,7 @@ export async function mount(el) {
       <div class="stat"><span class="num">${st.gameweeks}</span><span>${t('me.gameweeks')}</span></div>
       <div class="stat"><span class="num">${st.best ? `#${st.best}` : '-'}</span><span>${t('me.best')}</span></div>
     </div>
+    ${badgeRowHtml(prof.badges)}
     ${prof.scouts?.last ? html`<a class="scout-line" href="/leaderboard?tab=gw${prof.scouts.last.gw}&sort=scouts"><b>${t('scout.profile', prof.scouts.last)}</b>${prof.scouts.season ? html`<span>${t('scout.profileSeason', { ...prof.scouts.season, n: prof.scouts.season.gws })}</span>` : ''}</a>` : ''}
 
     <h2 class="section-h">${cur.gw ? t('me.verdictsGw', { gw: cur.gw }) : t('me.verdictsAll')}</h2>
@@ -119,6 +121,8 @@ export async function mount(el) {
   squadsList($('#squads', el), prof.squads, 1);
   leaguesList($('#leagues', el));
 
+  $('#badgerow', el)?.addEventListener('click', () => openBadgesSheet(() => $('.badge-row .new-dot', el)?.remove()));
+  toastBadges(prof.badges?.list?.filter((b) => b.isNew));
   $('#edit', el).onclick = async () => { if (await pickNickname('', { edit: true })) mount(el); };
   $('#logout', el).onclick = async () => {
     await api('/api/auth/logout', { method: 'POST' });

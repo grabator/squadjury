@@ -8,6 +8,7 @@ import { store } from '../store.js';
 import { ensureUser } from '../auth.js';
 import { teamCardHtml, wireTeamCard, verdictCard, pointsHtml, duelRowHtml, wireDuelRow } from './common.js';
 import { whistle } from '../sound.js';
+import { publicBadgesHtml, toastBadges } from '../badges.js';
 import { renderMine } from './squad.js';
 
 export async function mount(el, key) {
@@ -34,6 +35,7 @@ function draw(el, fpl, team) {
     ${team.locked ? pointsHtml(team) : ''}
     ${duelRowHtml(team)}
     <article class="jcard">${teamCardHtml(fpl, team)}</article>
+    ${publicBadgesHtml(team.ownerBadges)}
     ${canVote
       ? html`<div class="controls" style="padding:0">
           <div class="vscale"><b>${team.myVote ? `${t('judge.yourVerdict')}: ${team.myVote}` : t('judge.question')}</b><span>${t('judge.scale')}</span></div>
@@ -56,6 +58,7 @@ function draw(el, fpl, team) {
       try {
         const r = await api('/api/votes', { method: 'POST', body: { key: team.key, score } });
         store.set({ judged: r.judged });
+        toastBadges(r.badges);
         await new Promise((res) => setTimeout(res, reduceMotion() ? 300 : 800));
         const { team: fresh } = await api(`/api/teams/${team.key}`);
         draw(el, fpl, fresh);
