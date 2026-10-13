@@ -1,12 +1,13 @@
 // Me: your numbers, your verdicts (by gameweek, 10 at a time), your squads, settings and About.
 
 import { t } from '../i18n.js';
-import { html, raw, $, $$, sheet, toast, errText } from '../ui.js';
+import { html, raw, $, $$, sheet, toast, errText, ICONS } from '../ui.js';
 import { api } from '../api.js';
 import { store, refreshState } from '../store.js';
 import { ensureUser, pickNickname } from '../auth.js';
 import { navigate } from '../app.js';
 import { soundOn, setSound } from '../sound.js';
+import { myLeagues, openLeagueSheet, membersText } from '../leagues.js';
 
 const SQUADS_PAGE = 10;
 
@@ -85,6 +86,9 @@ export async function mount(el) {
       : html`<p class="sub">${t('me.verdictsEmpty')}</p>`}
     ${older.map((g) => html`<details class="gw-group" data-gw="${g.gw}"><summary>GW${g.gw}<small>${t('lb.votes', { n: g.count })}</small></summary><ul class="list"><li><span class="item"><span class="skeleton" style="width:60%;height:14px"></span></span></li></ul></details>`)}
 
+    <h2 class="section-h">${t('league.leagues')}</h2>
+    <div id="leagues"><div class="skeleton" style="height:56px"></div></div>
+
     <h2 class="section-h">${t('me.squads')}</h2>
     <div id="squads"></div>
 
@@ -112,6 +116,7 @@ export async function mount(el) {
     });
   }
   squadsList($('#squads', el), prof.squads, 1);
+  leaguesList($('#leagues', el));
 
   $('#edit', el).onclick = async () => { if (await pickNickname('', { edit: true })) mount(el); };
   $('#logout', el).onclick = async () => {
@@ -151,4 +156,17 @@ function squadsList(box, squads, page) {
       <span class="sub" style="margin:0">${page} / ${pages}</span>
       <button class="btn btn-sm btn-ghost" data-p="${page + 1}" ${raw(page === pages ? 'disabled' : '')}>${t('pager.next')}</button></div>` : ''}`.s;
   box.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => squadsList(box, squads, +b.dataset.p)));
+}
+
+/** Your leagues, each one opens its table; and a button to create or join one. */
+async function leaguesList(box) {
+  const leagues = await myLeagues(true).catch(() => []);
+  box.innerHTML = html`${leagues.length
+    ? html`<ul class="list">${leagues.map((l) => html`<li><a href="/leaderboard?league=${l.code}"><span><b>${l.name}</b><br><small>${membersText(l.members)}${l.isOwner ? ` · ${t('league.owner')}` : ''}</small></span><span class="go" aria-hidden="true">›</span></a></li>`)}</ul>`
+    : html`<p class="sub" style="margin:0 0 10px">${t('league.mineEmpty')}</p>`}
+    <button class="btn btn-block" id="lg-new" style="margin-top:10px">${raw(ICONS.plus)}${t('league.create')} / ${t('league.join').toLowerCase()}</button>`.s;
+  $('#lg-new', box).onclick = async () => {
+    const l = await openLeagueSheet();
+    if (l) leaguesList(box);
+  };
 }

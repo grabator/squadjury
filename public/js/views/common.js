@@ -15,7 +15,7 @@ export function teamCardHtml(fpl, team, { report = true } = {}) {
     <div class="jcard-head">
       <div class="who">
         <b>${team.nickname}${team.demo ? html`<span class="tag" title="${t('judge.example')}">${t('judge.exampleShort')}</span>` : ''}</b>
-        <span>${team.x ? html`<a href="https://x.com/${team.x}" target="_blank" rel="noopener">@${team.x}</a>` : `GW${team.gw}`}${f ? ` · ${f}` : ''}</span>
+        <span>${team.x ? html`<a href="https://x.com/${team.x}" target="_blank" rel="noopener">@${team.x}</a>` : `GW${team.gw}`}${f ? ` · ${f}` : ''}${team.league ? html`<span class="lg-chip" title="${t('league.from')}">${team.league}</span>` : ''}</span>
       </div>
       <span class="head-right">
         ${hasShot ? html`<button type="button" class="icon-btn" data-shot aria-pressed="false" aria-label="${t('judge.viewShot')}" title="${t('judge.viewShot')}">${raw(ICONS.shot)}</button>` : ''}

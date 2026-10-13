@@ -297,6 +297,69 @@ export async function renderShareImage(kind, fpl, team, place) {
   return new Promise((resolve) => canvas.toBlob(resolve, type, 0.9));
 }
 
+/** Link preview of a league invite (1200x630): the name, members and a yellow card with the code. */
+export async function renderLeagueImage(league) {
+  await fonts();
+  const w = 1200, h = 630;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const g = canvas.getContext('2d');
+  g.fillStyle = C.bg;
+  g.fillRect(0, 0, w, h);
+  // A strip of pitch along the bottom, the app's grass.
+  for (let i = 0; i < 6; i++) {
+    g.fillStyle = i % 2 ? C.grass2 : C.grass1;
+    g.fillRect((w / 6) * i, h - 70, w / 6 + 1, 70);
+  }
+  const pad = 72;
+  await brand(g, pad, 64, 44, false);
+  g.textAlign = 'left';
+  g.textBaseline = 'alphabetic';
+  g.fillStyle = C.ink2;
+  setFont(g, 800, 28);
+  g.fillText(t('share.privateLeague').toUpperCase(), pad, 214);
+  g.fillStyle = C.ink;
+  const nameW = w - pad * 2 - 300;
+  const words = league.name.split(' ');
+  // One line when it fits big, otherwise two lines.
+  let size = fit(g, league.name, nameW, 110, 900, 'semi-condensed');
+  let lines = [league.name];
+  if (size < 76 && words.length > 1) {
+    const cut = Math.ceil(words.length / 2);
+    lines = [words.slice(0, cut).join(' '), words.slice(cut).join(' ')];
+    size = Math.min(fit(g, lines[0], nameW, 96, 900, 'semi-condensed'), fit(g, lines[1], nameW, 96, 900, 'semi-condensed'));
+  }
+  setFont(g, 900, size, 'semi-condensed');
+  lines.forEach((ln, i) => g.fillText(ln, pad, 214 + size * 1.02 * (i + 1)));
+  g.fillStyle = C.ink2;
+  setFont(g, 600, 30);
+  g.fillText(t('share.leagueMeta', { members: league.members === 1 ? t('league.member1') : t('league.members', { n: league.members }) }), pad, 214 + size * 1.02 * lines.length + 56);
+  // The card: JOIN and the code.
+  const cw = 210, ch = cw * 1.31, cx = w - pad - cw / 2 + 10, cy = 280;
+  g.save();
+  g.translate(cx, cy);
+  g.rotate(0.1);
+  g.shadowColor = 'rgba(0,0,0,.18)';
+  g.shadowBlur = 30;
+  g.shadowOffsetY = 12;
+  roundRect(g, -cw / 2, -ch / 2, cw, ch, 22);
+  g.fillStyle = C.yellow;
+  g.fill();
+  g.shadowColor = 'transparent';
+  g.fillStyle = C.ink;
+  g.textAlign = 'center';
+  setFont(g, 800, 24);
+  g.fillText(t('share.joinCard'), 0, -ch * 0.24);
+  setFont(g, 900, 44, 'semi-condensed');
+  g.fillText(league.code.slice(0, 3), 0, ch * 0.0);
+  g.fillText(league.code.slice(3), 0, ch * 0.16);
+  setFont(g, 700, 20);
+  g.fillText('squadjury.com', 0, ch * 0.38);
+  g.restore();
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+}
+
 export async function downloadBlob(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

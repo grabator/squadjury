@@ -175,6 +175,39 @@ try {
     await friend.close();
   });
 
+  await step('create a league, a friend opens the invite link, signs in and lands in the league table', async () => {
+    await page.goto(BASE + '/leaderboard');
+    await page.locator('#lgadd').click();
+    await page.locator('#lg-name').fill('E2E League');
+    await page.locator('#lg-create button[type=submit]').click();
+    await page.getByText('League created').waitFor();
+    const code = (await page.locator('.lg-code-big b').textContent()).replace(/\s/g, '');
+    assert.match(code, /^[A-Z0-9]{6}$/);
+    await shot(page, 'e2e-12-league-created');
+    await page.locator('#lg-go').click();
+    await page.locator('.lg-head').getByText('E2E League').waitFor();
+    await page.getByText('Just you so far').waitFor();
+    const friend = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await friend.addInitScript(() => { try { localStorage.setItem('sj-intro', '1'); } catch {} });
+    await friend.route('https://accounts.google.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
+    const fp = await friend.newPage();
+    fp.on('pageerror', (e) => errors.push(String(e)));
+    await fp.goto(`${BASE}/l/${code}?s=wa`);
+    await fp.getByRole('heading', { name: 'E2E League' }).waitFor();
+    await shot(fp, 'e2e-13-league-invite');
+    await fp.getByRole('button', { name: 'Join league' }).click();
+    const fnick = `Mate${Date.now() % 100000}`;
+    await fp.locator('#devn').fill(fnick);
+    await fp.getByRole('button', { name: 'Sign in as test juror' }).click();
+    await fp.locator('#nick').fill(fnick);
+    await fp.getByRole('button', { name: 'Continue', exact: true }).click();
+    await fp.waitForURL(/\/leaderboard\?league=/, { timeout: 15000 });
+    await fp.locator('.lg-head').getByText('2 members').waitFor();
+    await fp.getByText(nick).first().waitFor();
+    await shot(fp, 'e2e-14-league-table');
+    await friend.close();
+  });
+
   assert.deepEqual(errors, [], 'no console errors');
 } finally {
   console.log(results.join('\n'));

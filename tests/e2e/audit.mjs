@@ -6,7 +6,7 @@ import { launch } from '../../scripts/browser.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const axe = readFileSync(new URL('../../node_modules/axe-core/axe.min.js', import.meta.url), 'utf8');
 const RKEY = (await (await fetch(`${BASE}/api/judge/next?n=1`)).json()).teams?.[0]?.key;
-const PAGES = ['/', '/leaderboard', '/leaderboard?tab=gw6', '/leaderboard?tab=season', '/post', '/squad', '/me', '/me/verdicts', '/how', '/rules', '/privacy', '/nope', ...(RKEY ? [`/r/${RKEY}`] : [])];
+const PAGES = ['/', '/leaderboard', '/leaderboard?tab=gw6', '/leaderboard?tab=season', '/post', '/squad', '/me', '/me/verdicts', '/how', '/rules', '/privacy', '/nope', '/l/EXAMP7', '/l/NOPE22', ...(RKEY ? [`/r/${RKEY}`] : [])];
 const WIDTHS = [360, 390, 430, 1280];
 
 const browser = await launch();
@@ -26,7 +26,7 @@ for (const { signedIn, w, scheme } of RUNS) {
     const page = await ctx.newPage();
     const errs = [];
     page.on('pageerror', (e) => errs.push(String(e)));
-    page.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
+    page.on('console', (m) => m.type() === 'error' && !m.text().includes('404') && errs.push(m.text()));
     if (signedIn) {
       await page.goto(BASE + '/');
       await page.evaluate(async (n) => {

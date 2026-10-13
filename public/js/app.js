@@ -14,6 +14,7 @@ const routes = [
   [/^\/me\/verdicts\/?$/, () => import('./views/verdicts.js')],
   [/^\/t\/([A-Za-z0-9_-]{4,20})\/?$/, () => import('./views/team.js')],
   [/^\/r\/([A-Za-z0-9_-]{4,20})\/?$/, () => import('./views/rate.js')],
+  [/^\/l\/([A-Za-z0-9]{6})\/?$/, () => import('./views/league.js')],
   [/^\/(how|rules|privacy)\/?$/, () => import('./views/pages.js')],
   [/^\/admin\/?$/, () => import('./views/admin.js')],
 ];
@@ -197,10 +198,11 @@ addEventListener('pageshow', () => { leaving = false; });
 // Remember which link brought a new visitor here (channel and squad), for the first sign in.
 (function rememberRef() {
   const m = location.pathname.match(/^\/(r|t)\/([A-Za-z0-9_-]{4,20})/);
+  const lg = location.pathname.match(/^\/l\/([A-Za-z0-9]{6})/);
   const src = new URLSearchParams(location.search).get('s');
-  if (!m && !src) return;
+  if (!m && !lg && !src) return;
   try {
-    if (!sessionStorage.getItem('sj-ref')) sessionStorage.setItem('sj-ref', JSON.stringify({ key: m?.[2] || null, s: src || null }));
+    if (!sessionStorage.getItem('sj-ref')) sessionStorage.setItem('sj-ref', JSON.stringify({ key: m?.[2] || null, league: lg?.[1] || null, s: src || null }));
   } catch {}
 })();
 

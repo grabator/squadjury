@@ -57,7 +57,8 @@ const openGw = snap.events.find((e) => Date.parse(e.deadline_time) > now)?.id ??
 const gws = [openGw - 3, openGw - 2, openGw - 1, openGw].filter((g) => g >= 1);
 const season = seasonOf(snap);
 
-const sql = ['DELETE FROM votes WHERE user_id IN (SELECT id FROM users WHERE demo = 1);',
+const sql = ["DELETE FROM leagues WHERE code = 'EXAMP7';",
+  'DELETE FROM votes WHERE user_id IN (SELECT id FROM users WHERE demo = 1);',
   'DELETE FROM results WHERE user_id IN (SELECT id FROM users WHERE demo = 1);',
   'DELETE FROM teams WHERE user_id IN (SELECT id FROM users WHERE demo = 1);',
   'DELETE FROM users WHERE demo = 1;'];
@@ -87,6 +88,10 @@ for (const num of gws) {
   }
   for (const v of votes) sql.push(`INSERT INTO votes (team_id, user_id, gw, season, score, created_at, updated_at) VALUES (${v.team}, ${v.user}, ${gw}, ${q(season.label)}, ${v.score}, ${deadline - 864e5}, ${deadline - 864e5});`);
 }
+
+// An example league with 12 of the example jurors. Join it with the code EXAMP7 to try leagues.
+sql.push(`INSERT INTO leagues (id, code, name, owner_id, created_at) VALUES (900, 'EXAMP7', 'Example League', 1000, ${now - 864e5 * 30});`);
+for (let i = 0; i < 12; i++) sql.push(`INSERT INTO league_members (league_id, user_id, joined_at) VALUES (900, ${1000 + i}, ${now - 864e5 * (30 - i)});`);
 
 mkdirSync(new URL('../.wrangler/', import.meta.url), { recursive: true });
 const file = fileURLToPath(new URL('../.wrangler/seed.sql', import.meta.url));

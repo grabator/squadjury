@@ -14,6 +14,8 @@ const PAGES = {
     <p>Squads appear one at a time. Tap how much you like the squad, from 1 to 10, and the next one comes up. There is no right answer: love the differentials, hate the template, think the captain is a gamble? Your call, that is what a jury is for. You see the jury average only after you give your own verdict, and nobody ever sees who gave which verdict.</p>
     <h2>3. Climb the leaderboard</h2>
     <p>Verdicts stay open until the FPL deadline of the gameweek. At the deadline the gameweek locks and the final top 10 is saved on the leaderboard.</p>
+    <h2>Private leagues</h2>
+    <p>Make a league for your friends, your office or your mini league, and share its link or 6 character code. Everyone in it gets their own table every gameweek and for the season. The verdicts are the same as on the main leaderboard, so nobody can boost a friend just inside the league.</p>
     <h2>Share it</h2>
     <p>Every squad has its own link. Send it to your mini league, or post the square image of your squad on X with one tap.</p>
   </div>`,

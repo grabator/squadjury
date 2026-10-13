@@ -155,6 +155,40 @@ await check('Rate link: preview tags, visits per channel, and new sign ups remem
   assert.equal((await A.call('GET', '/api/admin/sources')).status, 403);
 });
 
+await check('leagues: create, join by code or link, member only table, owner only settings, hand over on leave', async () => {
+  const made = await D.call('POST', '/api/leagues', { name: '  Office   FPL ' });
+  assert.equal(made.status, 201, JSON.stringify(made.data));
+  const { code } = made.data.league;
+  assert.equal(made.data.league.name, 'Office FPL');
+  assert.match(code, /^[A-Z0-9]{6}$/);
+  assert.equal((await D.call('POST', '/api/leagues', { name: 'ab' })).status, 400);
+  // A stranger sees the invite card, not the table.
+  const info = await E.call('GET', `/api/leagues/${code}`);
+  assert.equal(info.data.league.isMember, false);
+  assert.equal(info.data.league.memberList, undefined);
+  assert.equal((await E.call('GET', `/api/leagues/${code}/standings`)).status, 403);
+  assert.equal((await E.call('POST', '/api/leagues/join', { code: 'ZZZZZZ' })).status, 404);
+  assert.equal((await E.call('POST', '/api/leagues/join', { code: `https://squadjury.com/l/${code.toLowerCase()}` })).status, 200);
+  assert.equal((await F.call('POST', '/api/leagues/join', { code })).status, 200);
+  const table = (await E.call('GET', `/api/leagues/${code}/standings`)).data;
+  assert.equal(table.members, 3);
+  assert.equal(table.ranked.length + table.pending.length + table.missing.length, 3);
+  // Only the owner renames, makes a new code or removes people.
+  assert.equal((await E.call('POST', `/api/leagues/${code}/rename`, { name: 'Hacked' })).status, 403);
+  const fNick = (await F.call('GET', '/api/state')).data.user.nickname;
+  const fId = (await D.call('GET', `/api/leagues/${code}`)).data.league.memberList.find((m) => m.nickname === fNick)?.id;
+  assert.equal((await D.call('POST', `/api/leagues/${code}/kick`, { userId: fId })).status, 200);
+  assert.equal((await D.call('GET', `/api/leagues/${code}`)).data.league.members, 2);
+  const fresh = (await D.call('POST', `/api/leagues/${code}/new-code`)).data.league.code;
+  assert.notEqual(fresh, code);
+  assert.equal((await F.call('POST', '/api/leagues/join', { code })).status, 404, 'the old code stops working');
+  // The owner leaves: the oldest member takes over.
+  assert.equal((await D.call('POST', `/api/leagues/${fresh}/leave`)).status, 200);
+  assert.equal((await E.call('GET', `/api/leagues/${fresh}`)).data.league.isOwner, true);
+  const page = await (await fetch(`${BASE}/l/${fresh}`)).text();
+  assert.match(page, /og:title" content="Join &quot;Office FPL&quot; on SquadJury/);
+});
+
 await check('3 reports hide a squad from judging and from its link', async () => {
   for (const u of [C, D, E]) assert.equal((await u.call('POST', '/api/reports', { key: keyA })).status, 200);
   assert.equal((await F.call('GET', `/api/teams/${keyA}`)).status, 404);

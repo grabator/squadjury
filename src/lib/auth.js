@@ -78,12 +78,17 @@ export function isAdmin(env, user) {
 
 const BAD_WORDS = ['fuck', 'shit', 'cunt', 'nigg', 'fagg', 'whore', 'slut', 'rape', 'nazi', 'hitler', 'retard', 'kurac', 'picka', 'jebem', 'peder'];
 
+/** Refuses text with offensive words, also when written with digits or separators. */
+export function checkText(text, code) {
+  const flat = String(text).toLowerCase().replace(/[\s_.-]/g, '').replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's');
+  if (BAD_WORDS.some((w) => flat.includes(w))) fail(400, code);
+}
+
 /** Checks a nickname: 3 to 20 letters, digits, _ or -, and nothing offensive. */
 export function checkNickname(n) {
   const nick = String(n || '').trim();
   if (!/^[A-Za-z0-9_-]{3,20}$/.test(nick)) fail(400, 'nickname_format');
-  const flat = nick.toLowerCase().replace(/[_-]/g, '').replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's');
-  if (BAD_WORDS.some((w) => flat.includes(w))) fail(400, 'nickname_blocked');
+  checkText(nick, 'nickname_blocked');
   return nick;
 }
 
