@@ -312,6 +312,13 @@ await check('real points: only admins or the token can score, the leaderboard so
   const list = (await admin.call('GET', '/api/admin/points')).data;
   assert.equal(list.gameweeks.find((g) => g.gw === gw.id).status, 'done');
   assert.equal((await admin.call('POST', '/api/admin/points', { gw: 39, live })).status, 400);
+  // Scout scores follow the points: with fewer than 10 squads they are not worked out.
+  const sc = await (await fetch(`${BASE}/api/scouts?gw=${gw.id}`, { headers: { 'x-sj-now': after } })).json();
+  assert.equal(sc.status, 'few', JSON.stringify(sc));
+  assert.deepEqual(sc.ranked, []);
+  const season = await (await fetch(`${BASE}/api/scouts?type=season`, { headers: { 'x-sj-now': after } })).json();
+  assert.equal(season.type, 'season');
+  assert.ok('scouts' in (await A.call('GET', '/api/me/profile')).data);
 });
 
 await check('FPL team id: a number or an FPL link is saved, anything else is refused', async () => {

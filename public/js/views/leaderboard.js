@@ -17,6 +17,7 @@ export async function mount(el) {
   const q = new URLSearchParams(location.search);
   tab = q.get('tab') || (q.get('gw') ? `gw${q.get('gw')}` : 'live');
   scope = q.get('league')?.toUpperCase() || null;
+  if (q.get('sort')) sortBy = q.get('sort');
   shown = PAGE;
   el.innerHTML = html`<div class="lb-head"><h1 class="title">${t('lb.title')}</h1><span class="updated" id="lbmeta"></span></div>
     <div class="scope-row" id="lbscope"></div>
@@ -136,6 +137,7 @@ function renderLeagueHead() {
 async function load(quiet = false) {
   const body = $('#lbbody', root);
   try {
+    if (sortBy === 'scouts' && tab !== 'live' && tab !== 'h2h') return await loadScouts(quiet);
     if (scope) return await loadLeague(quiet);
     if (tab === 'season') {
       if (!gwCache) gwCache = (await api('/api/leaderboard')).gameweeks;
@@ -202,12 +204,17 @@ function renderBoard(lb) {
   sticky(lb.me, body);
 }
 
-/** Jury, Duels and (after the gameweek) Points: three ways to rank the same gameweek. */
+/** The ways to rank the view: Jury, Duels, Points (after the gameweek) and Scouts (finished gameweeks and season). */
 function segHtml(live, hasPoints, on) {
-  const opts = [['jury', t('pts.sortJury')], ['duels', t('duel.tab')]];
-  if (!live && hasPoints) opts.push(['points', t('pts.sortPoints')]);
+  const opts = [['jury', t('pts.sortJury')]];
+  if (!scope && tab !== 'season') opts.push(['duels', t('duel.tab')]);
+  if (!scope && !live && hasPoints && tab !== 'season') opts.push(['points', t('pts.sortPoints')]);
+  if (!live) opts.push(['scouts', t('scout.tab')]);
+  if (opts.length < 2) return '';
   return html`<div class="seg" role="group" aria-label="${t('pts.sortLabel')}">${opts.map(([id, label]) => html`<button type="button" data-sort="${id}" aria-pressed="${String(on === id)}">${label}</button>`)}</div>`;
 }
+
+const segStr = (...a) => { const x = segHtml(...a); return x ? x.s : ''; };
 
 function wireSeg(body) {
   body.querySelectorAll('[data-sort]').forEach((b) => b.addEventListener('click', () => {
@@ -250,12 +257,14 @@ function sticky(me, body) {
 
 function renderSeason({ season }) {
   $('#sticky', root).innerHTML = '';
-  $('#lbbody', root).innerHTML = season.length
+  const body = $('#lbbody', root);
+  body.innerHTML = segStr(false, false, 'jury') + (season.length
     ? html`<ol class="board">${season.map((r) => html`<li class="${r.mine ? 'me' : ''} ${r.place <= 3 ? `p${r.place}` : ''}"><div class="r">
         <span class="pos">${r.place}</span>
         <span class="who"><b>${r.nickname}${r.demo ? html`<span class="tag">${t('judge.exampleShort')}</span>` : ''}</b><span>${t('lb.seasonCols', { wins: r.wins || 0, best: r.best })}</span></span>
         <span class="score"><span class="num">${r.top10}</span><small>${t('lb.top10')}</small></span></div></li>`)}</ol>`.s
-    : html`<div class="empty"><h2>${t('lb.season')}</h2><p>${t('lb.seasonEmpty')}</p></div>`.s;
+    : html`<div class="empty"><h2>${t('lb.season')}</h2><p>${t('lb.seasonEmpty')}</p></div>`.s);
+  wireSeg(body);
 }
 
 // ============================================================ league tables
@@ -308,7 +317,8 @@ function renderLeagueBoard(lb) {
   const missing = lb.missing.length
     ? html`<h2 class="board-sub">${t('league.notPosted')}</h2><ul class="board pending missing">${lb.missing.map((m) => html`<li class="${m.mine ? 'me' : ''}"><div class="r"><span class="pos">-</span><span class="who"><b>${m.nickname}${m.mine ? ` (${t('lb.you')})` : ''}</b></span>${m.mine && lb.live ? html`<a class="btn btn-sm" href="/post">${t('judge.postSquad')}</a>` : ''}</div></li>`)}</ul>`
     : '';
-  body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}, GW${lb.gw}</p>` : ''}${ranked}${pending}${missing}`.s;
+  body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}, GW${lb.gw}</p>` : ''}${segHtml(lb.live, false, 'jury')}${ranked}${pending}${missing}`.s;
+  wireSeg(body);
   $('#sticky', root).innerHTML = '';
 }
 
@@ -316,12 +326,13 @@ function renderLeagueSeason(r) {
   const body = $('#lbbody', root);
   $('#sticky', root).innerHTML = '';
   if (r.members <= 1) { body.innerHTML = leagueEmpty().s; return wireEmpty(body); }
-  body.innerHTML = r.season.length
+  body.innerHTML = segStr(false, false, 'jury') + (r.season.length
     ? html`<ol class="board">${r.season.map((x) => html`<li class="${x.mine ? 'me' : ''} ${x.place <= 3 ? `p${x.place}` : ''}"><div class="r">
         <span class="pos">${x.place}</span>
         <span class="who"><b>${x.nickname}${x.mine ? ` (${t('lb.you')})` : ''}${x.demo ? html`<span class="tag">${t('judge.exampleShort')}</span>` : ''}</b><span>${t('league.seasonCols', x)}</span></span>
         <span class="score"><span class="num">${x.avg.toFixed(1)}</span><small>${t('judge.juryAvg')}</small></span></div></li>`)}</ol>`.s
-    : html`<div class="empty"><h2>${t('lb.season')}</h2><p>${t('lb.seasonEmpty')}</p></div>`.s;
+    : html`<div class="empty"><h2>${t('lb.season')}</h2><p>${t('lb.seasonEmpty')}</p></div>`.s);
+  wireSeg(body);
 }
 
 // ============================================================ league head to head
@@ -391,4 +402,42 @@ function renderH2H(r) {
     }
     downloadBlob(blob, name);
   }));
+}
+
+// ============================================================ scouts
+
+async function loadScouts(quiet) {
+  if (!gwCache) gwCache = (await api('/api/leaderboard')).gameweeks;
+  if (!quiet) renderTabs(gwCache, store.state.gw?.id);
+  age();
+  const q = new URLSearchParams();
+  if (tab === 'season') q.set('type', 'season');
+  else if (tab.startsWith('gw')) q.set('gw', tab.slice(2));
+  if (scope) q.set('league', scope);
+  const code = scope;
+  const r = await api(`/api/scouts?${q}`);
+  if (code !== scope) return;
+  last = r;
+  renderScouts(r);
+}
+
+function renderScouts(r) {
+  const body = $('#lbbody', root);
+  $('#sticky', root).innerHTML = '';
+  const seg = segHtml(false, hasPointsByGw.get(r.gw), 'scouts');
+  const head = r.type === 'season' ? t('scout.seasonHead') : t('scout.gwHead', { gw: r.gw });
+  let main;
+  if (r.type === 'gw' && r.status !== 'ready') {
+    main = html`<div class="empty"><span class="ycard"></span><h2>${t('scout.title')}</h2><p>${r.status === 'few' ? t('scout.few', { n: r.minTeams }) : t('scout.waiting')}</p></div>`;
+  } else if (!r.ranked.length) {
+    main = html`<div class="empty"><span class="ycard"></span><h2>${t('scout.title')}</h2><p>${t('scout.empty')}</p></div>`;
+  } else {
+    main = html`<ol class="board" aria-label="${head}">${r.ranked.map((x) => html`<li class="${x.mine ? 'me' : ''} ${x.rank <= 3 ? `p${x.rank}` : ''}"><div class="r">
+      <span class="pos">${x.rank}</span>
+      <span class="who"><b>${x.nickname}${x.mine ? ` (${t('lb.you')})` : ''}${x.demo ? html`<span class="tag">${t('judge.exampleShort')}</span>` : ''}</b><span>${r.type === 'season' ? t('scout.gws', { n: x.gws }) : t('lb.votes', { n: x.verdicts })}</span></span>
+      <span class="score"><span class="num">${x.score.toFixed(1)}</span><small>${t('scout.short')}</small></span></div></li>`)}</ol>`;
+  }
+  const me = r.me && r.me.needs ? html`<p class="sub" style="margin:10px 2px 0">${t('lb.you')}: ${t('scout.needs', { n: r.me.needs })}</p>` : '';
+  body.innerHTML = html`<p class="sub" style="margin:0 0 10px">${head}</p>${seg}${main}${me}<p class="lb-how">${t('scout.how')} <a href="/how">${t('page.how')}</a></p>`.s;
+  wireSeg(body);
 }

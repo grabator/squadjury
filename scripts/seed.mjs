@@ -10,6 +10,7 @@ import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { seasonOf, gwKey } from '../src/lib/season.js';
 import { elo, pairKey, roundRobin } from '../src/lib/duels.js';
+import { scoutScores } from '../src/lib/scouts.js';
 
 const remote = process.argv.includes('--remote');
 if (remote && process.env.DEMO_MODE !== '1') {
@@ -84,7 +85,7 @@ for (const num of gws) {
     }
   }
   // Example duels: a better squad usually wins, ratings move like in the app.
-  const duels = [];
+  const duels = [], duelRows = [];
   for (const tm of teams) Object.assign(tm, { elo: 1500, w: 0, l: 0 });
   const seen = new Set();
   for (let i = 0; i < teams.length * 7; i++) {
@@ -98,6 +99,7 @@ for (const num of gws) {
     (xWins ? x : y).w++;
     (xWins ? y : x).l++;
     const [lo, hi] = x.id < y.id ? [x, y] : [y, x];
+    duelRows.push({ user_id: juror, a_id: lo.id, b_id: hi.id, winner_id: (xWins ? x : y).id });
     duels.push(`INSERT INTO duels (user_id, gw, season, a_id, b_id, winner_id, side, counted, created_at) VALUES (${juror}, ${gw}, ${q(season.label)}, ${lo.id}, ${hi.id}, ${(xWins ? x : y).id}, '${rnd() < 0.5 ? 'first' : 'second'}', 1, ${deadline - 864e5 * 2});`);
   }
   for (const tm of teams) {
@@ -105,9 +107,16 @@ for (const num of gws) {
     const sum = mine.reduce((a, v) => a + v.score, 0);
     // Finished gameweeks get example points, loosely in line with what the jury thought.
     const pts = num === openGw ? 'NULL' : Math.max(18, Math.round(tm.quality * 7 + (rnd() - 0.5) * 40));
+    tm.pts = pts;
     sql.push(`INSERT INTO teams (id, user_id, gw, season, share_key, picks_json, captain_id, vice_id, vote_sum, vote_count, points, elo, duel_w, duel_l, created_at, updated_at) VALUES (${tm.id}, ${tm.uid}, ${gw}, ${q(season.label)}, ${q(key())}, ${q(JSON.stringify(tm.picks))}, ${tm.captain}, ${tm.vice}, ${sum}, ${mine.length}, ${pts}, ${tm.elo}, ${tm.w}, ${tm.l}, ${deadline - 864e5 * 3}, ${deadline - 864e5 * 3});`);
   }
-  if (num !== openGw) sql.push(`UPDATE gameweeks SET points_status = 'done', points_at = ${deadline + 864e5 * 4} WHERE id = ${gw};`);
+  if (num !== openGw) {
+    sql.push(`UPDATE gameweeks SET points_status = 'done', points_at = ${deadline + 864e5 * 4}, scouts_at = ${deadline + 864e5 * 4}, scouts_teams = ${teams.length} WHERE id = ${gw};`);
+    // Example scout scores, worked out the same way as the app does.
+    sql.push(`DELETE FROM scouts WHERE gw = ${gw};`);
+    const scored = scoutScores(votes.map((v) => ({ user_id: v.user, team_id: v.team, score: v.score })), duelRows, new Map(teams.map((tm) => [tm.id, tm.pts])));
+    for (const x of scored) sql.push(`INSERT INTO scouts (user_id, gw, season, score, verdicts, duels, rank, total) VALUES (${x.user_id}, ${gw}, ${q(season.label)}, ${x.score}, ${x.verdicts}, ${x.duels}, ${x.rank}, ${x.total});`);
+  }
   sql.push(...duels);
   for (const v of votes) sql.push(`INSERT INTO votes (team_id, user_id, gw, season, score, created_at, updated_at) VALUES (${v.team}, ${v.user}, ${gw}, ${q(season.label)}, ${v.score}, ${deadline - 864e5}, ${deadline - 864e5});`);
 }

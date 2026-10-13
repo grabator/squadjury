@@ -78,6 +78,7 @@ export async function mount(el) {
       <div class="stat"><span class="num">${st.gameweeks}</span><span>${t('me.gameweeks')}</span></div>
       <div class="stat"><span class="num">${st.best ? `#${st.best}` : '-'}</span><span>${t('me.best')}</span></div>
     </div>
+    ${prof.scouts?.last ? html`<a class="scout-line" href="/leaderboard?tab=gw${prof.scouts.last.gw}&sort=scouts"><b>${t('scout.profile', prof.scouts.last)}</b>${prof.scouts.season ? html`<span>${t('scout.profileSeason', { ...prof.scouts.season, n: prof.scouts.season.gws })}</span>` : ''}</a>` : ''}
 
     <h2 class="section-h">${cur.gw ? t('me.verdictsGw', { gw: cur.gw }) : t('me.verdictsAll')}</h2>
     ${cur.total

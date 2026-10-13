@@ -11,6 +11,8 @@ import { seasonOf, gwKey, gwNum } from './lib/season.js';
 import { runBackup, listBackups } from './lib/backup.js';
 import { pointsJob, scoreGameweek, fetchLive } from './lib/pointsjob.js';
 import { juryCall, pointsRanks } from './lib/points.js';
+import { scoreScouts } from './lib/scoutjob.js';
+import { MIN_VERDICTS, MIN_TEAMS } from './lib/scouts.js';
 import { elo, pairKey, biasedSide, pickPairs, roundRobin, h2hResult, h2hTable, DUEL_LIMIT, MIN_MS, MIN_DUELS, H2H_MIN_MEMBERS } from './lib/duels.js';
 import { newCode, parseCode, checkLeagueName, rerank, seasonTable, MAX_LEAGUES_PER_USER, MAX_MEMBERS, NEW_LEAGUES_PER_DAY } from './lib/leagues.js';
 
@@ -145,6 +147,7 @@ route('GET', '/api/state', async (c) => {
     mine,
     judged,
     minJudged,
+    scoutNews: u ? await scoutNews(c, u) : null,
     // Deadline of the gameweek before the open one: the clock shows how much of the window is gone.
     prevDeadline: open ? (() => {
       const prev = c.fpl.events.filter((e) => Date.parse(e.deadline_time) <= c.now).pop();
@@ -154,6 +157,14 @@ route('GET', '/api/state', async (c) => {
     devLogin: c.env.DEV_LOGIN === '1',
   });
 });
+
+/** The juror's score of the latest scored gameweek, for the "Your verdicts are in" message. */
+async function scoutNews(c, u) {
+  const r = await c.env.DB.prepare(
+    `SELECT s.gw, s.score, s.rank, s.total FROM scouts s WHERE s.user_id = ? AND s.gw = (SELECT MAX(id) FROM gameweeks WHERE scouts_at IS NOT NULL AND id > ? AND id < ?)`,
+  ).bind(u.id, c.season.base, c.season.base + 100).first();
+  return r ? { gw: gwNum(r.gw), score: Math.round(r.score * 10) / 10, rank: r.rank, total: r.total } : null;
+}
 
 route('GET', '/api/fpl', async (c) =>
   json(
@@ -239,6 +250,7 @@ route('DELETE', '/api/me', async (c) => {
     c.env.DB.prepare('DELETE FROM votes WHERE team_id IN (SELECT id FROM teams WHERE user_id = ?)').bind(u.id),
     c.env.DB.prepare('DELETE FROM duels WHERE user_id = ?1 OR a_id IN (SELECT id FROM teams WHERE user_id = ?1) OR b_id IN (SELECT id FROM teams WHERE user_id = ?1)').bind(u.id),
     c.env.DB.prepare('DELETE FROM duel_offers WHERE user_id = ?').bind(u.id),
+    c.env.DB.prepare('DELETE FROM scouts WHERE user_id = ?').bind(u.id),
     c.env.DB.prepare('DELETE FROM plan_votes WHERE user_id = ?1 OR plan_id IN (SELECT id FROM plans WHERE user_id = ?1)').bind(u.id),
     c.env.DB.prepare('DELETE FROM plans WHERE user_id = ?').bind(u.id),
     c.env.DB.prepare('DELETE FROM teams WHERE user_id = ?').bind(u.id),
@@ -263,7 +275,19 @@ route('GET', '/api/me/profile', async (c) => {
     return { gw: gwNum(t.gw), season: t.season, key: t.share_key, points: t.points ?? null, avg: r ? Math.round(r.avg * 10) / 10 : avgOf(t), votes: r ? r.votes : t.vote_count, rank: r?.rank ?? null, live: t.gw === open?.id };
   });
   const finals = res.filter((r) => r.votes);
+  const [lastScout, seasonScout] = await c.env.DB.batch([
+    c.env.DB.prepare('SELECT gw, score, rank, total FROM scouts WHERE user_id = ? AND gw > ? AND gw < ? ORDER BY gw DESC LIMIT 1').bind(u.id, c.season.base, c.season.base + 100),
+    c.env.DB.prepare(
+      `SELECT x.score, x.gws, (SELECT COUNT(*) + 1 FROM (SELECT SUM(score) AS s FROM scouts WHERE gw > ?2 AND gw < ?3 GROUP BY user_id) WHERE s > x.score) AS rank
+         FROM (SELECT SUM(score) AS score, COUNT(*) AS gws FROM scouts WHERE user_id = ?1 AND gw > ?2 AND gw < ?3) x WHERE x.gws > 0`,
+    ).bind(u.id, c.season.base, c.season.base + 100),
+  ]);
+  const ls = lastScout.results[0], ss = seasonScout.results[0];
   return json({
+    scouts: {
+      last: ls ? { gw: gwNum(ls.gw), score: Math.round(ls.score * 10) / 10, rank: ls.rank, total: ls.total } : null,
+      season: ss ? { score: Math.round(ss.score * 10) / 10, gws: ss.gws, rank: ss.rank } : null,
+    },
     stats: {
       average: finals.length ? Math.round((finals.reduce((s, r) => s + r.avg, 0) / finals.length) * 10) / 10 : null,
       gameweeks: teams.results.length,
@@ -1162,6 +1186,53 @@ route('GET', '/api/leagues/([A-Za-z0-9]{6})/h2h', async (c, code) => {
 });
 const t_formerMember = 'Former member';
 
+// ==== scouts
+
+/** Scout scores: one gameweek, or the season (sum of the gameweeks). ?league=CODE keeps only its members. */
+route('GET', '/api/scouts', async (c) => {
+  const url = new URL(c.req.url);
+  const lo = c.season.base, hi = c.season.base + 100;
+  let members = null;
+  const code = url.searchParams.get('league');
+  if (code) {
+    const l = await leagueBy(c, code);
+    if (!(await memberOf(c, l))) fail(403, 'not_member');
+    members = new Set((await c.env.DB.prepare('SELECT user_id FROM league_members WHERE league_id = ?').bind(l.id).all()).results.map((r) => r.user_id));
+  }
+  const keep = (rows) => (members ? rows.filter((r) => members.has(r.user_id)) : rows);
+  const rerankBy = (rows) => {
+    let rank = 0;
+    return rows.map((r, i) => {
+      if (!i || rows[i - 1].score !== r.score) rank = i + 1;
+      return { ...r, rank };
+    });
+  };
+  const out = (r) => ({ rank: r.rank, nickname: r.nickname, demo: !!r.demo, mine: r.user_id === c.user?.id, score: Math.round(r.score * 10) / 10, verdicts: r.verdicts, gws: r.gws });
+  if (url.searchParams.get('type') === 'season') {
+    const rows = await c.env.DB.prepare(
+      `SELECT s.user_id, SUM(s.score) AS score, COUNT(*) AS gws, SUM(s.verdicts) AS verdicts, u.nickname, u.demo FROM scouts s JOIN users u ON u.id = s.user_id
+        WHERE s.gw > ? AND s.gw < ? GROUP BY s.user_id ORDER BY score DESC, verdicts DESC`,
+    ).bind(lo, hi).all();
+    const ranked = rerankBy(keep(rows.results)).map(out);
+    return json({ type: 'season', ranked: ranked.slice(0, 100), me: ranked.find((r) => r.mine) || null, total: ranked.length });
+  }
+  const gwsRes = await c.env.DB.prepare("SELECT id, scouts_at, scouts_teams, points_status FROM gameweeks WHERE status = 'locked' AND id > ? AND id < ? ORDER BY id DESC").bind(lo, hi).all();
+  const asked = +url.searchParams.get('gw');
+  const g = asked ? gwsRes.results.find((x) => x.id === gwKey(c.season, asked)) : gwsRes.results.find((x) => x.scouts_at) || gwsRes.results[0];
+  if (!g) return json({ type: 'gw', gw: null, status: 'waiting', ranked: [], me: null });
+  const status = !g.scouts_at ? 'waiting' : g.scouts_teams < MIN_TEAMS ? 'few' : 'ready';
+  const rows = status === 'ready'
+    ? (await c.env.DB.prepare('SELECT s.*, u.nickname, u.demo FROM scouts s JOIN users u ON u.id = s.user_id WHERE s.gw = ? ORDER BY s.rank').bind(g.id).all()).results
+    : [];
+  const ranked = (members ? rerankBy(keep(rows)) : rows).map(out);
+  let me = ranked.find((r) => r.mine) || null;
+  if (!me && c.user && status === 'ready') {
+    const n = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE user_id = ? AND gw = ?').bind(c.user.id, g.id).first();
+    if (n.n) me = { mine: true, nickname: c.user.nickname, verdicts: n.n, needs: Math.max(0, MIN_VERDICTS - n.n) };
+  }
+  return json({ type: 'gw', gw: gwNum(g.id), status, teams: g.scouts_teams, minVerdicts: MIN_VERDICTS, minTeams: MIN_TEAMS, total: ranked.length, ranked: ranked.slice(0, 100), me });
+});
+
 // ==== reports and admin
 
 route('POST', '/api/reports', async (c) => {
@@ -1268,7 +1339,8 @@ route('POST', '/api/admin/points', async (c) => {
     try { live = await fetchLive(num); } catch { fail(502, 'fpl_blocked'); }
   }
   const scored = await scoreGameweek(c.env, c.fpl, key, live, c.now);
-  return json({ gw: num, scored });
+  const scouts = await scoreScouts(c.env, key, c.now);
+  return json({ gw: num, scored, scouts });
 });
 
 route('GET', '/api/admin/backups', async (c) => {

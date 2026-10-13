@@ -44,6 +44,7 @@ export async function mount(el) {
     </div>`.s;
   renderBar();
   unsub = store.subscribe(renderBar);
+  scoutNews();
   el.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
   mode = savedMode() === 'duel' && store.state.user?.nickname ? 'duel' : 'rate';
   paintMode();
@@ -263,6 +264,17 @@ async function vote(score) {
   offerUndo(team, score);
 }
 
+
+/** Once per gameweek, after it is scored: "Your GW7 verdicts are in: 7.4 scout score, #12". */
+function scoutNews() {
+  const n = store.state.scoutNews;
+  if (!n) return;
+  try {
+    if (+localStorage.getItem('sj-scout-seen') >= n.gw) return;
+    localStorage.setItem('sj-scout-seen', String(n.gw));
+  } catch { return; }
+  setTimeout(() => toast(t('scout.news', { gw: n.gw, score: n.score.toFixed(1), rank: n.rank }), { ms: 5000 }), 900);
+}
 
 // ==== Duel mode
 

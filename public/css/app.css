@@ -857,3 +857,6 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 .plan-done { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--soft); font-size: 14px; font-weight: 600; }
 .plan-pitch { max-width: 420px; margin: 0 auto; }
 .done .link-btn { margin-top: 4px; }
+.scout-line { display: grid; gap: 2px; margin: 10px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); text-decoration: none; }
+.scout-line b { font-weight: 800; font-size: 15px; }
+.scout-line span { color: var(--ink-2); font-size: 13px; }

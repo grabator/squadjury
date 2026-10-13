@@ -11,11 +11,13 @@ const PAGES = {
     <h2>1. Post your squad</h2>
     <p>Sign in with Google, then upload a screenshot of the <strong>Pick Team</strong> screen from the official FPL app. SquadJury reads your 15 players, captain and vice captain right in your browser. Check them, fix anything we missed and send your squad to the jury.</p>
     <h2>2. Judge other squads</h2>
-    <p>Squads appear one at a time. Tap how much you like the squad, from 1 to 10, and the next one comes up. There is no right answer: love the differentials, hate the template, think the captain is a gamble? Your call, that is what a jury is for. You see the jury average only after you give your own verdict, and nobody ever sees who gave which verdict.</p>
+    <p>Squads appear one at a time. Tap <strong>how good the squad will be this gameweek</strong>, from 1 (flop) to 10 (haul), and the next one comes up. Fixtures, captain, differentials, the bench: your call, that is what a jury is for. You see the jury average only after you give your own verdict, and nobody ever sees who gave which verdict.</p>
     <h2>3. Climb the leaderboard</h2>
     <p>Verdicts stay open until the FPL deadline of the gameweek. At the deadline the gameweek locks and the final top 10 is saved on the leaderboard.</p>
     <h2>4. See the real points</h2>
     <p>When the gameweek is over, SquadJury adds up the real FPL points of every squad: the starting XI, the captain doubled and automatic substitutions from the bench. Then you see if the jury got it right. Add your <strong>FPL team ID</strong> in your profile and your exact points from FPL are used, with transfer hits and chips.</p>
+    <h2>Scout points</h2>
+    <p>Your verdict is also a forecast. After the gameweek every squad gets a true score from 1 to 10 by its real FPL points (the best squad 10, the worst 1). A verdict right on it earns 10 scout points, 1 away 8, 2 away 6, 3 away 3, more than that 0. A duel pick earns 5 when the squad you picked scored more. Your scout score for the gameweek is the average, once you gave at least 10 verdicts. The season adds up the gameweeks. See it under Scouts on the leaderboard and on your profile.</p>
     <h2>Duels</h2>
     <p>Switch Judge to <strong>Duel</strong> and you see two squads at once. Tap the better one. Every pick moves the squads' duel rating (it starts at 1500, like chess ratings) and their win and loss record, shown on the leaderboard under Duels. A duel counts as one judged squad. Picks made in under a second, or always on the same side, do not move the rating.</p>
     <h2>Plan A vs Plan B</h2>
@@ -39,6 +41,8 @@ const PAGES = {
       <li>One verdict per squad, from 1 to 10. You can change it until the deadline.</li>
       <li>You cannot judge your own squad.</li>
       <li>Verdicts are anonymous to squad owners.</li>
+      <li>A verdict says how good the squad will be this gameweek: 1 a flop, 10 a haul. After the gameweek it is scored against the real points (scout points). Giving everyone the same verdict does not score well.</li>
+      <li>Scout scores need at least 10 verdicts in the gameweek, and are not worked out when fewer than 10 squads have points.</li>
     </ul>
     <h2>The leaderboard</h2>
     <p>A squad needs <strong>at least 5 verdicts</strong>, and its owner needs to judge <strong>at least 5 other squads</strong> that gameweek (or every other squad, while there are fewer), to be ranked. A duel counts as one judged squad.</p>

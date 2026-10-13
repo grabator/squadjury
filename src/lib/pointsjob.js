@@ -5,6 +5,7 @@
 
 import { squadPoints, liveMap, entryPoints } from './points.js';
 import { seasonOf, gwKey, gwNum } from './season.js';
+import { scoreScouts } from './scoutjob.js';
 
 const UA = { 'user-agent': 'SquadJury/1.0 (+https://squadjury.com)', accept: 'application/json' };
 const MAX_TRIES = 48;
@@ -75,5 +76,9 @@ export async function pointsJob(env, fpl, now) {
   // Verified points for the last finished gameweeks.
   const done = await env.DB.prepare("SELECT id FROM gameweeks WHERE points_status = 'done' AND id > ? AND id < ? ORDER BY id DESC LIMIT 2")
     .bind(season.base, season.base + 100).all();
-  for (const g of done.results) await verifyEntries(env, g.id);
+  for (const g of done.results) {
+    await verifyEntries(env, g.id);
+    // Scout scores follow the points (also the verified ones that came in since).
+    await scoreScouts(env, g.id, now);
+  }
 }
