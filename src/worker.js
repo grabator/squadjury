@@ -235,7 +235,8 @@ route('POST', '/api/auth/email', async (c) => {
   const email = checkEmail(raw);
   const devOnly = !c.env.RESEND_API_KEY;
   if (devOnly && c.env.DEV_LOGIN !== '1') fail(503, 'email_not_configured');
-  await rateLimit(c.env, `mailip:${clientIp(c.req)}`, 10, 3600, c.now);
+  // 10 per IP and hour (higher in local development, where every test comes from one address).
+  await rateLimit(c.env, `mailip:${clientIp(c.req)}`, c.env.DEV_LOGIN === '1' ? 200 : 10, 3600, c.now);
   await rateLimit(c.env, `mail:${email}`, 3, 3600, c.now);
   const token = randomKey(32);
   await c.env.DB.prepare('INSERT INTO login_links (id, email, ref_json, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
