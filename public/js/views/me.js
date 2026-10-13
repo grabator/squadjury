@@ -57,9 +57,9 @@ function wireCommon(el) {
 export async function mount(el) {
   const s = store.state;
   if (!s.user?.nickname) {
-    el.innerHTML = html`<div class="profile-head"><span class="ycard"></span><div><h1>${t('me.title')}</h1><p class="sub">${t('me.signedOut')}</p></div></div>
+    el.innerHTML = html`<div><div class="profile-head"><span class="ycard"></span><div><h1>${t('me.title')}</h1><p class="sub">${t('me.signedOut')}</p></div></div>
       <button class="btn btn-go btn-block" id="signin">${t('auth.google')}</button>
-      ${settingsHtml()}${aboutHtml()}`.s;
+      ${settingsHtml()}${aboutHtml()}</div>`.s;
     $('#signin', el).onclick = async () => { if (await ensureUser()) mount(el); };
     wireCommon(el);
     return;

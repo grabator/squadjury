@@ -481,6 +481,7 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
   .home { display: grid; grid-template-columns: minmax(0, 520px) 360px; justify-content: center; gap: 32px; }
   .stickyme { bottom: 16px; }
   .footer { display: block; padding: 24px 0 16px; color: var(--ink-2); font-size: 12px; text-align: center; }
+  .view .fan-note { display: none; } /* the footer already says it on wide screens */
   .footer nav { display: flex; gap: 16px; justify-content: center; margin-bottom: 6px; }
   .footer a { color: var(--ink-2); }
 }
