@@ -26,6 +26,8 @@ async function session({ w = 390, h = 844, scheme = 'light', user = null, hint =
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: w < 800, hasTouch: w < 800, colorScheme: scheme, acceptDownloads: true });
   // The first visit intro is tested in run.mjs; here it would cover the screens.
   await ctx.addInitScript(() => { try { localStorage.setItem('sj-intro', '1'); } catch {} });
+  // Google's sign in script is not ours to test, and some networks block it.
+  await ctx.route('https://accounts.google.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
   const p = await ctx.newPage();
   p.on('pageerror', (e) => issues.push(`${user || 'anon'} ${w} pageerror: ${e}`));
   p.on('console', (m) => m.type() === 'error' && !m.text().includes('404') && issues.push(`${user || 'anon'} ${w} console: ${m.text()}`));

@@ -16,7 +16,7 @@ const snap = JSON.parse(readFileSync(new URL('../../src/data/fpl-snapshot.json',
 rmSync(STATE, { recursive: true, force: true });
 execSync(`npx wrangler d1 migrations apply squadjury --local --persist-to "${STATE}"`, { stdio: 'ignore' });
 const WIN = process.platform === 'win32';
-const dev = spawn('npx', ['wrangler', 'dev', '--local', '--port', String(PORT), '--persist-to', `"${STATE}"`, '--var', 'DEV_LOGIN:1', '--var', 'FPL_SOURCE:snapshot'], { stdio: 'ignore', detached: !WIN, shell: true });
+const dev = spawn('npx', ['wrangler', 'dev', '--local', '--port', String(PORT), '--persist-to', `"${STATE}"`, '--var', 'DEV_LOGIN:1', '--var', 'FPL_SOURCE:snapshot', '--var', 'ADMIN_EMAILS:admin@example.test'], { stdio: 'ignore', detached: !WIN, shell: true });
 const stop = () => {
   try {
     if (WIN) execSync(`taskkill /pid ${dev.pid} /T /F`, { stdio: 'ignore' });
@@ -145,6 +145,29 @@ await check('at the deadline the gameweek locks and the next one opens', async (
   const gws = lb.data.gameweeks.find((g) => g.id === gw.id);
   assert.ok(gws, JSON.stringify(lb.data.gameweeks));
   assert.equal(gws.status, 'locked');
+});
+
+await check('only admins can make and list backups, and a backup holds every table', async () => {
+  assert.equal((await A.call('POST', '/api/admin/backup')).status, 403);
+  assert.equal((await A.call('GET', '/api/admin/backups')).status, 403);
+  const admin = client('admin');
+  await admin.login();
+  const made = await admin.call('POST', '/api/admin/backup');
+  assert.equal(made.status, 200, JSON.stringify(made.data));
+  assert.match(made.data.backup.key, /^backups\/\d{4}-\d{2}-\d{2}\.json\.gz$/);
+  assert.ok(made.data.backup.rows > 0);
+  const list = await admin.call('GET', '/api/admin/backups');
+  assert.equal(list.data.backups[0].key, made.data.backup.key);
+});
+
+await check('gameweeks are plain numbers in the API, whatever the season key inside', async () => {
+  const s = (await A.call('GET', '/api/state')).data;
+  assert.ok(s.gw.id >= 1 && s.gw.id <= 38, JSON.stringify(s.gw));
+  const lb = (await A.call('GET', '/api/leaderboard')).data;
+  assert.equal(lb.gw, s.gw.id);
+  assert.ok(lb.gameweeks.every((g) => g.id >= 1 && g.id <= 38));
+  const mine = (await A.call('GET', '/api/state')).data.mine;
+  if (mine) assert.equal(mine.gw, s.gw.id);
 });
 
 await check('deleting an account removes the user and their squad', async () => {

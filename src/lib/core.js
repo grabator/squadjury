@@ -2,21 +2,27 @@
 
 import { standings, priorMean, voterWeight } from './rank.js';
 import { openGameweek } from './fpl.js';
+import { seasonOf, gwKey, gwNum, seasonLabel } from './season.js';
 
-/** Makes sure the open gameweek has a row and locks every gameweek whose deadline passed. */
+/**
+ * Makes sure the open gameweek has a row and locks every gameweek whose deadline passed.
+ * Returns the open gameweek as { id: database key, num: gameweek number, deadline, season }.
+ */
 export async function syncGameweeks(env, fpl, now) {
-  const open = openGameweek(fpl, now);
+  const season = seasonOf(fpl);
+  const next = openGameweek(fpl, now);
+  const open = next ? { id: gwKey(season, next.id), num: next.id, deadline: next.deadline, season: season.label } : null;
   const stmts = [];
   if (open) {
     stmts.push(
       env.DB.prepare(
-        "INSERT INTO gameweeks (id, deadline, status) VALUES (?1, ?2, 'open') ON CONFLICT(id) DO UPDATE SET deadline = ?2 WHERE status = 'open'",
-      ).bind(open.id, open.deadline),
+        "INSERT INTO gameweeks (id, deadline, status, season) VALUES (?1, ?2, 'open', ?3) ON CONFLICT(id) DO UPDATE SET deadline = ?2 WHERE status = 'open'",
+      ).bind(open.id, open.deadline, open.season),
     );
   }
   // Keep deadlines of other open rows in step with FPL (deadlines sometimes move).
   for (const e of fpl.events) {
-    stmts.push(env.DB.prepare("UPDATE gameweeks SET deadline = ? WHERE id = ? AND status = 'open'").bind(Date.parse(e.deadline_time), e.id));
+    stmts.push(env.DB.prepare("UPDATE gameweeks SET deadline = ? WHERE id = ? AND status = 'open'").bind(Date.parse(e.deadline_time), gwKey(season, e.id)));
   }
   if (stmts.length) await env.DB.batch(stmts);
   const due = await env.DB.prepare("SELECT id FROM gameweeks WHERE status = 'open' AND deadline <= ?").bind(now).all();
@@ -30,8 +36,8 @@ export async function lockGameweek(env, gw, now) {
   const stmts = [env.DB.prepare('DELETE FROM results WHERE gw = ?').bind(gw)];
   for (const r of ranked) {
     stmts.push(
-      env.DB.prepare('INSERT INTO results (gw, team_id, user_id, avg, votes, rank_score, rank) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(
-        gw, r.id, r.user_id, r.avg, r.votes, r.rank_score, r.rank,
+      env.DB.prepare('INSERT INTO results (gw, team_id, user_id, avg, votes, rank_score, rank, season) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(
+        gw, r.id, r.user_id, r.avg, r.votes, r.rank_score, r.rank, seasonLabel(gw),
       ),
     );
   }
@@ -84,7 +90,7 @@ export function teamOut(t, extra = {}) {
   const picks = JSON.parse(t.picks_json);
   return {
     key: t.share_key,
-    gw: t.gw,
+    gw: gwNum(t.gw),
     nickname: t.nickname,
     x: t.x_handle || null,
     demo: !!t.demo,

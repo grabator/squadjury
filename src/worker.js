@@ -7,8 +7,11 @@ import { getFpl } from './lib/fpl.js';
 import { syncGameweeks, liveStandings, refreshVoterWeight, teamOut, placeOf, avgOf } from './lib/core.js';
 import { validate } from '../public/js/ocr/match.js';
 import { judgeTarget } from './lib/rank.js';
+import { seasonOf, gwKey, gwNum } from './lib/season.js';
+import { runBackup, listBackups } from './lib/backup.js';
 
 const MAX_IMAGE = 3 * 1024 * 1024;
+const BACKUP_CRON = '17 4 * * 1'; // Mondays 04:17 UTC, same as in wrangler.jsonc
 const MAX_OG = 2 * 1024 * 1024;
 
 /** Request clock. In development a fake "now" can be passed to test deadlines. */
@@ -105,7 +108,7 @@ route('GET', '/api/state', async (c) => {
   }
   return json({
     now: c.now,
-    gw: open,
+    gw: open ? { id: open.num, deadline: open.deadline } : null,
     season: c.fpl.season || null,
     fplSource: c.fpl.source,
     user: u ? { id: u.id, nickname: u.nickname, x: u.x_handle, admin: isAdmin(c.env, u) } : null,
@@ -199,13 +202,13 @@ route('GET', '/api/me/profile', async (c) => {
   const open = await c.open();
   const [results, teams] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT r.gw, r.rank, r.avg, r.votes, t.share_key FROM results r JOIN teams t ON t.id = r.team_id WHERE r.user_id = ? ORDER BY r.gw DESC').bind(u.id),
-    c.env.DB.prepare('SELECT gw, share_key, vote_sum, vote_count FROM teams WHERE user_id = ? ORDER BY gw DESC').bind(u.id),
+    c.env.DB.prepare('SELECT gw, season, share_key, vote_sum, vote_count FROM teams WHERE user_id = ? ORDER BY gw DESC').bind(u.id),
   ]);
   const res = results.results;
   const byGw = new Map(res.map((r) => [r.gw, r]));
   const squads = teams.results.map((t) => {
     const r = byGw.get(t.gw);
-    return { gw: t.gw, key: t.share_key, avg: r ? Math.round(r.avg * 10) / 10 : avgOf(t), votes: r ? r.votes : t.vote_count, rank: r?.rank ?? null, live: t.gw === open?.id };
+    return { gw: gwNum(t.gw), season: t.season, key: t.share_key, avg: r ? Math.round(r.avg * 10) / 10 : avgOf(t), votes: r ? r.votes : t.vote_count, rank: r?.rank ?? null, live: t.gw === open?.id };
   });
   const finals = res.filter((r) => r.votes);
   return json({
@@ -214,7 +217,7 @@ route('GET', '/api/me/profile', async (c) => {
       gameweeks: teams.results.length,
       best: finals.length ? Math.min(...finals.map((r) => r.rank)) : null,
       top10: finals.filter((r) => r.rank <= 10).length,
-      trophies: finals.filter((r) => r.rank <= 3).map((r) => ({ gw: r.gw, rank: r.rank })),
+      trophies: finals.filter((r) => r.rank <= 3).map((r) => ({ gw: gwNum(r.gw), rank: r.rank })),
     },
     squads,
   });
@@ -226,10 +229,12 @@ route('GET', '/api/me/verdicts', async (c) => {
   const open = await c.open();
   const url = new URL(c.req.url);
   const size = Math.min(50, Math.max(1, +url.searchParams.get('size') || 20));
-  const counts = await c.env.DB.prepare('SELECT gw, COUNT(*) AS n FROM votes WHERE user_id = ? GROUP BY gw ORDER BY gw DESC').bind(u.id).all();
-  const gws = counts.results.map((r) => ({ gw: r.gw, count: r.n }));
-  const gw = +url.searchParams.get('gw') || open?.id || gws[0]?.gw || 0;
-  const total = gws.find((g) => g.gw === gw)?.count || 0;
+  const counts = await c.env.DB.prepare('SELECT gw, COUNT(*) AS n FROM votes WHERE user_id = ? AND gw > ? AND gw < ? GROUP BY gw ORDER BY gw DESC')
+    .bind(u.id, c.season.base, c.season.base + 100).all();
+  const asked = +url.searchParams.get('gw');
+  const gw = asked ? gwKey(c.season, asked) : open?.id || counts.results[0]?.gw || 0;
+  const gws = counts.results.map((r) => ({ gw: gwNum(r.gw), count: r.n }));
+  const total = counts.results.find((g) => g.gw === gw)?.n || 0;
   const pages = Math.max(1, Math.ceil(total / size));
   const page = Math.min(pages, Math.max(1, +url.searchParams.get('page') || 1));
   const rows = await c.env.DB.prepare(
@@ -237,7 +242,7 @@ route('GET', '/api/me/verdicts', async (c) => {
       WHERE v.user_id = ? AND v.gw = ? ORDER BY v.updated_at DESC LIMIT ? OFFSET ?`,
   ).bind(u.id, gw, size, (page - 1) * size).all();
   return json({
-    gw, open: gw === open?.id, total, page, pages, size, gws,
+    gw: gwNum(gw), open: gw === open?.id, total, page, pages, size, gws,
     items: rows.results.map((v) => ({ key: v.share_key, nickname: v.nickname, score: v.score, demo: !!v.demo })),
   });
 });
@@ -287,9 +292,9 @@ async function postTeam(c, replace) {
     ]);
   } else {
     await c.env.DB.prepare(
-      'INSERT INTO teams (user_id, gw, share_key, image_key, og_key, picks_json, captain_id, vice_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO teams (user_id, gw, season, share_key, image_key, og_key, picks_json, captain_id, vice_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     )
-      .bind(u.id, open.id, key, imageKey, ogKey, JSON.stringify(picks), captain, vice, c.now, c.now)
+      .bind(u.id, open.id, open.season, key, imageKey, ogKey, JSON.stringify(picks), captain, vice, c.now, c.now)
       .run();
   }
   const t = await myTeam(c.env, u.id, open.id);
@@ -359,7 +364,7 @@ route('POST', '/api/votes', async (c) => {
     ]);
   } else {
     await c.env.DB.batch([
-      c.env.DB.prepare('INSERT INTO votes (team_id, user_id, gw, score, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').bind(t.id, u.id, open.id, s, c.now, c.now),
+      c.env.DB.prepare('INSERT INTO votes (team_id, user_id, gw, season, score, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(t.id, u.id, open.id, open.season, s, c.now, c.now),
       c.env.DB.prepare('UPDATE teams SET vote_sum = vote_sum + ?, vote_count = vote_count + 1 WHERE id = ?').bind(s, t.id),
     ]);
   }
@@ -373,8 +378,11 @@ route('POST', '/api/votes', async (c) => {
 route('GET', '/api/leaderboard', async (c) => {
   const open = await c.open();
   const url = new URL(c.req.url);
-  const gw = +url.searchParams.get('gw') || open?.id;
-  const gws = await c.env.DB.prepare("SELECT id, status FROM gameweeks WHERE id IN (SELECT DISTINCT gw FROM teams) OR status = 'open' ORDER BY id DESC").all();
+  const asked = +url.searchParams.get('gw');
+  const gw = asked ? gwKey(c.season, asked) : open?.id;
+  const gwRows = await c.env.DB.prepare("SELECT id, status FROM gameweeks WHERE (id IN (SELECT DISTINCT gw FROM teams) OR status = 'open') AND id > ? AND id < ? ORDER BY id DESC")
+    .bind(c.season.base, c.season.base + 100).all();
+  const gws = { results: gwRows.results.map((g) => ({ id: gwNum(g.id), status: g.status })) };
   const row = (r, locked) => ({
     key: r.share_key, nickname: r.nickname, x: r.x_handle || null, demo: !!r.demo,
     avg: Math.round(r.avg * 10) / 10, votes: r.votes, rank: r.rank ?? null, mine: r.user_id === c.user?.id,
@@ -387,7 +395,7 @@ route('GET', '/api/leaderboard', async (c) => {
     const mePending = s.pending.find((r) => r.user_id === c.user?.id);
     return json(
       {
-        gw, live: true, deadline: open.deadline, gameweeks: gws.results, total: s.total,
+        gw: gwNum(gw), live: true, deadline: open.deadline, gameweeks: gws.results, total: s.total,
         ranked: s.ranked.slice(0, 100).map((r) => row(r, false)),
         pending: s.pending.slice(0, 50).map((r) => row(r, false)),
         me: meRanked ? row(meRanked, false) : mePending ? row(mePending, false) : null,
@@ -404,7 +412,7 @@ route('GET', '/api/leaderboard', async (c) => {
   const all = res.results;
   const me = all.find((r) => r.user_id === c.user?.id);
   return json(
-    { gw, live: false, gameweeks: gws.results, total: all.length, ranked: all.slice(0, 10).map((r) => row(r, true)), pending: [], me: me ? row(me, true) : null },
+    { gw: gwNum(gw), live: false, gameweeks: gws.results, total: all.length, ranked: all.slice(0, 10).map((r) => row(r, true)), pending: [], me: me ? row(me, true) : null },
     { headers: { 'cache-control': 'private, max-age=60' } },
   );
 });
@@ -412,10 +420,10 @@ route('GET', '/api/leaderboard', async (c) => {
 route('GET', '/api/champions', async (c) => {
   const rows = await c.env.DB.prepare(
     `SELECT r.gw, r.avg, r.votes, t.share_key, u.nickname, u.x_handle, u.demo FROM results r
-       JOIN teams t ON t.id = r.team_id JOIN users u ON u.id = r.user_id WHERE r.rank = 1 ORDER BY r.gw DESC`,
-  ).all();
+       JOIN teams t ON t.id = r.team_id JOIN users u ON u.id = r.user_id WHERE r.rank = 1 AND r.gw > ? AND r.gw < ? ORDER BY r.gw DESC`,
+  ).bind(c.season.base, c.season.base + 100).all();
   return json({
-    champions: rows.results.map((r) => ({ gw: r.gw, avg: Math.round(r.avg * 10) / 10, votes: r.votes, key: r.share_key, nickname: r.nickname, x: r.x_handle, demo: !!r.demo })),
+    champions: rows.results.map((r) => ({ gw: gwNum(r.gw), avg: Math.round(r.avg * 10) / 10, votes: r.votes, key: r.share_key, nickname: r.nickname, x: r.x_handle, demo: !!r.demo })),
   });
 });
 
@@ -423,9 +431,9 @@ route('GET', '/api/season', async (c) => {
   const rows = await c.env.DB.prepare(
     `SELECT u.id, u.nickname, u.x_handle, u.demo, SUM(CASE WHEN r.rank <= 10 THEN 1 ELSE 0 END) AS top10,
             SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) AS wins, AVG(r.avg) AS avg, MIN(r.rank) AS best, COUNT(*) AS played
-       FROM results r JOIN users u ON u.id = r.user_id GROUP BY u.id
+       FROM results r JOIN users u ON u.id = r.user_id WHERE r.gw > ? AND r.gw < ? GROUP BY u.id
       HAVING top10 > 0 ORDER BY top10 DESC, wins DESC, avg DESC LIMIT 50`,
-  ).all();
+  ).bind(c.season.base, c.season.base + 100).all();
   return json({
     season: rows.results.map((r, i) => ({
       place: i + 1, nickname: r.nickname, x: r.x_handle, demo: !!r.demo, top10: r.top10, wins: r.wins,
@@ -487,6 +495,17 @@ route('POST', '/api/admin/teams/([A-Za-z0-9_-]{4,20})', async (c, key) => {
   return json({ ok: true });
 });
 
+route('GET', '/api/admin/backups', async (c) => {
+  needAdmin(c);
+  return json({ backups: await listBackups(c.env) });
+});
+
+route('POST', '/api/admin/backup', async (c) => {
+  needAdmin(c);
+  await rateLimit(c.env, `backup:${c.user.id}`, 6, 3600, c.now);
+  return json({ backup: await runBackup(c.env, c.now) });
+});
+
 route('POST', '/api/admin/users/(\\d+)/ban', async (c, id) => {
   needAdmin(c);
   await c.env.DB.batch([
@@ -506,7 +525,7 @@ async function sharePage(c, key) {
   let html = await shell.text();
   if (t) {
     const origin = new URL(c.req.url).origin;
-    const title = `${t.nickname}'s GW${t.gw} squad on SquadJury`;
+    const title = `${t.nickname}'s GW${gwNum(t.gw)} squad on SquadJury`;
     const desc = t.vote_count ? `Jury verdict so far: ${avgOf(t)}/10 from ${t.vote_count} jurors. Give yours before the deadline.` : 'Judge this FPL squad from 1 to 10 before the deadline.';
     const img = t.og_key ? `${origin}/u/${t.og_key}` : `${origin}/img/og-default.png`;
     const meta = [
@@ -561,7 +580,7 @@ export default {
       const fpl = await getFpl(env, now);
       let openMemo;
       const c = {
-        req, env, ctx, now, fpl,
+        req, env, ctx, now, fpl, season: seasonOf(fpl),
         user: await currentUser(env, req, now),
         open: async () => (openMemo ??= await syncGameweeks(env, fpl, now)),
       };
@@ -589,9 +608,10 @@ export default {
     return res;
   },
 
-  /** Every 5 minutes: lock gameweeks past their deadline. Every hour: refresh FPL data and tidy images. */
+  /** Every 5 minutes: lock gameweeks past their deadline. Every hour: refresh FPL data and tidy images. Mondays: backup. */
   async scheduled(event, env, ctx) {
     const now = Date.now();
+    if (event.cron === BACKUP_CRON) return void (await runBackup(env, now));
     const hourly = event.cron === '0 * * * *';
     const fpl = await getFpl(env, now, { refresh: hourly });
     await syncGameweeks(env, fpl, now);

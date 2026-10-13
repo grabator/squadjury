@@ -5,7 +5,7 @@
   "description": "Post your FPL squad. The jury decides.",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --local --port 8787 --var DEV_LOGIN:1 --var FPL_SOURCE:snapshot",
+    "dev": "wrangler dev --local --port 8787 --var DEV_LOGIN:1 --var FPL_SOURCE:snapshot --var ADMIN_EMAILS:admin@example.test",
     "db:migrate": "wrangler d1 migrations apply squadjury --local",
     "seed": "node scripts/seed.mjs",
     "vendor": "node scripts/vendor.mjs",

@@ -95,6 +95,25 @@ The browser tests look for Chromium in the usual places; set `CHROME_PATH` to po
    ```
 5. In the Cloudflare dashboard, add `squadjury.com` as a custom domain of the `squadjury` Worker.
 
+## Seasons
+
+Gameweek numbers repeat every season, so the database stores a gameweek as a season key: 2026/27 GW7 is `202607`, and every table with a gameweek also has a `season` label (`2026-27`). The season comes from the FPL data (the year of the first deadline), the API and the app keep using plain gameweek numbers, and the Season tab only counts the current season. When FPL publishes the next season in summer, nothing needs to change.
+
+## Backups
+
+- **Weekly backup:** every Monday at 04:17 UTC a cron job writes all tables (without sessions and caches) as gzipped JSON to R2, `squadjury-images/backups/YYYY-MM-DD.json.gz`. The last 8 are kept. `/admin` shows the latest backups and has a **Backup now** button.
+- **D1 Time Travel** (built in, last 30 days): the quickest fix for a recent mistake, for example a wrong delete. It restores the whole database to a minute in the past:
+  ```bash
+  npx wrangler d1 time-travel info squadjury
+  npx wrangler d1 time-travel restore squadjury --timestamp=2026-10-19T10:00:00Z
+  ```
+- **Use a weekly backup** when the problem is older than 30 days, or to copy data somewhere else. Check it locally first:
+  ```bash
+  npx wrangler r2 object get squadjury-images/backups/2026-10-19.json.gz --file backup.json.gz --remote
+  node scripts/restore-backup.mjs backup.json.gz
+  ```
+  Restoring to production replaces the live data, so it needs an explicit flag (PowerShell: `$env:RESTORE_REMOTE=1`, cmd: `set RESTORE_REMOTE=1`), then `node scripts/restore-backup.mjs backup.json.gz --remote`.
+
 ## Project structure
 
 ```

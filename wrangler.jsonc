@@ -32,7 +32,8 @@
 	"triggers": {
 		"crons": [
 			"*/5 * * * *",
-			"0 * * * *"
+			"0 * * * *",
+			"17 4 * * 1"
 		]
 	},
 	// ADMIN_EMAILS (Google emails that can open /admin) is a secret, so no email ends up in the repo:
