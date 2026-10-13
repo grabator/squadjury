@@ -62,7 +62,49 @@ export async function reportTeam(team) {
 /** The verdict moment: a big yellow card with the score lands on the squad. */
 export const verdictCard = (score) => html`<div class="moment" aria-hidden="true"><small>${t('judge.verdict').toUpperCase()}</small><strong>${score}</strong></div>`;
 
-export const shareUrl = (team) => `${location.origin}/t/${team.key}`;
+/** Link that opens the squad ready to be rated, while its gameweek is open. `s` names the channel. */
+export const rateUrl = (team, s) => `${location.origin}/r/${team.key}${s ? `?s=${s}` : ''}`;
+export const shareUrl = (team, s = 'x') => (team.locked ? `${location.origin}/t/${team.key}` : rateUrl(team, s));
+
+/** Phones get WhatsApp, Viber and Messenger buttons; computers only X and Copy link. */
+export const isPhone = () =>
+  /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  (matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 900);
+
+/**
+ * Row of share buttons. opts: { url(s): link for a channel, text(url): message, title }.
+ * Channels: the phone's own share sheet, WhatsApp, Viber, Messenger, X and Copy link.
+ */
+export function channelsHtml() {
+  const phone = isPhone();
+  const items = [
+    phone && navigator.share ? ['share', t('share.more'), ICONS.share] : null,
+    phone ? ['wa', 'WhatsApp', ICONS.chat] : null,
+    phone ? ['vb', 'Viber', ICONS.chat] : null,
+    phone ? ['ms', 'Messenger', ICONS.chat] : null,
+    ['x', 'X', ICONS.x],
+    ['copy', t('squad.copy'), ICONS.copy],
+  ].filter(Boolean);
+  return html`<div class="channels">${items.map(([id, label, icon]) => html`<button type="button" class="chan" data-chan="${id}">${raw(icon)}<span>${label}</span></button>`)}</div>`;
+}
+
+export function wireChannels(root, { url, text }) {
+  root.querySelectorAll('[data-chan]').forEach((b) => b.addEventListener('click', async () => {
+    const ch = b.dataset.chan;
+    const link = url(ch);
+    const msg = text(link);
+    const enc = encodeURIComponent;
+    if (ch === 'share') {
+      try { await navigator.share({ text: msg }); } catch {}
+    } else if (ch === 'wa') location.href = `https://wa.me/?text=${enc(msg)}`;
+    else if (ch === 'vb') location.href = `viber://forward?text=${enc(msg)}`;
+    else if (ch === 'ms') location.href = `fb-messenger://share/?link=${enc(link)}`;
+    else if (ch === 'x') window.open(xIntent(msg), '_blank', 'noopener');
+    else {
+      try { await navigator.clipboard.writeText(msg); toast(t('squad.copied')); } catch { toast(link); }
+    }
+  }));
+}
 
 /** Picks the right X text for where a squad stands. */
 export function xText(team, place) {

@@ -15,6 +15,8 @@ for (const signedIn of [false, true]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
     // The first visit intro is tested in run.mjs; here it would cover the screens.
     await ctx.addInitScript(() => { try { localStorage.setItem('sj-intro', '1'); } catch {} });
+    // Google's sign in script is not ours to test, and some networks block it.
+    await ctx.route('https://accounts.google.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
     const page = await ctx.newPage();
     const errs = [];
     page.on('pageerror', (e) => errs.push(String(e)));

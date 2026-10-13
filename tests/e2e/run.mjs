@@ -136,6 +136,45 @@ try {
     assert.match(html, new RegExp(`${nick}(&#39;|')s GW\\d+ squad`));
   });
 
+  await step('My squad has Get rated, and its Rate link preview image is made and stored', async () => {
+    await page.goto(BASE + '/squad');
+    await page.getByRole('heading', { name: 'Get rated' }).waitFor();
+    assert.ok(await page.locator('.get-rated [data-chan="x"]').count());
+    assert.ok(await page.locator('.get-rated [data-chan="wa"]').count(), 'WhatsApp on a phone');
+    await page.waitForFunction(async () => (await (await fetch(`/api/teams/${(await (await fetch('/api/state')).json()).mine.key}`)).json()).team.rateOg, null, { timeout: 15000 });
+    const key = await page.evaluate(async () => (await (await fetch('/api/state')).json()).mine.key);
+    const html = await (await fetch(`${BASE}/r/${key}?s=wa`)).text();
+    assert.match(html, /og:title" content="Rate my GW\d+ team/);
+    assert.match(html, /og:image" content="[^"]*\/u\/rate_/);
+    await shot(page, 'e2e-9-get-rated');
+  });
+
+  await step('a friend opens the Rate link, taps 8 before signing in, and the verdict goes in after sign in', async () => {
+    const key = await page.evaluate(async () => (await (await fetch('/api/state')).json()).mine.key);
+    const friend = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await friend.addInitScript(() => { try { localStorage.setItem('sj-intro', '1'); } catch {} });
+    await friend.route('https://accounts.google.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
+    const fp = await friend.newPage();
+    fp.on('pageerror', (e) => errors.push(String(e)));
+    await fp.goto(`${BASE}/r/${key}?s=wa`);
+    await fp.getByText(`${nick} wants your verdict`).waitFor();
+    await shot(fp, 'e2e-10-rate-link');
+    await fp.locator('.vbtn[data-score="8"]').click();
+    await fp.getByRole('heading', { name: 'Sign in to send your verdict' }).waitFor();
+    const fnick = `Friend${Date.now() % 100000}`;
+    await fp.locator('#devn').fill(fnick);
+    await fp.getByRole('button', { name: 'Sign in as test juror' }).click();
+    await fp.locator('#nick').fill(fnick);
+    await fp.getByRole('button', { name: 'Continue', exact: true }).click();
+    await fp.getByText('Verdict in. Thanks for judging!').waitFor({ timeout: 15000 });
+    await fp.getByText('Your verdict: 8').waitFor();
+    await fp.getByRole('link', { name: 'Judge more squads' }).waitFor();
+    await shot(fp, 'e2e-11-rate-done');
+    const team = await page.evaluate(async (k) => (await (await fetch(`/api/teams/${k}`)).json()).team, key);
+    assert.ok(team.votes >= 1);
+    await friend.close();
+  });
+
   assert.deepEqual(errors, [], 'no console errors');
 } finally {
   console.log(results.join('\n'));

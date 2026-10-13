@@ -13,6 +13,7 @@ const routes = [
   [/^\/me\/?$/, () => import('./views/me.js')],
   [/^\/me\/verdicts\/?$/, () => import('./views/verdicts.js')],
   [/^\/t\/([A-Za-z0-9_-]{4,20})\/?$/, () => import('./views/team.js')],
+  [/^\/r\/([A-Za-z0-9_-]{4,20})\/?$/, () => import('./views/rate.js')],
   [/^\/(how|rules|privacy)\/?$/, () => import('./views/pages.js')],
   [/^\/admin\/?$/, () => import('./views/admin.js')],
 ];
@@ -192,6 +193,16 @@ store.subscribe(() => { renderTabs(); tickClock(); });
 let leaving = false;
 addEventListener('beforeunload', () => { leaving = true; });
 addEventListener('pageshow', () => { leaving = false; });
+
+// Remember which link brought a new visitor here (channel and squad), for the first sign in.
+(function rememberRef() {
+  const m = location.pathname.match(/^\/(r|t)\/([A-Za-z0-9_-]{4,20})/);
+  const src = new URLSearchParams(location.search).get('s');
+  if (!m && !src) return;
+  try {
+    if (!sessionStorage.getItem('sj-ref')) sessionStorage.setItem('sj-ref', JSON.stringify({ key: m?.[2] || null, s: src || null }));
+  } catch {}
+})();
 
 (async function boot() {
   // Squad data is needed by almost every screen: fetch it while the state loads.

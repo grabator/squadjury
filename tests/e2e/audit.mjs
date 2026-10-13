@@ -5,7 +5,8 @@ import { launch } from '../../scripts/browser.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const axe = readFileSync(new URL('../../node_modules/axe-core/axe.min.js', import.meta.url), 'utf8');
-const PAGES = ['/', '/leaderboard', '/leaderboard?tab=gw6', '/leaderboard?tab=season', '/post', '/squad', '/me', '/me/verdicts', '/how', '/rules', '/privacy', '/nope'];
+const RKEY = (await (await fetch(`${BASE}/api/judge/next?n=1`)).json()).teams?.[0]?.key;
+const PAGES = ['/', '/leaderboard', '/leaderboard?tab=gw6', '/leaderboard?tab=season', '/post', '/squad', '/me', '/me/verdicts', '/how', '/rules', '/privacy', '/nope', ...(RKEY ? [`/r/${RKEY}`] : [])];
 const WIDTHS = [360, 390, 430, 1280];
 
 const browser = await launch();
@@ -20,6 +21,8 @@ for (const { signedIn, w, scheme } of RUNS) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 860 }, isMobile: w < 800, hasTouch: w < 800, reducedMotion: 'reduce', colorScheme: scheme, bypassCSP: true });
     // The first visit intro is tested in run.mjs; here it would cover the screens.
     await ctx.addInitScript(() => { try { localStorage.setItem('sj-intro', '1'); } catch {} });
+    // Google's sign in script is not ours to test, and some networks block it.
+    await ctx.route('https://accounts.google.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
     const page = await ctx.newPage();
     const errs = [];
     page.on('pageerror', (e) => errs.push(String(e)));

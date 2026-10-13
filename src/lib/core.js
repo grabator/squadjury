@@ -99,6 +99,7 @@ export function teamOut(t, extra = {}) {
     vice: t.vice_id,
     image: t.image_key ? `/u/${t.image_key}` : null,
     og: t.og_key ? `/u/${t.og_key}` : null,
+    rateOg: !!t.rate_og_key,
     avg: avgOf(t),
     votes: t.vote_count,
     ...extra,

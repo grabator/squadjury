@@ -13,7 +13,7 @@ export async function mount(el) {
     return;
   }
   const fpl = await loadFpl();
-  const [{ teams }, { backups }] = await Promise.all([api('/api/admin/reports'), api('/api/admin/backups')]);
+  const [{ teams }, { backups }, { sources }] = await Promise.all([api('/api/admin/reports'), api('/api/admin/backups'), api('/api/admin/sources')]);
   const day = (ms) => new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const kb = (n) => (n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`);
   el.innerHTML = html`<section class="admin-backup">
@@ -21,6 +21,13 @@ export async function mount(el) {
         <p class="sub">${backups[0] ? html`Latest: <b>${day(backups[0].uploaded)}</b>, ${backups[0].rows} rows, ${kb(backups[0].size)}` : 'No backup yet'}. Every Monday at 04:17 UTC, the last 8 are kept.</p></div>
       <button class="btn" id="backup-now">Backup now</button>
       ${backups.length ? html`<ul class="list" style="margin-top:12px">${backups.map((b) => html`<li><span class="item"><span>${b.key.replace('backups/', '')}</span><span class="sub" style="margin:0">${kb(b.size)}</span></span></li>`)}</ul>` : ''}
+    </section>
+    <section class="admin-sources" style="margin-top:28px">
+      <div class="page-head"><h1 class="title">Where people come from</h1><p class="sub">Last 30 days. Links carry <b>?s=</b>: wa, vb, ms, x, copy, share, or a creator's name.</p></div>
+      ${sources.length
+        ? html`<div class="table-wrap"><table class="src-table"><thead><tr><th scope="col">Source</th><th scope="col">Opens</th><th scope="col">Rate</th><th scope="col">Squad</th><th scope="col">League</th><th scope="col">Sign ups</th></tr></thead>
+          <tbody>${sources.map((r) => html`<tr><th scope="row">${r.source}</th><td>${r.opens}</td><td>${r.rate}</td><td>${r.squad}</td><td>${r.league}</td><td><b>${r.signups}</b></td></tr>`)}</tbody></table></div>`
+        : html`<p class="sub">No visits counted yet.</p>`}
     </section>
     <div class="page-head" style="margin-top:28px"><h1 class="title">Reports</h1><p class="sub">${teams.length} squads reported or hidden</p></div>
     <div style="display:grid;gap:16px">${teams.map((tm) => html`

@@ -38,6 +38,7 @@ export function signIn({ title = t('judge.signInToJudge'), text = t('judge.signI
           : ''}`,
       { label: title, onClose: () => !done && resolve(false) },
     );
+    const ref = (() => { try { return JSON.parse(sessionStorage.getItem('sj-ref') || 'null'); } catch { return null; } })();
     const finish = async (data) => {
       done = true;
       s.close();
@@ -51,7 +52,7 @@ export function signIn({ title = t('judge.signInToJudge'), text = t('judge.signI
           window.google.accounts.id.initialize({
             client_id: st.googleClientId,
             callback: async ({ credential }) => {
-              try { await finish(await api('/api/auth/google', { method: 'POST', body: { credential } })); }
+              try { await finish(await api('/api/auth/google', { method: 'POST', body: { credential, ref } })); }
               catch (e) { toast(errText(e), { bad: true }); }
             },
           });
@@ -61,7 +62,7 @@ export function signIn({ title = t('judge.signInToJudge'), text = t('judge.signI
     }
     $('#devf', s.el)?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      try { await finish(await api('/api/auth/dev', { method: 'POST', body: { name: e.target.n.value } })); }
+      try { await finish(await api('/api/auth/dev', { method: 'POST', body: { name: e.target.n.value, ref } })); }
       catch (err) { toast(errText(err), { bad: true }); }
     });
   });

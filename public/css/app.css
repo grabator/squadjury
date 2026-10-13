@@ -626,3 +626,30 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
   .in-finger { display: none; }
 }
 .in-stamp b { font-size: 38px; }
+
+/* ============================================================ get rated, share channels, rate link */
+.get-rated { border-radius: 14px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); padding: 14px; margin-bottom: 12px; }
+.gr-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.gr-head .ycard { width: 18px; height: 24px; flex: none; margin-top: 3px; }
+.gr-head h2 { font-size: 18px; font-weight: 900; margin: 0; }
+.gr-head p { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; }
+.channels { display: flex; flex-wrap: wrap; gap: 8px; }
+.chan {
+  flex: 1 1 calc(33.333% - 8px); min-width: 92px; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border: 0; border-radius: 12px; background: var(--soft); color: var(--ink); font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;
+  transition: transform 0.12s var(--ease), background 0.15s;
+}
+.chan svg { width: 18px; height: 18px; flex: none; }
+.chan:active { transform: scale(0.96); }
+.chan:hover { background: var(--line); }
+.chan[data-chan='share'] { background: var(--yellow); color: #111418; }
+.rate-page { display: grid; gap: 12px; }
+.rate-ask { display: flex; align-items: center; gap: 10px; margin: 2px 0 0; font-weight: 800; font-size: 18px; line-height: 1.25; }
+.rate-ask .ycard { width: 16px; height: 22px; flex: none; }
+.rate-next { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rate-next .btn:only-child { grid-column: 1 / -1; }
+.table-wrap { overflow-x: auto; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); background: var(--card); }
+.src-table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.src-table th, .src-table td { padding: 10px 12px; text-align: right; border-top: 1px solid var(--line); white-space: nowrap; }
+.src-table thead th { border-top: 0; color: var(--ink-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.src-table th[scope='row'], .src-table thead th:first-child { text-align: left; }

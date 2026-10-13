@@ -84,8 +84,28 @@ async function myTeam(env, userId, gw) {
 }
 
 async function deleteTeamFiles(env, t) {
-  const keys = [t.image_key, t.og_key].filter(Boolean);
+  const keys = [t.image_key, t.og_key, t.rate_og_key].filter(Boolean);
   if (keys.length) await env.IMAGES.delete(keys);
+}
+
+/** Channel names that can be counted: wa, vb, ms, x, copy, share, or a creator's name. */
+const cleanSource = (s) => (/^[a-z0-9_-]{1,24}$/i.test(String(s || '')) ? String(s).toLowerCase() : null);
+
+/** Where a new user came from: { source, referredBy } from { s, key } (rate or squad link) or { s, league }. */
+async function resolveRef(env, ref) {
+  if (!ref || typeof ref !== 'object') return { source: null, referredBy: null };
+  let referredBy = null;
+  if (/^[A-Za-z0-9_-]{4,20}$/.test(ref.key || '')) {
+    referredBy = (await env.DB.prepare('SELECT user_id FROM teams WHERE share_key = ?').bind(ref.key).first())?.user_id ?? null;
+  }
+  return { source: cleanSource(ref.s) || (referredBy ? 'link' : null), referredBy };
+}
+
+/** Counts one link open: per day, channel and kind. */
+async function countVisit(env, now, source, kind) {
+  const day = new Date(now).toISOString().slice(0, 10);
+  await env.DB.prepare('INSERT INTO visits (day, source, kind, n) VALUES (?, ?, ?, 1) ON CONFLICT(day, source, kind) DO UPDATE SET n = n + 1')
+    .bind(day, cleanSource(source) || 'direct', kind).run();
 }
 
 // ==== routes
@@ -136,12 +156,14 @@ route('GET', '/api/fpl', async (c) =>
 
 route('POST', '/api/auth/google', async (c) => {
   await rateLimit(c.env, `auth:${clientIp(c.req)}`, 30, 3600, c.now);
-  const { credential } = await readJson(c.req);
+  const { credential, ref } = await readJson(c.req);
   const g = await verifyGoogleToken(credential, c.env.GOOGLE_CLIENT_ID, c.now);
   let user = await c.env.DB.prepare('SELECT * FROM users WHERE google_sub = ?').bind(g.sub).first();
   if (user?.banned) fail(403, 'banned');
   if (!user) {
-    user = await c.env.DB.prepare('INSERT INTO users (google_sub, email, created_at) VALUES (?, ?, ?) RETURNING *').bind(g.sub, g.email || null, c.now).first();
+    const { source, referredBy } = await resolveRef(c.env, ref);
+    user = await c.env.DB.prepare('INSERT INTO users (google_sub, email, created_at, source, referred_by) VALUES (?, ?, ?, ?, ?) RETURNING *')
+      .bind(g.sub, g.email || null, c.now, source, referredBy).first();
   } else if (g.email && g.email !== user.email) {
     await c.env.DB.prepare('UPDATE users SET email = ? WHERE id = ?').bind(g.email, user.id).run();
   }
@@ -153,10 +175,14 @@ route('POST', '/api/auth/google', async (c) => {
 // Development only: sign in as a test juror without Google.
 route('POST', '/api/auth/dev', async (c) => {
   if (c.env.DEV_LOGIN !== '1') fail(404, 'not_found');
-  const { name = 'tester' } = await readJson(c.req);
+  const { name = 'tester', ref } = await readJson(c.req);
   const sub = `dev:${String(name).slice(0, 30)}`;
   let user = await c.env.DB.prepare('SELECT * FROM users WHERE google_sub = ?').bind(sub).first();
-  if (!user) user = await c.env.DB.prepare('INSERT INTO users (google_sub, email, created_at) VALUES (?, ?, ?) RETURNING *').bind(sub, `${name}@example.test`, c.now).first();
+  if (!user) {
+    const { source, referredBy } = await resolveRef(c.env, ref);
+    user = await c.env.DB.prepare('INSERT INTO users (google_sub, email, created_at, source, referred_by) VALUES (?, ?, ?, ?, ?) RETURNING *')
+      .bind(sub, `${name}@example.test`, c.now, source, referredBy).first();
+  }
   const cookie = await createSession(c.env, user.id, c.now, isSecure(c.req));
   return json({ nickname: user.nickname, suggestion: user.nickname ? null : await suggestNickname(c.env, name) }, { headers: { 'set-cookie': cookie } });
 });
@@ -300,6 +326,23 @@ async function postTeam(c, replace) {
   const t = await myTeam(c.env, u.id, open.id);
   return json({ team: teamOut(t, { place: await placeOf(c.env, open.id, t.id, false) }) }, { status: existing ? 200 : 201 });
 }
+
+// The "Rate my team" preview image is drawn in the owner's browser and stored next to the squad.
+route('PUT', '/api/teams/mine/rate-og', async (c) => {
+  const u = needUser(c);
+  const open = await needOpen(c);
+  await rateLimit(c.env, `rateog:${u.id}`, 20, 3600, c.now);
+  const t = await myTeam(c.env, u.id, open.id);
+  if (!t) fail(404, 'no_squad');
+  const form = await c.req.formData().catch(() => fail(400, 'bad_form'));
+  const og = await readImage(form.get('og'), MAX_OG);
+  if (!og) fail(400, 'not_an_image');
+  const key = `rate_${t.share_key}_${randomKey(4)}.${og.type.split('/')[1]}`;
+  await c.env.IMAGES.put(key, og.buf, { httpMetadata: { contentType: og.type, cacheControl: 'public, max-age=31536000, immutable' } });
+  if (t.rate_og_key) await c.env.IMAGES.delete(t.rate_og_key);
+  await c.env.DB.prepare('UPDATE teams SET rate_og_key = ? WHERE id = ?').bind(key, t.id).run();
+  return json({ ok: true });
+});
 
 route('GET', '/api/teams/([A-Za-z0-9_-]{4,20})', async (c, key) => {
   const t = await c.env.DB.prepare('SELECT t.*, u.nickname, u.x_handle, u.demo FROM teams t JOIN users u ON u.id = t.user_id WHERE t.share_key = ?').bind(key).first();
@@ -495,6 +538,27 @@ route('POST', '/api/admin/teams/([A-Za-z0-9_-]{4,20})', async (c, key) => {
   return json({ ok: true });
 });
 
+// Where people come from, last 30 days: link opens and new accounts per channel.
+route('GET', '/api/admin/sources', async (c) => {
+  needAdmin(c);
+  const since = new Date(c.now - 30 * 864e5).toISOString().slice(0, 10);
+  const [opens, signups] = await c.env.DB.batch([
+    c.env.DB.prepare('SELECT source, kind, SUM(n) AS n FROM visits WHERE day >= ? GROUP BY source, kind ORDER BY n DESC').bind(since),
+    c.env.DB.prepare("SELECT COALESCE(source, 'direct') AS source, COUNT(*) AS n FROM users WHERE created_at >= ? AND demo = 0 GROUP BY 1 ORDER BY n DESC").bind(c.now - 30 * 864e5),
+  ]);
+  const rows = new Map();
+  const row = (s) => rows.get(s) || rows.set(s, { source: s, opens: 0, rate: 0, squad: 0, league: 0, signups: 0 }).get(s);
+  for (const o of opens.results) {
+    const r = row(o.source);
+    r.opens += o.n;
+    if (o.kind === 'r') r.rate += o.n;
+    else if (o.kind === 't') r.squad += o.n;
+    else if (o.kind === 'l') r.league += o.n;
+  }
+  for (const u of signups.results) row(u.source).signups += u.n;
+  return json({ since, sources: [...rows.values()].sort((a, b) => b.signups - a.signups || b.opens - a.opens) });
+});
+
 route('GET', '/api/admin/backups', async (c) => {
   needAdmin(c);
   return json({ backups: await listBackups(c.env) });
@@ -518,20 +582,29 @@ route('POST', '/api/admin/users/(\\d+)/ban', async (c, id) => {
 
 // ==== pages
 
-/** Share page: the app shell with Open Graph and Twitter tags for this squad. */
-async function sharePage(c, key) {
+/**
+ * Share page: the app shell with Open Graph and Twitter tags for this squad.
+ * kind 't' is the squad link, kind 'r' the "Rate my team" link with its own preview image.
+ */
+async function sharePage(c, key, kind = 't') {
   const t = await c.env.DB.prepare('SELECT t.*, u.nickname FROM teams t JOIN users u ON u.id = t.user_id WHERE t.share_key = ? AND t.hidden = 0').bind(key).first();
   const shell = await c.env.ASSETS.fetch(new Request(new URL('/index.html', c.req.url)));
   let html = await shell.text();
+  c.ctx.waitUntil(countVisit(c.env, c.now, new URL(c.req.url).searchParams.get('s'), kind).catch(() => {}));
   if (t) {
     const origin = new URL(c.req.url).origin;
-    const title = `${t.nickname}'s GW${gwNum(t.gw)} squad on SquadJury`;
-    const desc = t.vote_count ? `Jury verdict so far: ${avgOf(t)}/10 from ${t.vote_count} jurors. Give yours before the deadline.` : 'Judge this FPL squad from 1 to 10 before the deadline.';
-    const img = t.og_key ? `${origin}/u/${t.og_key}` : `${origin}/img/og-default.png`;
+    const gw = gwNum(t.gw);
+    const rate = kind === 'r';
+    const title = rate ? `Rate my GW${gw} team 🟨` : `${t.nickname}'s GW${gw} squad on SquadJury`;
+    const desc = rate
+      ? `${t.nickname} wants your verdict. One tap from 1 to 10 on SquadJury.`
+      : t.vote_count ? `Jury verdict so far: ${avgOf(t)}/10 from ${t.vote_count} jurors. Give yours before the deadline.` : 'Judge this FPL squad from 1 to 10 before the deadline.';
+    const ogKey = (rate && t.rate_og_key) || t.og_key;
+    const img = ogKey ? `${origin}/u/${ogKey}` : `${origin}/img/og-default.png`;
     const meta = [
       `<meta property="og:title" content="${esc(title)}">`,
       `<meta property="og:description" content="${esc(desc)}">`,
-      `<meta property="og:url" content="${esc(`${origin}/t/${key}`)}">`,
+      `<meta property="og:url" content="${esc(`${origin}/${kind}/${key}`)}">`,
       `<meta property="og:image" content="${esc(img)}">`,
       '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">',
       '<meta name="twitter:card" content="summary_large_image">',
@@ -584,8 +657,8 @@ export default {
         user: await currentUser(env, req, now),
         open: async () => (openMemo ??= await syncGameweeks(env, fpl, now)),
       };
-      const share = url.pathname.match(/^\/t\/([A-Za-z0-9_-]{4,20})\/?$/);
-      if (share) return await sharePage(c, share[1]);
+      const share = url.pathname.match(/^\/(t|r)\/([A-Za-z0-9_-]{4,20})\/?$/);
+      if (share) return await sharePage(c, share[2], share[1]);
       for (const r of routes) {
         const m = url.pathname.match(r.re);
         if (m && r.method === req.method) {

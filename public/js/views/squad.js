@@ -6,7 +6,7 @@ import { api } from '../api.js';
 import { loadFpl } from '../fpl.js';
 import { store } from '../store.js';
 import { navigate } from '../app.js';
-import { teamCardHtml, wireTeamCard, xText, xIntent, shareUrl, shareImage, canShareFiles } from './common.js';
+import { teamCardHtml, wireTeamCard, xText, xIntent, shareUrl, rateUrl, shareImage, canShareFiles, channelsHtml, wireChannels } from './common.js';
 import { renderShareImage, downloadBlob } from '../share.js';
 
 export async function mount(el, keyFromRoute) {
@@ -43,9 +43,12 @@ export function renderMine(el, fpl, team) {
     ${team.votes ? html`<section class="chart" aria-labelledby="dist-h"><h2 id="dist-h">${t('squad.dist')}</h2>
       <div class="hist" role="img" aria-label="${t('squad.dist')}: ${dist.map((n, i) => `${i + 1}: ${n}`).join(', ')}">${dist.map((n, i) => raw(`<i class="${i === top ? 'top' : ''}" style="height:${Math.max(3, Math.round((n / max) * 100))}%"></i>`))}</div>
       <div class="hist-x" aria-hidden="true">${dist.map((_, i) => raw(`<span>${i + 1}</span>`))}</div></section>` : ''}
+    ${!team.locked ? html`<section class="get-rated" aria-labelledby="gr-h">
+      <div class="gr-head"><span class="ycard" aria-hidden="true"></span><div><h2 id="gr-h">${t('squad.getRated')}</h2><p>${t('squad.getRatedText')}</p></div></div>
+      ${channelsHtml()}</section>` : ''}
     <div class="share-row">
       <a class="btn btn-go" id="postx" href="${xIntent(xText(team, p))}" target="_blank" rel="noopener">${raw(ICONS.x)}${t('squad.postX')}</a>
-      <button class="btn" id="copy">${raw(ICONS.link)}${t('squad.copy')}</button>
+      ${team.locked ? html`<button class="btn" id="copy">${raw(ICONS.link)}${t('squad.copy')}</button>` : ''}
       <button class="btn" id="dl">${raw(canShareFiles() ? ICONS.share : ICONS.download)}${canShareFiles() ? t('squad.shareImage') : t('squad.download')}</button>
     </div>
     <article class="jcard">${teamCardHtml(fpl, team, { report: false })}</article>
@@ -53,10 +56,19 @@ export function renderMine(el, fpl, team) {
   </div>`.s;
   wireTeamCard($('.jcard', el), fpl, team);
 
-  $('#copy', el).onclick = async () => {
+  const gr = $('.get-rated', el);
+  if (gr) {
+    wireChannels(gr, {
+      url: (ch) => rateUrl(team, ch),
+      text: (link) => t(link.includes('s=x') ? 'squad.rateTextX' : 'squad.rateText', { gw: team.gw, link }),
+    });
+    // The "Rate my team" link preview is drawn here once and stored with the squad.
+    if (!team.rateOg) uploadRateOg(fpl, team, p);
+  }
+  $('#copy', el)?.addEventListener('click', async () => {
     const url = shareUrl(team);
     try { await navigator.clipboard.writeText(url); toast(t('squad.copied')); } catch { toast(url); }
-  };
+  });
   const download = (kind) => async () => {
     toast(t('squad.making'), { ms: 1500 });
     try {
@@ -77,4 +89,13 @@ export function renderMine(el, fpl, team) {
     $('[data-no]', s.el).onclick = s.close;
     $('[data-yes]', s.el).onclick = () => { s.close(); navigate('/post?replace=1'); };
   });
+}
+
+async function uploadRateOg(fpl, team, place) {
+  try {
+    const blob = await renderShareImage('rate', fpl, team, place);
+    const fd = new FormData();
+    fd.set('og', blob, 'rate.jpg');
+    await api('/api/teams/mine/rate-og', { method: 'PUT', form: fd });
+  } catch {}
 }

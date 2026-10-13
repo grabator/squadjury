@@ -8,6 +8,7 @@ export const SIZES = {
   x: { w: 1080, h: 1080 },
   story: { w: 1080, h: 1920 },
   og: { w: 1200, h: 630 },
+  rate: { w: 1200, h: 630 },
 };
 
 const C = { bg: '#f6f6f3', ink: '#111418', ink2: '#5e6670', grass1: '#3da35d', grass2: '#359452', bench: '#e9eee6', fix: '#dde3da', fixInk: '#3b444c', yellow: '#ffd400' };
@@ -245,6 +246,31 @@ export async function renderShareImage(kind, fpl, team, place) {
     g.fillStyle = C.ink2;
     fit(g, place?.rank || scored ? meta.replace(`@${team.x} · `, '') : 'squadjury.com', w - pad * 2, 34, 600);
     g.fillText(place?.rank || scored ? meta.replace(`@${team.x} · `, '') : 'squadjury.com', w / 2, 1868);
+  } else if (kind === 'rate') {
+    // Link preview of the "Rate my team" link: the squad, a big question and the empty card.
+    const pad = 32;
+    const sqW = 520;
+    await drawSquad(g, fpl, team, pad, pad, sqW, h - pad * 2);
+    const rx = pad + sqW + 52, rw = w - rx - pad;
+    await brand(g, rx, 52, 38, false);
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    g.fillStyle = C.ink;
+    const [l1, ...rest] = t('share.rateMy', { gw: team.gw }).split(' ');
+    const line2 = rest.join(' ');
+    const big = Math.min(fit(g, l1, rw - 10, 96, 900, 'semi-condensed'), fit(g, line2, rw - 10, 96, 900, 'semi-condensed'));
+    setFont(g, 900, big, 'semi-condensed');
+    g.fillText(l1, rx, 196);
+    g.fillText(line2, rx, 196 + big * 0.98);
+    g.fillStyle = C.ink2;
+    fit(g, team.nickname, rw - 190, 34, 700, 'semi-condensed');
+    g.fillText(team.nickname, rx, 360);
+    scoreCard(g, w - pad - 86, 470, 138, false, '?', 0.12);
+    g.fillStyle = C.ink;
+    setFont(g, 800, 28);
+    g.fillText(t('share.oneTap'), rx, 470);
+    g.fillStyle = C.ink2;
+    setFont(g, 600, 24);
+    g.fillText('squadjury.com', rx, 508);
   } else {
     const pad = 32;
     const sqW = 520;
@@ -267,7 +293,7 @@ export async function renderShareImage(kind, fpl, team, place) {
     setFont(g, 600, 24);
     g.fillText('squadjury.com', rx + 210, 458);
   }
-  const type = kind === 'og' ? 'image/jpeg' : 'image/png';
+  const type = kind === 'og' || kind === 'rate' ? 'image/jpeg' : 'image/png';
   return new Promise((resolve) => canvas.toBlob(resolve, type, 0.9));
 }
 

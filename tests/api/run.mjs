@@ -124,6 +124,37 @@ await check('cross site writes are refused', async () => {
   assert.equal(r.status, 403);
 });
 
+await check('Rate link: preview tags, visits per channel, and new sign ups remember who invited them', async () => {
+  const key = (await A.call('GET', '/api/state')).data.mine?.key;
+  assert.ok(key, 'A has a squad');
+  const page = await (await fetch(`${BASE}/r/${key}?s=wa`)).text();
+  assert.match(page, /og:title" content="Rate my GW\d+ team/);
+  assert.match(page, /og:url" content="[^"]*\/r\//);
+  // Only the owner can store the preview image.
+  const fd = new FormData();
+  fd.set('og', new Blob([readFileSync(new URL('../fixtures/pick-team-1.jpg', import.meta.url))], { type: 'image/jpeg' }), 'rate.jpg');
+  const up = await A.call('PUT', '/api/teams/mine/rate-og', fd, true);
+  assert.equal(up.status, 200, JSON.stringify(up.data));
+  assert.equal((await A.call('GET', `/api/teams/${key}`)).data.team.rateOg, true);
+  const fd2 = new FormData();
+  fd2.set('og', new Blob([readFileSync(new URL('../fixtures/pick-team-1.jpg', import.meta.url))], { type: 'image/jpeg' }), 'rate.jpg');
+  const noSquad = client(`nosquad${Date.now()}`);
+  await noSquad.login();
+  assert.equal((await noSquad.call('PUT', '/api/teams/mine/rate-og', fd2, true)).status, 404);
+  const withRate = await (await fetch(`${BASE}/r/${key}`)).text();
+  assert.match(withRate, /og:image" content="[^"]*\/u\/rate_/);
+  // A friend signs up through the link.
+  const friend = client(`invited${Date.now()}`);
+  const r = await friend.call('POST', '/api/auth/dev', { name: `invited${Date.now()}`, ref: { key, s: 'wa' } });
+  assert.equal(r.status, 200);
+  const admin = client('admin');
+  await admin.login();
+  const src = (await admin.call('GET', '/api/admin/sources')).data.sources;
+  const wa = src.find((x) => x.source === 'wa');
+  assert.ok(wa && wa.rate >= 1 && wa.signups >= 1, JSON.stringify(src));
+  assert.equal((await A.call('GET', '/api/admin/sources')).status, 403);
+});
+
 await check('3 reports hide a squad from judging and from its link', async () => {
   for (const u of [C, D, E]) assert.equal((await u.call('POST', '/api/reports', { key: keyA })).status, 200);
   assert.equal((await F.call('GET', `/api/teams/${keyA}`)).status, 404);
