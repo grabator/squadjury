@@ -29,6 +29,7 @@ const PAGES = {
     <p>With 4 or more members the league also plays <strong>head to head</strong>: every gameweek you meet one member, like an FPL H2H league. The jury result is who won more duels between the two squads (with fewer than 3 duel votes, the better jury rating wins). The points result comes after the gameweek, from real FPL points. A win is 3 points and a draw 1, in a Jury table and a Points table. No squad by the deadline loses 0:3.</p>
     <h2>Share it</h2>
     <p>Every squad has its own link. Send it to your mini league, or post the square image of your squad on X with one tap.</p>
+    <p>Have a blog or a channel? On My squad, <strong>Embed</strong> gives you a code to show your squad on your own website, where visitors can rate it, and a 1920x1080 image with a QR code for your YouTube video.</p>
   </div>`,
   rules: () => html`<div class="prose">
     <h1 class="title">${t('page.rules')}</h1>

@@ -318,6 +318,21 @@ await check('email link: works once, expires after 15 minutes, 3 per hour per em
   assert.equal((await M.call('POST', '/api/auth/apple', { idToken: 'a.b.c' })).status, 404); // Apple is off until set up
 });
 
+await check('embed: only /embed/ may be framed, its data shows the jury average, a missing squad is a 404', async () => {
+  const keyC = (await C.call('GET', '/api/state')).data.mine.key;
+  const page = await fetch(`${BASE}/embed/${keyC}`);
+  assert.equal(page.status, 200);
+  assert.equal(page.headers.get('x-frame-options'), null);
+  assert.match(page.headers.get('content-security-policy') || '', /frame-ancestors \*/);
+  assert.match(await page.text(), /\/js\/embed\.js/);
+  const other = await fetch(`${BASE}/leaderboard`);
+  assert.equal(other.headers.get('x-frame-options'), 'DENY');
+  const data = await (await fetch(`${BASE}/api/embed/${keyC}`)).json();
+  assert.equal(data.team.key, keyC);
+  assert.ok('avg' in data.team && data.team.image === undefined);
+  assert.equal((await fetch(`${BASE}/api/embed/nosuchkey`)).status, 404);
+});
+
 await check('3 reports hide a squad from judging and from its link', async () => {
   for (const u of [C, D, E]) assert.equal((await u.call('POST', '/api/reports', { key: keyA })).status, 200);
   assert.equal((await F.call('GET', `/api/teams/${keyA}`)).status, 404);

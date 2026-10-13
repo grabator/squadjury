@@ -431,6 +431,69 @@ export async function renderH2HImage({ gw, opp, league, score, me }) {
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
 
+/**
+ * 1920x1080 image for YouTube (in the video or as a thumbnail): the squad on the left,
+ * "Rate my GW7 team" and a QR code that opens the Rate link on the right.
+ */
+export async function renderYouTubeImage(fpl, team, url) {
+  await fonts();
+  const w = 1920, h = 1080;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const g = canvas.getContext('2d');
+  g.fillStyle = C.bg;
+  g.fillRect(0, 0, w, h);
+  await drawSquad(g, fpl, team, 70, 70, 820, 940);
+  const x = 980;
+  await brand(g, x, 90, 60, false);
+  g.textAlign = 'left';
+  g.textBaseline = 'alphabetic';
+  g.fillStyle = C.ink;
+  setFont(g, 900, fit(g, t('embed.ytRate', { gw: team.gw }), w - x - 80, 110, 900, 'semi-condensed'), 'semi-condensed');
+  g.fillText(t('embed.ytRate', { gw: team.gw }), x, 300);
+  g.fillStyle = C.ink2;
+  setFont(g, 700, 44);
+  g.fillText(team.nickname + (team.demo ? ` · ${t('judge.exampleShort')}` : ''), x, 370);
+  // The QR code on a white card, with the yellow card next to it.
+  const { default: qrcode } = await import('/vendor/qrcode.mjs');
+  const qr = qrcode(0, 'M');
+  qr.addData(url);
+  qr.make();
+  const n = qr.getModuleCount();
+  const size = 440, cell = Math.floor(size / (n + 8)), box = cell * (n + 8), qx = x, qy = 450;
+  g.fillStyle = '#ffffff';
+  roundRect(g, qx, qy, box, box, 28);
+  g.fill();
+  g.fillStyle = '#111418';
+  for (let r = 0; r < n; r++) for (let c2 = 0; c2 < n; c2++) if (qr.isDark(r, c2)) g.fillRect(qx + (c2 + 4) * cell, qy + (r + 4) * cell, cell, cell);
+  g.save();
+  g.translate(qx + box + 150, qy + box / 2);
+  g.rotate(0.12);
+  g.shadowColor = 'rgba(0,0,0,.18)';
+  g.shadowBlur = 30;
+  g.shadowOffsetY = 12;
+  roundRect(g, -110, -145, 220, 290, 22);
+  g.fillStyle = C.yellow;
+  g.fill();
+  g.shadowColor = 'transparent';
+  g.fillStyle = C.ink;
+  g.textAlign = 'center';
+  setFont(g, 900, 40, 'semi-condensed');
+  g.fillText('RATE IT', 0, -20);
+  setFont(g, 900, 76, 'semi-condensed');
+  g.fillText('1-10', 0, 60);
+  g.restore();
+  g.textAlign = 'left';
+  g.fillStyle = C.ink;
+  setFont(g, 800, 40);
+  g.fillText(t('embed.ytScan'), x, qy + box + 70);
+  g.fillStyle = C.ink2;
+  setFont(g, 600, 34);
+  g.fillText(url.replace(/^https?:\/\//, '').replace(/\?.*$/, ''), x, qy + box + 120);
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+}
+
 export async function downloadBlob(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

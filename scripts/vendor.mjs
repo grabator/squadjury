@@ -1,4 +1,4 @@
-// Copies the OCR engine (tesseract.js, its WebAssembly core and English data) into
+// Copies the OCR engine (tesseract.js, its WebAssembly core and English data) and the QR code maker into
 // public/vendor so the browser loads it from our own domain. Runs before dev and deploy.
 import { mkdirSync, copyFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -19,4 +19,6 @@ for (const [from, to] of files) {
   if (!existsSync(nm + from)) throw new Error(`missing ${from}, run npm install`);
   copyFileSync(nm + from, out + to);
 }
-console.log('vendor: tesseract copied to public/vendor/tesseract');
+// QR codes for the YouTube image (MIT, Kazuhiko Arase).
+copyFileSync(nm + 'qrcode-generator/dist/qrcode.mjs', fileURLToPath(new URL('../public/vendor/qrcode.mjs', import.meta.url)));
+console.log('vendor: tesseract and qrcode copied to public/vendor');

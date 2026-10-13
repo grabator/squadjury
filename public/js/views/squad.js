@@ -63,7 +63,7 @@ export function renderMine(el, fpl, team) {
       <button class="btn" id="dl">${raw(canShareFiles() ? ICONS.share : ICONS.download)}${canShareFiles() ? t('squad.shareImage') : t('squad.download')}</button>
     </div>`}
     <article class="jcard">${teamCardHtml(fpl, team, { report: false })}</article>
-    ${hasResult ? '' : html`<p style="text-align:center;margin:12px 0 0"><button class="link-btn" id="story">${t('squad.story')}</button>${!team.locked ? html` · <button class="link-btn" id="replace">${t('squad.replace')}</button>` : ''}</p>`}
+    <p style="text-align:center;margin:12px 0 0">${hasResult ? '' : html`<button class="link-btn" id="story">${t('squad.story')}</button> · `}<button class="link-btn" id="embed">${t('embed.button')}</button>${!team.locked && !hasResult ? html` · <button class="link-btn" id="replace">${t('squad.replace')}</button>` : ''}</p>
   </div>`.s;
   wireTeamCard($('.jcard', el), fpl, team);
   wireDuelRow(el, team);
@@ -115,12 +115,37 @@ export function renderMine(el, fpl, team) {
   };
   $('#share-result', el)?.addEventListener('click', result('x'));
   $('#result-story', el)?.addEventListener('click', result('story'));
+  $('#embed', el)?.addEventListener('click', () => embedSheet(fpl, team));
   $('#replace', el)?.addEventListener('click', () => {
     const s = sheet(html`<h2>${t('post.replaceTitle')}</h2><p>${t('post.replaceText', { n: team.votes })}</p>
       <div class="row"><button class="btn btn-ghost" data-no>${t('post.cancel')}</button><button class="btn btn-danger" data-yes>${t('post.replaceGo')}</button></div>`);
     $('[data-no]', s.el).onclick = s.close;
     $('[data-yes]', s.el).onclick = () => { s.close(); navigate('/post?replace=1'); };
   });
+}
+
+/** Embed code for websites, and the 1920x1080 image with a QR code for YouTube. */
+function embedSheet(fpl, team) {
+  const src = `${location.origin}/embed/${team.key}`;
+  const code = `<iframe src="${src}" width="360" height="520" style="border:0;border-radius:12px;max-width:100%" title="${team.nickname}'s FPL squad on SquadJury" loading="lazy"></iframe>`;
+  const sh = sheet(html`<h2>${t('embed.title')}</h2><p>${t('embed.text')}</p>
+    <label class="sr-only" for="emb-code">${t('embed.title')}</label>
+    <textarea id="emb-code" class="emb-code" readonly rows="4">${code}</textarea>
+    <div class="row" style="margin-top:8px"><button type="button" class="btn btn-go" id="emb-copy">${raw(ICONS.copy)}${t('embed.copy')}</button>
+      <a class="btn" href="${src}" target="_blank" rel="noopener">${t('embed.preview')}</a></div>
+    <h3 class="section-h" style="margin-top:18px">${t('embed.ytTitle')}</h3>
+    <p class="sub" style="margin-top:0">${t('embed.ytText')}</p>
+    <button type="button" class="btn btn-block" id="emb-yt">${raw(ICONS.download)}${t('embed.ytImage')}</button>`, { label: t('embed.title') });
+  $('#emb-copy', sh.el).onclick = async () => {
+    try { await navigator.clipboard.writeText(code); toast(t('embed.copied')); } catch { $('#emb-code', sh.el).select(); }
+  };
+  $('#emb-yt', sh.el).onclick = async () => {
+    toast(t('squad.making'), { ms: 1500 });
+    try {
+      const { renderYouTubeImage } = await import('../share.js');
+      downloadBlob(await renderYouTubeImage(fpl, team, `${location.origin}/r/${team.key}?s=yt`), `squadjury-gw${team.gw}-youtube.png`);
+    } catch (e) { toast(errText(e), { bad: true }); }
+  };
 }
 
 async function uploadOg(fpl, team, place) {

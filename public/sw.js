@@ -1,6 +1,6 @@
 // Service worker: the app shell loads instantly on repeat visits.
 // Our JS and CSS are network first, fonts and images cache first; the API and share pages always go to the network.
-const VERSION = 'sj-v18';
+const VERSION = 'sj-v19';
 const SHELL = ['/', '/css/app.css?v=13', '/js/app.js?v=13', '/img/logo/logo.svg', '/img/logo/mark.svg', '/img/logo/logo-white.svg', '/fonts/archivo-latin-var.woff2', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
@@ -14,7 +14,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/u/') || url.pathname.startsWith('/t/')) return;
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/u/') || url.pathname.startsWith('/t/') || url.pathname.startsWith('/embed/')) return;
   // Page navigations: network first, so a new version shows up; the cached shell when offline.
   if (e.request.mode === 'navigate') {
     e.respondWith(fetch(e.request).catch(() => caches.match('/')));

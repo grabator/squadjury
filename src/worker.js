@@ -1396,6 +1396,19 @@ route('GET', '/api/scouts', async (c) => {
   return json({ type: 'gw', gw: gwNum(g.id), status, teams: g.scouts_teams, minVerdicts: MIN_VERDICTS, minTeams: MIN_TEAMS, total: ranked.length, ranked: ranked.slice(0, 100), me });
 });
 
+// ==== embed
+
+/** The squad for the embed widget: the jury average is shown, it is the owner's own showcase. */
+route('GET', '/api/embed/([A-Za-z0-9_-]{4,20})', async (c, key) => {
+  const t = await c.env.DB.prepare('SELECT t.*, u.nickname, u.x_handle, u.demo FROM teams t JOIN users u ON u.id = t.user_id WHERE t.share_key = ? AND t.hidden = 0').bind(key).first();
+  if (!t) fail(404, 'not_found');
+  const open = await c.open();
+  const out = teamOut(t, { locked: t.gw !== open?.id });
+  delete out.image;
+  delete out.duels;
+  return json({ team: out }, { headers: { 'cache-control': 'public, max-age=60' } });
+});
+
 // ==== reports and admin
 
 route('POST', '/api/reports', async (c) => {
@@ -1603,6 +1616,21 @@ async function leaguePage(c, code) {
   return new Response(html, { headers });
 }
 
+/** /embed/<key>: the only page that other sites may show in an iframe. */
+async function embedPage(c) {
+  const shell = await c.env.ASSETS.fetch(new Request(new URL('/embed.html', c.req.url)));
+  c.ctx.waitUntil(countVisit(c.env, c.now, 'embed', 'e').catch(() => {}));
+  const headers = new Headers(shell.headers);
+  headers.delete('x-frame-options');
+  const csp = headers.get('content-security-policy');
+  headers.set('content-security-policy', `${csp ? `${csp}; ` : ''}frame-ancestors *`);
+  headers.set('content-type', 'text/html; charset=utf-8');
+  headers.set('cache-control', 'no-cache');
+  headers.delete('content-length');
+  headers.delete('etag');
+  return new Response(await shell.text(), { headers });
+}
+
 async function image(c, key) {
   const obj = await c.env.IMAGES.get(key);
   if (!obj) return new Response('Not found', { status: 404 });
@@ -1639,6 +1667,8 @@ export default {
       };
       const share = url.pathname.match(/^\/(t|r)\/([A-Za-z0-9_-]{4,20})\/?$/);
       if (share) return await sharePage(c, share[2], share[1]);
+      const embed = url.pathname.match(/^\/embed\/([A-Za-z0-9_-]{4,20})\/?$/);
+      if (embed) return await embedPage(c);
       const invite = url.pathname.match(/^\/l\/([A-Za-z0-9]{6})\/?$/);
       if (invite) return await leaguePage(c, invite[1]);
       for (const r of routes) {

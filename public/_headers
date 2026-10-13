@@ -13,3 +13,9 @@
 
 /img/*
   Cache-Control: public, max-age=604800
+
+# The embed widget is the only page other sites may show in an iframe.
+/embed.html
+  ! X-Frame-Options
+/embed/*
+  ! X-Frame-Options
