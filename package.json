@@ -18,7 +18,8 @@
     "icons": "node scripts/icons.mjs",
     "logo": "python3 scripts/logo.py && node scripts/icons.mjs",
     "predev": "node scripts/vendor.mjs",
-    "test:api": "node tests/api/run.mjs"
+    "test:api": "node tests/api/run.mjs",
+    "points": "node scripts/points.mjs"
   },
   "author": "Ahmed Grabus (grabator)",
   "license": "UNLICENSED",

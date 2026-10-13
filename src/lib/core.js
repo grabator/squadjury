@@ -102,6 +102,8 @@ export function teamOut(t, extra = {}) {
     rateOg: !!t.rate_og_key,
     avg: avgOf(t),
     votes: t.vote_count,
+    points: t.points ?? null,
+    verified: t.points_verified === 1,
     ...extra,
   };
 }

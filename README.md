@@ -25,6 +25,7 @@ Built mobile first, with no framework and no build step, on Cloudflare Workers.
 - **Fair ranking:** a squad needs 5 verdicts, and its owner must judge 5 other squads, to be ranked. The rank uses a Bayesian average so a handful of 10s cannot beat a squad with many strong verdicts.
 - **My squad:** live verdict, rank, "better than X% of squads", how the jury voted, and sharing.
 - **Share:** each squad has its own link with a link preview card (1200x630), a one tap "Post on X", and images to post: a square 1080x1080 for X and 1080x1920 for stories.
+- **Real points:** after the gameweek the real FPL points of every squad are added (starting XI, captain doubled, automatic substitutions), with a Jury / Points switch on the leaderboard and a result image to share. With an FPL team ID in the profile the exact FPL score is used.
 - **Me:** your numbers, your verdicts grouped by gameweek and shown a page at a time, your squads, and settings. Light and dark theme follow the phone.
 - **Deadlines from FPL:** voting closes at the official deadline, the gameweek locks and its results are frozen automatically.
 - **Fair play:** one squad per account per gameweek, one verdict per squad, no judging your own squad, rate limits, reduced weight for accounts that only give 1 or 10, and reports that hide a squad after 3 reports until an admin reviews it.
@@ -87,7 +88,9 @@ The browser tests look for Chromium in the usual places; set `CHROME_PATH` to po
 3. Store the Google email(s) that may open `/admin` as a secret (comma separated), so they never end up in the repo:
    ```bash
    npx wrangler secret put ADMIN_EMAILS
+   npx wrangler secret put ADMIN_TOKEN
    ```
+   `ADMIN_TOKEN` is any long random text; `npm run points` uses it when FPL blocks the Worker.
 4. Apply the schema and deploy:
    ```bash
    npx wrangler d1 migrations apply squadjury --remote
@@ -98,6 +101,24 @@ The browser tests look for Chromium in the usual places; set `CHROME_PATH` to po
 ## Seasons
 
 Gameweek numbers repeat every season, so the database stores a gameweek as a season key: 2026/27 GW7 is `202607`, and every table with a gameweek also has a `season` label (`2026-27`). The season comes from the FPL data (the year of the first deadline), the API and the app keep using plain gameweek numbers, and the Season tab only counts the current season. When FPL publishes the next season in summer, nothing needs to change.
+
+## Real points
+
+Every hour a cron job looks for finished gameweeks (FPL `finished` and `data_checked`), reads the live points from FPL and scores each squad: the starting XI, the captain doubled (the vice when the captain did not play) and automatic substitutions from the bench, keeping a valid formation. Squads whose owner added an FPL team ID get their exact FPL score instead (40 per run). If FPL cannot be reached, the job tries again every hour for 48 hours.
+
+FPL sometimes blocks requests from Cloudflare. Then run the job from your own computer, which sends the live points to the Worker:
+
+```bash
+npx wrangler secret put ADMIN_TOKEN
+```
+
+PowerShell:
+
+```powershell
+$env:BASE="https://squadjury.com"; $env:ADMIN_TOKEN="the same token"; npm run points -- --gw 7
+```
+
+`/admin` also shows the state of each finished gameweek and has a **Fetch points** button.
 
 ## Backups
 

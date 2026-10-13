@@ -62,6 +62,18 @@ export async function reportTeam(team) {
 /** The verdict moment: a big yellow card with the score lands on the squad. */
 export const verdictCard = (score) => html`<div class="moment" aria-hidden="true"><small>${t('judge.verdict').toUpperCase()}</small><strong>${score}</strong></div>`;
 
+/** After a gameweek: the jury's verdict next to the real points, and how the jury did. */
+export function pointsHtml(team) {
+  if (team.points == null) return team.locked ? html`<p class="pts-wait">${t('pts.waiting')}</p>` : '';
+  return html`<section class="pts-box" aria-label="${t('pts.jury')} / ${t('pts.real')}">
+    <div class="pts-cell"><span>${t('pts.jury')}</span><b>${team.avg != null ? team.avg.toFixed(1) : '-'}</b></div>
+    <div class="pts-vs" aria-hidden="true">vs</div>
+    <div class="pts-cell real"><span>${t('pts.real')}${team.verified ? html` <i class="pts-ok" title="${t('pts.verifiedTitle')}">${t('pts.verified')}</i>` : ''}</span><b>${team.points}<small> pts</small></b></div>
+    ${team.call ? html`<p class="pts-call ${team.call}">${t(`pts.${team.call}`)}</p>` : ''}
+    ${team.pointsRank ? html`<p class="pts-rank">${t('pts.rank', { rank: team.pointsRank, total: team.pointsTotal })}</p>` : ''}
+  </section>`;
+}
+
 /** Link that opens the squad ready to be rated, while its gameweek is open. `s` names the channel. */
 export const rateUrl = (team, s) => `${location.origin}/r/${team.key}${s ? `?s=${s}` : ''}`;
 export const shareUrl = (team, s = 'x') => (team.locked ? `${location.origin}/t/${team.key}` : rateUrl(team, s));

@@ -84,8 +84,11 @@ for (const num of gws) {
   for (const tm of teams) {
     const mine = votes.filter((v) => v.team === tm.id);
     const sum = mine.reduce((a, v) => a + v.score, 0);
-    sql.push(`INSERT INTO teams (id, user_id, gw, season, share_key, picks_json, captain_id, vice_id, vote_sum, vote_count, created_at, updated_at) VALUES (${tm.id}, ${tm.uid}, ${gw}, ${q(season.label)}, ${q(key())}, ${q(JSON.stringify(tm.picks))}, ${tm.captain}, ${tm.vice}, ${sum}, ${mine.length}, ${deadline - 864e5 * 3}, ${deadline - 864e5 * 3});`);
+    // Finished gameweeks get example points, loosely in line with what the jury thought.
+    const pts = num === openGw ? 'NULL' : Math.max(18, Math.round(tm.quality * 7 + (rnd() - 0.5) * 40));
+    sql.push(`INSERT INTO teams (id, user_id, gw, season, share_key, picks_json, captain_id, vice_id, vote_sum, vote_count, points, created_at, updated_at) VALUES (${tm.id}, ${tm.uid}, ${gw}, ${q(season.label)}, ${q(key())}, ${q(JSON.stringify(tm.picks))}, ${tm.captain}, ${tm.vice}, ${sum}, ${mine.length}, ${pts}, ${deadline - 864e5 * 3}, ${deadline - 864e5 * 3});`);
   }
+  if (num !== openGw) sql.push(`UPDATE gameweeks SET points_status = 'done', points_at = ${deadline + 864e5 * 4} WHERE id = ${gw};`);
   for (const v of votes) sql.push(`INSERT INTO votes (team_id, user_id, gw, season, score, created_at, updated_at) VALUES (${v.team}, ${v.user}, ${gw}, ${q(season.label)}, ${v.score}, ${deadline - 864e5}, ${deadline - 864e5});`);
 }
 

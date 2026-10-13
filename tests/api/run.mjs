@@ -16,7 +16,7 @@ const snap = JSON.parse(readFileSync(new URL('../../src/data/fpl-snapshot.json',
 rmSync(STATE, { recursive: true, force: true });
 execSync(`npx wrangler d1 migrations apply squadjury --local --persist-to "${STATE}"`, { stdio: 'ignore' });
 const WIN = process.platform === 'win32';
-const dev = spawn('npx', ['wrangler', 'dev', '--local', '--port', String(PORT), '--persist-to', `"${STATE}"`, '--var', 'DEV_LOGIN:1', '--var', 'FPL_SOURCE:snapshot', '--var', 'ADMIN_EMAILS:admin@example.test'], { stdio: 'ignore', detached: !WIN, shell: true });
+const dev = spawn('npx', ['wrangler', 'dev', '--local', '--port', String(PORT), '--persist-to', `"${STATE}"`, '--var', 'DEV_LOGIN:1', '--var', 'FPL_SOURCE:snapshot', '--var', 'ADMIN_EMAILS:admin@example.test', '--var', 'ADMIN_TOKEN:test-token-123'], { stdio: 'ignore', detached: !WIN, shell: true });
 const stop = () => {
   try {
     if (WIN) execSync(`taskkill /pid ${dev.pid} /T /F`, { stdio: 'ignore' });
@@ -210,6 +210,36 @@ await check('at the deadline the gameweek locks and the next one opens', async (
   const gws = lb.data.gameweeks.find((g) => g.id === gw.id);
   assert.ok(gws, JSON.stringify(lb.data.gameweeks));
   assert.equal(gws.status, 'locked');
+});
+
+await check('real points: only admins or the token can score, the leaderboard sorts by points', async () => {
+  const live = { elements: snap.players.map((p) => ({ id: p.id, stats: { total_points: 2, minutes: 90 } })) };
+  assert.equal((await A.call('POST', '/api/admin/points', { gw: gw.id, live })).status, 403);
+  const bad = await fetch(`${BASE}/api/admin/points`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-admin-token': 'wrong' }, body: JSON.stringify({ gw: gw.id, live }) });
+  assert.ok([401, 403].includes(bad.status));
+  const res = await fetch(`${BASE}/api/admin/points`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-admin-token': 'test-token-123' }, body: JSON.stringify({ gw: gw.id, live }) });
+  const body = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(body));
+  assert.ok(body.scored >= 1);
+  // 11 starters with 2 points each, the captain doubled.
+  const after = new Date(gw.deadline + 60_000).toISOString();
+  const lb = await (await fetch(`${BASE}/api/leaderboard?gw=${gw.id}&sort=points`, { headers: { 'x-sj-now': after } })).json();
+  assert.equal(lb.hasPoints, true, JSON.stringify(lb).slice(0, 300));
+  assert.equal(lb.sort, 'points');
+  assert.ok([...lb.ranked, lb.me].filter(Boolean).every((r) => r.points === 24), JSON.stringify(lb.ranked));
+  const admin = client('admin');
+  await admin.login();
+  const list = (await admin.call('GET', '/api/admin/points')).data;
+  assert.equal(list.gameweeks.find((g) => g.gw === gw.id).status, 'done');
+  assert.equal((await admin.call('POST', '/api/admin/points', { gw: 39, live })).status, 400);
+});
+
+await check('FPL team id: a number or an FPL link is saved, anything else is refused', async () => {
+  const nick = (await B.call('GET', '/api/state')).data.user.nickname;
+  assert.equal((await B.call('PATCH', '/api/me', { nickname: nick, fplId: 'abc' })).status, 400);
+  assert.equal((await B.call('PATCH', '/api/me', { nickname: nick, fplId: 'https://fantasy.premierleague.com/entry/1234567/event/7' })).data.fplId, 1234567);
+  assert.equal((await B.call('GET', '/api/state')).data.user.fplId, 1234567);
+  assert.equal((await B.call('PATCH', '/api/me', { nickname: nick, fplId: '' })).data.fplId, null);
 });
 
 await check('only admins can make and list backups, and a backup holds every table', async () => {

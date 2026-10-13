@@ -14,6 +14,8 @@ const PAGES = {
     <p>Squads appear one at a time. Tap how much you like the squad, from 1 to 10, and the next one comes up. There is no right answer: love the differentials, hate the template, think the captain is a gamble? Your call, that is what a jury is for. You see the jury average only after you give your own verdict, and nobody ever sees who gave which verdict.</p>
     <h2>3. Climb the leaderboard</h2>
     <p>Verdicts stay open until the FPL deadline of the gameweek. At the deadline the gameweek locks and the final top 10 is saved on the leaderboard.</p>
+    <h2>4. See the real points</h2>
+    <p>When the gameweek is over, SquadJury adds up the real FPL points of every squad: the starting XI, the captain doubled and automatic substitutions from the bench. Then you see if the jury got it right. Add your <strong>FPL team ID</strong> in your profile and your exact points from FPL are used, with transfer hits and chips.</p>
     <h2>Private leagues</h2>
     <p>Make a league for your friends, your office or your mini league, and share its link or 6 character code. Everyone in it gets their own table every gameweek and for the season. The verdicts are the same as on the main leaderboard, so nobody can boost a friend just inside the league.</p>
     <h2>Share it</h2>

@@ -6,7 +6,7 @@ import { api } from '../api.js';
 import { loadFpl } from '../fpl.js';
 import { store } from '../store.js';
 import { navigate } from '../app.js';
-import { teamCardHtml, wireTeamCard, xText, xIntent, shareUrl, rateUrl, shareImage, canShareFiles, channelsHtml, wireChannels } from './common.js';
+import { teamCardHtml, wireTeamCard, xText, xIntent, shareUrl, rateUrl, shareImage, canShareFiles, channelsHtml, wireChannels, pointsHtml } from './common.js';
 import { renderShareImage, downloadBlob } from '../share.js';
 
 export async function mount(el, keyFromRoute) {
@@ -34,6 +34,7 @@ export function renderMine(el, fpl, team) {
     : team.votes
       ? html`<b>${t('lb.waiting')}</b><span>${p.needsVotes ? t('squad.needs', { votes: p.needsVotes }) : p.needsJudged ? t('squad.needsJudge', { n: p.needsJudged }) : ''}</span>`
       : html`<b>${t('lb.waiting')}</b><span>${t('squad.noVerdicts')}</span>`;
+  const hasResult = team.locked && team.points != null;
   el.innerHTML = html`<div>
     <div class="page-head"><h1 class="title">${t('squad.title')}, GW${team.gw}</h1></div>
     <div class="scoreboard"><span class="ycard" aria-hidden="true"></span>
@@ -43,16 +44,23 @@ export function renderMine(el, fpl, team) {
     ${team.votes ? html`<section class="chart" aria-labelledby="dist-h"><h2 id="dist-h">${t('squad.dist')}</h2>
       <div class="hist" role="img" aria-label="${t('squad.dist')}: ${dist.map((n, i) => `${i + 1}: ${n}`).join(', ')}">${dist.map((n, i) => raw(`<i class="${i === top ? 'top' : ''}" style="height:${Math.max(3, Math.round((n / max) * 100))}%"></i>`))}</div>
       <div class="hist-x" aria-hidden="true">${dist.map((_, i) => raw(`<span>${i + 1}</span>`))}</div></section>` : ''}
+    ${hasResult ? html`<section class="result-card" aria-labelledby="res-h">
+      <h2 id="res-h">${t('pts.resultTitle', { gw: team.gw })}</h2>
+      ${pointsHtml(team)}
+      <div class="share-row" style="margin:12px 0 0"><button class="btn btn-go" id="share-result">${raw(canShareFiles() ? ICONS.share : ICONS.download)}${t('pts.shareResult')}</button>
+        <a class="btn" id="result-x" href="${xIntent(resultText(team, p))}" target="_blank" rel="noopener">${raw(ICONS.x)}${t('squad.postX')}</a>
+        <button class="btn" id="result-story">${t('squad.story')}</button></div>
+    </section>` : team.locked ? pointsHtml(team) : ''}
     ${!team.locked ? html`<section class="get-rated" aria-labelledby="gr-h">
       <div class="gr-head"><span class="ycard" aria-hidden="true"></span><div><h2 id="gr-h">${t('squad.getRated')}</h2><p>${t('squad.getRatedText')}</p></div></div>
       ${channelsHtml()}</section>` : ''}
-    <div class="share-row">
+    ${hasResult ? html`<div class="share-row"><button class="btn" id="copy">${raw(ICONS.link)}${t('squad.copy')}</button></div>` : html`<div class="share-row">
       <a class="btn btn-go" id="postx" href="${xIntent(xText(team, p))}" target="_blank" rel="noopener">${raw(ICONS.x)}${t('squad.postX')}</a>
       ${team.locked ? html`<button class="btn" id="copy">${raw(ICONS.link)}${t('squad.copy')}</button>` : ''}
       <button class="btn" id="dl">${raw(canShareFiles() ? ICONS.share : ICONS.download)}${canShareFiles() ? t('squad.shareImage') : t('squad.download')}</button>
-    </div>
+    </div>`}
     <article class="jcard">${teamCardHtml(fpl, team, { report: false })}</article>
-    <p style="text-align:center;margin:12px 0 0"><button class="link-btn" id="story">${t('squad.story')}</button>${!team.locked ? html` · <button class="link-btn" id="replace">${t('squad.replace')}</button>` : ''}</p>
+    ${hasResult ? '' : html`<p style="text-align:center;margin:12px 0 0"><button class="link-btn" id="story">${t('squad.story')}</button>${!team.locked ? html` · <button class="link-btn" id="replace">${t('squad.replace')}</button>` : ''}</p>`}
   </div>`.s;
   wireTeamCard($('.jcard', el), fpl, team);
 
@@ -78,11 +86,28 @@ export function renderMine(el, fpl, team) {
       toast(errText(e), { bad: true });
     }
   };
-  $('#dl', el).onclick = async () => {
+  const dl = $('#dl', el);
+  if (dl) dl.onclick = async () => {
     toast(t('squad.making'), { ms: 1500 });
     try { await shareImage(fpl, team, p); } catch (e) { toast(errText(e), { bad: true }); }
   };
-  $('#story', el).onclick = download('story');
+  const story = $('#story', el);
+  if (story) story.onclick = download('story');
+  const result = (kind) => async () => {
+    toast(t('squad.making'), { ms: 1500 });
+    try {
+      const blob = await renderShareImage(kind, fpl, team, p, { result: true });
+      const name = `squadjury-gw${team.gw}-result${kind === 'story' ? '-story' : ''}.png`;
+      if (kind === 'x' && canShareFiles()) {
+        try { await navigator.share({ files: [new File([blob], name, { type: 'image/png' })], text: resultText(team, p) }); return; } catch (e) { if (e.name === 'AbortError') return; }
+      }
+      downloadBlob(blob, name);
+    } catch (e) {
+      toast(errText(e), { bad: true });
+    }
+  };
+  $('#share-result', el)?.addEventListener('click', result('x'));
+  $('#result-story', el)?.addEventListener('click', result('story'));
   $('#replace', el)?.addEventListener('click', () => {
     const s = sheet(html`<h2>${t('post.replaceTitle')}</h2><p>${t('post.replaceText', { n: team.votes })}</p>
       <div class="row"><button class="btn btn-ghost" data-no>${t('post.cancel')}</button><button class="btn btn-danger" data-yes>${t('post.replaceGo')}</button></div>`);
@@ -98,4 +123,9 @@ async function uploadRateOg(fpl, team, place) {
     fd.set('og', blob, 'rate.jpg');
     await api('/api/teams/mine/rate-og', { method: 'PUT', form: fd });
   } catch {}
+}
+
+function resultText(team, place) {
+  const rank = place?.rank ? t('pts.xRank', { rank: place.rank, total: place.total }) : '';
+  return t('pts.xText', { gw: team.gw, score: team.avg != null ? team.avg.toFixed(1) : '-', pts: team.points, rank });
 }

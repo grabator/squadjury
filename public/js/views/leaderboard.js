@@ -8,7 +8,7 @@ import { store } from '../store.js';
 import { myLeagues, openLeagueSheet, inviteSheet, settingsSheet, membersText } from '../leagues.js';
 
 const PAGE = 50;
-let root, timer, observer, tab, updatedAt = 0, ageTimer, shown = PAGE, last = null, scope = null, leagues = [];
+let root, timer, observer, tab, updatedAt = 0, ageTimer, shown = PAGE, last = null, scope = null, leagues = [], sortBy = 'jury';
 
 export async function mount(el) {
   root = el;
@@ -139,7 +139,7 @@ async function load(quiet = false) {
       return renderSeason(await api('/api/season'));
     }
     const gw = tab.startsWith('gw') ? +tab.slice(2) : '';
-    const lb = await api(`/api/leaderboard${gw ? `?gw=${gw}` : ''}`);
+    const lb = await api(`/api/leaderboard${gw ? `?gw=${gw}${sortBy === 'points' ? '&sort=points' : ''}` : ''}`);
     if (!quiet || !gwCache) renderTabs(lb.gameweeks, store.state.gw?.id);
     last = lb;
     renderBoard(lb);
@@ -151,22 +151,33 @@ async function load(quiet = false) {
   }
 }
 
-function rowHtml(r, { pending = false } = {}) {
+function rowHtml(r, { pending = false, byPoints = false, pos = null } = {}) {
   const sub = pending
     ? r.needsVotes ? t('lb.needs', { n: r.needsVotes }) : t('lb.needsJudge', { n: r.needsJudged })
     : r.x ? `@${r.x}` : '';
-  const place = !pending && r.rank <= 3 ? `p${r.rank}` : '';
+  const shownPos = pos ?? r.rank;
+  const place = !pending && shownPos <= 3 ? `p${shownPos}` : '';
+  // After the gameweek the real points sit next to the verdict; sorted by points they lead.
+  const score = byPoints
+    ? html`<span class="num">${r.points ?? '-'}</span><small>${t('pts.jury')} ${r.votes ? r.avg.toFixed(1) : '-'}</small>`
+    : html`<span class="num">${r.votes ? r.avg.toFixed(1) : '-'}</span><small>${r.points != null ? t('pts.pts', { n: r.points }) : t('lb.votes', { n: r.votes })}</small>`;
   return html`<li class="${r.mine ? 'me' : ''} ${place}" data-key="${r.key}">
-    <a href="/t/${r.key}"><span class="pos">${pending ? '-' : r.rank}</span>
+    <a href="/t/${r.key}"><span class="pos">${pending ? '-' : shownPos}</span>
       <span class="who"><b>${r.nickname}${r.mine ? ` (${t('lb.you')})` : ''}${r.demo ? html`<span class="tag">${t('judge.exampleShort')}</span>` : ''}</b>${sub ? html`<span>${sub}</span>` : ''}</span>
-      <span class="score"><span class="num">${r.votes ? r.avg.toFixed(1) : '-'}</span><small>${t('lb.votes', { n: r.votes })}</small></span></a></li>`;
+      <span class="score">${score}</span></a></li>`;
 }
 
 function renderBoard(lb) {
   const body = $('#lbbody', root);
   const list = lb.ranked.slice(0, shown);
+  const byPoints = lb.sort === 'points';
+  const seg = !lb.live && lb.hasPoints
+    ? html`<div class="seg" role="group" aria-label="${t('pts.sortLabel')}">
+        <button type="button" data-sort="jury" aria-pressed="${String(!byPoints)}">${t('pts.sortJury')}</button>
+        <button type="button" data-sort="points" aria-pressed="${String(byPoints)}">${t('pts.sortPoints')}</button></div>`
+    : '';
   const ranked = lb.ranked.length
-    ? html`<ol class="board" aria-label="${lb.live ? t('lb.live', { gw: lb.gw }) : t('lb.top10')}">${list.map((r) => rowHtml(r))}</ol>
+    ? html`${seg}<ol class="board" aria-label="${lb.live ? t('lb.live', { gw: lb.gw }) : t('lb.top10')}">${list.map((r, i) => rowHtml(r, { byPoints, pos: byPoints ? i + 1 : null }))}</ol>
       ${lb.ranked.length > shown ? html`<button class="btn btn-ghost more" id="more">${t('lb.more')}</button>` : ''}`
     : html`<div class="empty"><span class="ycard"></span><h2>${t('lb.emptyTitle')}</h2><p>${t('lb.empty')}</p><a class="btn btn-go" href="/">${t('nav.judge')}</a></div>`;
   const pending = lb.pending?.length
@@ -175,6 +186,11 @@ function renderBoard(lb) {
   const how = lb.ranked.length ? html`<p class="lb-how">${t('lb.how')} <a href="/rules">${t('page.rules')}</a></p>` : '';
   body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}: ${t('lb.top10')}, GW${lb.gw}</p>` : ''}${ranked}${how}${pending}`.s;
   $('#more', body)?.addEventListener('click', () => { shown += PAGE; renderBoard(last); });
+  body.querySelectorAll('[data-sort]').forEach((b) => b.addEventListener('click', () => {
+    if (sortBy === b.dataset.sort) return;
+    sortBy = b.dataset.sort;
+    load();
+  }));
   sticky(lb.me, body);
 }
 

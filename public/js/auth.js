@@ -82,6 +82,9 @@ export function pickNickname(suggestion = '', { edit = false } = {}) {
           <div class="field"><label for="xh">${t('auth.xLabel')}</label>
             <input id="xh" name="x" maxlength="16" placeholder="@username" autocomplete="off" value="${u?.x ? '@' + u.x : ''}" aria-describedby="x-h">
             <span class="hint" id="x-h">${t('auth.xHint')}</span></div>
+          ${edit ? html`<div class="field"><label for="fplid">${t('auth.fplLabel')}</label>
+            <input id="fplid" name="fplId" inputmode="numeric" maxlength="80" placeholder="1234567" autocomplete="off" value="${u?.fplId ?? ''}" aria-describedby="fpl-h fpl-e">
+            <span class="hint" id="fpl-h">${t('auth.fplHint')}</span><span class="err" id="fpl-e" role="alert"></span></div>` : ''}
           <button class="btn btn-go btn-block" type="submit">${edit ? t('auth.save') : t('auth.continue')}</button>
         </form>`,
       { label: t('auth.nickTitle'), onClose: () => resolve(saved) },
@@ -90,12 +93,15 @@ export function pickNickname(suggestion = '', { edit = false } = {}) {
       e.preventDefault();
       const f = e.target;
       try {
-        await api('/api/me', { method: 'PATCH', body: { nickname: f.nickname.value.trim(), x: f.x.value.trim() } });
+        const body = { nickname: f.nickname.value.trim(), x: f.x.value.trim() };
+        if (f.fplId) body.fplId = f.fplId.value.trim();
+        await api('/api/me', { method: 'PATCH', body });
         saved = true;
         await refreshState();
         s.close();
         if (edit) toast(t('me.saved'));
       } catch (err) {
+        if (err.code === 'fpl_id_format') { $('#fpl-e', s.el).textContent = errText(err); f.fplId.focus(); return; }
         $('#nick-e', s.el).textContent = errText(err);
         f.nickname.focus();
       }

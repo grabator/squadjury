@@ -199,7 +199,7 @@ async function brand(g, x, y, h, withUrl = true) {
  * team: { nickname, x, gw, picks, captain, vice, avg, votes, demo }, place: { rank, total } or null.
  * Returns a Blob (PNG for x and story, JPEG for og).
  */
-export async function renderShareImage(kind, fpl, team, place) {
+export async function renderShareImage(kind, fpl, team, place, { result = false } = {}) {
   await fonts();
   const { w, h } = SIZES[kind];
   const canvas = document.createElement('canvas');
@@ -210,8 +210,15 @@ export async function renderShareImage(kind, fpl, team, place) {
   g.fillRect(0, 0, w, h);
   const scored = team.avg != null && team.votes > 0;
   const score = scored ? Number(team.avg).toFixed(1) : '?';
-  const gwLine = `${t('share.gameweek', { gw: team.gw })}${team.demo ? ` · ${t('judge.exampleShort')}` : ''}`;
-  const meta = [team.x ? `@${team.x}` : null, place?.rank ? t('share.of', { rank: place.rank, total: place.total }) : null, scored ? t('share.from', { n: team.votes }) : t('share.judgeMy')].filter(Boolean).join(' · ');
+  let gwLine = `${t('share.gameweek', { gw: team.gw })}${team.demo ? ` · ${t('judge.exampleShort')}` : ''}`;
+  let meta = [team.x ? `@${team.x}` : null, place?.rank ? t('share.of', { rank: place.rank, total: place.total }) : null, scored ? t('share.from', { n: team.votes }) : t('share.judgeMy')].filter(Boolean).join(' · ');
+  // Result after the gameweek: the jury's verdict, the real points and how the jury did.
+  if (result && team.points != null) {
+    gwLine = `GW${team.gw}${team.call ? ` · ${t(`pts.${team.call}`)}` : ''}`;
+    meta = place?.rank
+      ? t('pts.resultLine', { rank: place.rank, total: place.total, score, pts: team.points })
+      : t('pts.resultLineNoRank', { score, pts: team.points });
+  }
 
   if (kind === 'x') {
     const pad = 40;

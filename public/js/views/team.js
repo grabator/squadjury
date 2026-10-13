@@ -6,7 +6,7 @@ import { api } from '../api.js';
 import { loadFpl } from '../fpl.js';
 import { store } from '../store.js';
 import { ensureUser } from '../auth.js';
-import { teamCardHtml, wireTeamCard, verdictCard } from './common.js';
+import { teamCardHtml, wireTeamCard, verdictCard, pointsHtml } from './common.js';
 import { whistle } from '../sound.js';
 import { renderMine } from './squad.js';
 
@@ -31,6 +31,7 @@ function draw(el, fpl, team) {
       ? html`<div class="scoreboard" style="margin:0"><div class="big">${team.avg.toFixed(1)}</div>
           <div class="meta"><b>${t('judge.juryAvg')}</b><span>${t('lb.votes', { n: team.votes })}${p.rank ? ` · ${t('squad.rank', { rank: p.rank, total: p.total })}` : ''}</span></div></div>`
       : ''}
+    ${team.locked ? pointsHtml(team) : ''}
     <article class="jcard">${teamCardHtml(fpl, team)}</article>
     ${canVote
       ? html`<div class="controls" style="padding:0">

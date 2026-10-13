@@ -9,6 +9,8 @@ import { validate } from '../public/js/ocr/match.js';
 import { judgeTarget } from './lib/rank.js';
 import { seasonOf, gwKey, gwNum } from './lib/season.js';
 import { runBackup, listBackups } from './lib/backup.js';
+import { pointsJob, scoreGameweek, fetchLive } from './lib/pointsjob.js';
+import { juryCall, pointsRanks } from './lib/points.js';
 import { newCode, parseCode, checkLeagueName, rerank, seasonTable, MAX_LEAGUES_PER_USER, MAX_MEMBERS, NEW_LEAGUES_PER_DAY } from './lib/leagues.js';
 
 const MAX_IMAGE = 3 * 1024 * 1024;
@@ -134,7 +136,7 @@ route('GET', '/api/state', async (c) => {
     gw: open ? { id: open.num, deadline: open.deadline } : null,
     season: c.fpl.season || null,
     fplSource: c.fpl.source,
-    user: u ? { id: u.id, nickname: u.nickname, x: u.x_handle, admin: isAdmin(c.env, u) } : null,
+    user: u ? { id: u.id, nickname: u.nickname, x: u.x_handle, fplId: u.fpl_id ?? null, admin: isAdmin(c.env, u) } : null,
     mine,
     judged,
     minJudged,
@@ -198,10 +200,18 @@ route('PATCH', '/api/me', async (c) => {
   const nickname = body.nickname !== undefined ? checkNickname(body.nickname) : c.user.nickname;
   if (!nickname) fail(400, 'nickname_format');
   const x = body.x !== undefined ? checkXHandle(body.x) : c.user.x_handle;
+  let fplId = c.user.fpl_id ?? null;
+  if (body.fplId !== undefined) {
+    const raw = String(body.fplId ?? '').trim();
+    // The number in an FPL link such as fantasy.premierleague.com/entry/1234567/event/7, or the link itself.
+    const m = raw.match(/entry\/(\d{1,9})/) || raw.match(/^(\d{1,9})$/);
+    if (raw && !m) fail(400, 'fpl_id_format');
+    fplId = m ? +m[1] : null;
+  }
   const taken = await c.env.DB.prepare('SELECT id FROM users WHERE nickname = ? AND id != ?').bind(nickname, c.user.id).first();
   if (taken) fail(409, 'nickname_taken');
-  await c.env.DB.prepare('UPDATE users SET nickname = ?, x_handle = ? WHERE id = ?').bind(nickname, x, c.user.id).run();
-  return json({ nickname, x });
+  await c.env.DB.prepare('UPDATE users SET nickname = ?, x_handle = ?, fpl_id = ? WHERE id = ?').bind(nickname, x, fplId, c.user.id).run();
+  return json({ nickname, x, fplId });
 });
 
 route('DELETE', '/api/me', async (c) => {
@@ -235,13 +245,13 @@ route('GET', '/api/me/profile', async (c) => {
   const open = await c.open();
   const [results, teams] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT r.gw, r.rank, r.avg, r.votes, t.share_key FROM results r JOIN teams t ON t.id = r.team_id WHERE r.user_id = ? ORDER BY r.gw DESC').bind(u.id),
-    c.env.DB.prepare('SELECT gw, season, share_key, vote_sum, vote_count FROM teams WHERE user_id = ? ORDER BY gw DESC').bind(u.id),
+    c.env.DB.prepare('SELECT gw, season, share_key, vote_sum, vote_count, points FROM teams WHERE user_id = ? ORDER BY gw DESC').bind(u.id),
   ]);
   const res = results.results;
   const byGw = new Map(res.map((r) => [r.gw, r]));
   const squads = teams.results.map((t) => {
     const r = byGw.get(t.gw);
-    return { gw: gwNum(t.gw), season: t.season, key: t.share_key, avg: r ? Math.round(r.avg * 10) / 10 : avgOf(t), votes: r ? r.votes : t.vote_count, rank: r?.rank ?? null, live: t.gw === open?.id };
+    return { gw: gwNum(t.gw), season: t.season, key: t.share_key, points: t.points ?? null, avg: r ? Math.round(r.avg * 10) / 10 : avgOf(t), votes: r ? r.votes : t.vote_count, rank: r?.rank ?? null, live: t.gw === open?.id };
   });
   const finals = res.filter((r) => r.votes);
   return json({
@@ -362,6 +372,14 @@ route('GET', '/api/teams/([A-Za-z0-9_-]{4,20})', async (c, key) => {
   const showAvg = locked || mineFlag || !!my;
   const out = teamOut(t, { mine: mineFlag, myVote: my?.score ?? null, locked, place: await placeOf(c.env, t.gw, t.id, locked) });
   if (!showAvg) { out.avg = null; out.place = null; }
+  // After the gameweek: real points, the place by points and how the jury did.
+  if (locked && t.points != null) {
+    const all = await c.env.DB.prepare('SELECT id, points FROM teams WHERE gw = ? AND hidden = 0 AND points IS NOT NULL').bind(t.gw).all();
+    const ranks = pointsRanks(all.results);
+    out.pointsRank = ranks.get(t.id) ?? null;
+    out.pointsTotal = all.results.length;
+    out.call = juryCall(out.place?.rank, out.pointsRank, Math.min(out.place?.total || 0, out.pointsTotal));
+  }
   // How the jury voted (counts per score), for the owner and for locked gameweeks.
   if (mineFlag || locked) {
     const d = await c.env.DB.prepare('SELECT score, COUNT(*) AS n FROM votes WHERE team_id = ? GROUP BY score').bind(t.id).all();
@@ -440,7 +458,7 @@ route('GET', '/api/leaderboard', async (c) => {
   const row = (r, locked) => ({
     key: r.share_key, nickname: r.nickname, x: r.x_handle || null, demo: !!r.demo,
     avg: Math.round(r.avg * 10) / 10, votes: r.votes, rank: r.rank ?? null, mine: r.user_id === c.user?.id,
-    needsVotes: r.needsVotes, needsJudged: r.needsJudged, locked,
+    needsVotes: r.needsVotes, needsJudged: r.needsJudged, locked, points: r.points ?? null,
   });
   if (!gw) return json({ gw: null, gameweeks: gws.results, ranked: [], pending: [] });
   if (gw === open?.id) {
@@ -457,16 +475,31 @@ route('GET', '/api/leaderboard', async (c) => {
       { headers: { 'cache-control': 'private, max-age=5' } },
     );
   }
-  const res = await c.env.DB.prepare(
-    `SELECT r.*, t.share_key, u.nickname, u.x_handle, u.demo FROM results r JOIN teams t ON t.id = r.team_id JOIN users u ON u.id = r.user_id
-      WHERE r.gw = ? ORDER BY r.rank ASC`,
-  )
-    .bind(gw)
-    .all();
-  const all = res.results;
+  // A finished gameweek: the final top 10 by verdict, or by real points once they are in.
+  // By points every squad of the week counts, also the ones the jury did not rank.
+  const wantPoints = url.searchParams.get('sort') === 'points';
+  let all = [];
+  if (wantPoints) {
+    all = (await c.env.DB.prepare(
+      `SELECT t.id AS team_id, t.user_id, t.share_key, t.points, r.rank, t.vote_count AS votes,
+              COALESCE(r.avg, CASE WHEN t.vote_count > 0 THEN 1.0 * t.vote_sum / t.vote_count ELSE 0 END) AS avg,
+              u.nickname, u.x_handle, u.demo
+         FROM teams t JOIN users u ON u.id = t.user_id LEFT JOIN results r ON r.team_id = t.id
+        WHERE t.gw = ? AND t.hidden = 0 AND t.points IS NOT NULL
+        ORDER BY t.points DESC, r.rank IS NULL, r.rank ASC, t.vote_count DESC`,
+    ).bind(gw).all()).results;
+  }
+  const byPoints = all.length > 0;
+  if (!byPoints) {
+    all = (await c.env.DB.prepare(
+      `SELECT r.*, t.share_key, t.points, u.nickname, u.x_handle, u.demo FROM results r JOIN teams t ON t.id = r.team_id JOIN users u ON u.id = r.user_id
+        WHERE r.gw = ? ORDER BY r.rank ASC`,
+    ).bind(gw).all()).results;
+  }
   const me = all.find((r) => r.user_id === c.user?.id);
+  const hasPoints = byPoints || !!(await c.env.DB.prepare('SELECT 1 FROM teams WHERE gw = ? AND points IS NOT NULL AND hidden = 0 LIMIT 1').bind(gw).first());
   return json(
-    { gw: gwNum(gw), live: false, gameweeks: gws.results, total: all.length, ranked: all.slice(0, 10).map((r) => row(r, true)), pending: [], me: me ? row(me, true) : null },
+    { gw: gwNum(gw), live: false, gameweeks: gws.results, total: all.length, hasPoints, sort: byPoints ? 'points' : 'jury', ranked: all.slice(0, 10).map((r) => row(r, true)), pending: [], me: me ? row(me, true) : null },
     { headers: { 'cache-control': 'private, max-age=60' } },
   );
 });
@@ -621,7 +654,7 @@ route('GET', '/api/leagues/([A-Za-z0-9]{6})/standings', async (c, code) => {
   const gw = asked ? gwKey(c.season, asked) : open?.id;
   const row = (r, locked) => ({
     key: r.share_key, nickname: r.nickname, x: r.x_handle || null, demo: !!r.demo, avg: Math.round(r.avg * 10) / 10, votes: r.votes,
-    rank: r.rank ?? null, mine: r.user_id === me, needsVotes: r.needsVotes, needsJudged: r.needsJudged, locked,
+    rank: r.rank ?? null, mine: r.user_id === me, needsVotes: r.needsVotes, needsJudged: r.needsJudged, locked, points: r.points ?? null,
   });
   if (!gw) return json({ gw: null, members: ids.length, ranked: [], pending: [], missing: [] });
   let ranked, pending = [], posted;
@@ -632,7 +665,7 @@ route('GET', '/api/leagues/([A-Za-z0-9]{6})/standings', async (c, code) => {
     posted = new Set([...s.ranked, ...s.pending].filter((r) => isMember(r.user_id)).map((r) => r.user_id));
   } else {
     const res = await c.env.DB.prepare(
-      `SELECT r.*, t.share_key, u.nickname, u.x_handle, u.demo FROM results r JOIN teams t ON t.id = r.team_id JOIN users u ON u.id = r.user_id
+      `SELECT r.*, t.share_key, t.points, u.nickname, u.x_handle, u.demo FROM results r JOIN teams t ON t.id = r.team_id JOIN users u ON u.id = r.user_id
         JOIN league_members m ON m.user_id = r.user_id AND m.league_id = ? WHERE r.gw = ? ORDER BY r.rank`,
     ).bind(l.id, gw).all();
     ranked = rerank(res.results).map((r) => row(r, true));
@@ -776,6 +809,41 @@ route('GET', '/api/admin/sources', async (c) => {
   }
   for (const u of signups.results) row(u.source).signups += u.n;
   return json({ since, sources: [...rows.values()].sort((a, b) => b.signups - a.signups || b.opens - a.opens) });
+});
+
+/** Admin by session, or by the ADMIN_TOKEN secret for scripts run on your own computer. */
+function needAdminOrToken(c) {
+  const token = c.req.headers.get('x-admin-token');
+  if (token && c.env.ADMIN_TOKEN && token === c.env.ADMIN_TOKEN) return;
+  needAdmin(c);
+}
+
+route('GET', '/api/admin/points', async (c) => {
+  needAdmin(c);
+  const rows = await c.env.DB.prepare(
+    `SELECT g.id, g.points_status, g.points_tries, g.points_at, (SELECT COUNT(*) FROM teams t WHERE t.gw = g.id) AS squads,
+            (SELECT COUNT(*) FROM teams t WHERE t.gw = g.id AND t.points IS NOT NULL) AS scored,
+            (SELECT COUNT(*) FROM teams t WHERE t.gw = g.id AND t.points_verified = 1) AS verified
+       FROM gameweeks g WHERE g.status = 'locked' AND g.id > ? AND g.id < ? ORDER BY g.id DESC LIMIT 6`,
+  ).bind(c.season.base, c.season.base + 100).all();
+  return json({ gameweeks: rows.results.map((g) => ({ gw: gwNum(g.id), status: g.points_status || 'waiting', tries: g.points_tries, at: g.points_at, squads: g.squads, scored: g.scored, verified: g.verified })) });
+});
+
+// Score a finished gameweek now: with live data sent by `npm run points`, or fetched here.
+route('POST', '/api/admin/points', async (c) => {
+  needAdminOrToken(c);
+  const body = await readJson(c.req, 4 * 1024 * 1024);
+  const num = +body.gw;
+  if (!(num >= 1 && num <= 38)) fail(400, 'bad_gw');
+  const key = gwKey(c.season, num);
+  const g = await c.env.DB.prepare('SELECT status FROM gameweeks WHERE id = ?').bind(key).first();
+  if (!g || g.status !== 'locked') fail(409, 'gw_not_finished');
+  let live = body.live;
+  if (!live) {
+    try { live = await fetchLive(num); } catch { fail(502, 'fpl_blocked'); }
+  }
+  const scored = await scoreGameweek(c.env, c.fpl, key, live, c.now);
+  return json({ gw: num, scored });
 });
 
 route('GET', '/api/admin/backups', async (c) => {
@@ -942,7 +1010,10 @@ export default {
     const hourly = event.cron === '0 * * * *';
     const fpl = await getFpl(env, now, { refresh: hourly });
     await syncGameweeks(env, fpl, now);
-    if (hourly) ctx.waitUntil(cleanupImages(env));
+    if (hourly) {
+      ctx.waitUntil(cleanupImages(env));
+      ctx.waitUntil(pointsJob(env, fpl, now).catch((e) => console.log(JSON.stringify({ msg: 'points job failed', error: String(e) }))));
+    }
   },
 };
 

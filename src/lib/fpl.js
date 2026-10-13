@@ -22,7 +22,7 @@ function slim(bootstrap, fixtures) {
       team: p.team,
       element_type: p.element_type,
     })),
-    events: bootstrap.events.map((e) => ({ id: e.id, deadline_time: e.deadline_time })),
+    events: bootstrap.events.map((e) => ({ id: e.id, deadline_time: e.deadline_time, finished: !!e.finished, data_checked: !!e.data_checked })),
     fixtures: fixtures
       .filter((f) => f.event)
       .map((f) => ({ id: f.id, event: f.event, kickoff_time: f.kickoff_time, team_h: f.team_h, team_a: f.team_a })),
