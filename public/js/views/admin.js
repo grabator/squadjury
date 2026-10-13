@@ -1,6 +1,6 @@
 // Admin: reported and hidden squads. Restore, delete, or ban the owner.
 
-import { html, $, toast, errText } from '../ui.js';
+import { html, $, toast, errText, pagedList } from '../ui.js';
 import { api } from '../api.js';
 import { loadFpl } from '../fpl.js';
 import { store } from '../store.js';
@@ -32,12 +32,12 @@ export async function mount(el) {
     <section class="admin-sources" style="margin-top:28px">
       <div class="page-head"><h1 class="title">Where people come from</h1><p class="sub">Last 30 days. Links carry <b>?s=</b>: wa, vb, ms, x, copy, share, or a creator's name.</p></div>
       ${sources.length
-        ? html`<div class="table-wrap"><table class="src-table"><thead><tr><th scope="col">Source</th><th scope="col">Opens</th><th scope="col">Rate</th><th scope="col">Squad</th><th scope="col">League</th><th scope="col">Sign ups</th></tr></thead>
-          <tbody>${sources.map((r) => html`<tr><th scope="row">${r.source}</th><td>${r.opens}</td><td>${r.rate}</td><td>${r.squad}</td><td>${r.league}</td><td><b>${r.signups}</b></td></tr>`)}</tbody></table></div>`
+        ? html`<div id="src-list"></div>`
         : html`<p class="sub">No visits counted yet.</p>`}
     </section>
     <div class="page-head" style="margin-top:28px"><h1 class="title">Reports</h1><p class="sub">${teams.length} squads reported or hidden</p></div>
-    <div style="display:grid;gap:16px">${teams.map((tm) => html`
+    <div id="rep-list"></div>`.s;
+  const reportCard = (tm) => html`
       <article class="jcard" data-key="${tm.key}">
         <div class="jcard-head"><div class="who"><b>${tm.nickname}</b><span>GW${tm.gw}</span></div></div>
         <p class="sub">${tm.reports} reports${tm.hidden ? ', hidden' : ''}</p>
@@ -48,7 +48,11 @@ export async function mount(el) {
           <button class="btn btn-danger" data-act="delete">Delete squad</button>
           <button class="btn btn-danger" data-act="ban" data-owner="${tm.owner}">Ban owner</button>
         </div>
-      </article>`)}</div>`.s;
+      </article>`;
+  // Sources: 10 rows a page. Reports: 5 squads a page (each shows the whole squad).
+  if ($('#src-list', el)) pagedList($('#src-list', el), sources, (rows) => html`<div class="table-wrap"><table class="src-table"><thead><tr><th scope="col">Source</th><th scope="col">Opens</th><th scope="col">Rate</th><th scope="col">Squad</th><th scope="col">League</th><th scope="col">Sign ups</th></tr></thead>
+    <tbody>${rows.map((r) => html`<tr><th scope="row">${r.source}</th><td>${r.opens}</td><td>${r.rate}</td><td>${r.squad}</td><td>${r.league}</td><td><b>${r.signups}</b></td></tr>`)}</tbody></table></div>`, { label: 'Sources' });
+  pagedList($('#rep-list', el), teams, (rows) => html`<div style="display:grid;gap:16px">${rows.map(reportCard)}</div>`, { size: 5, label: 'Reports' });
   $('#backup-now', el).onclick = async (e) => {
     e.target.disabled = true;
     try {

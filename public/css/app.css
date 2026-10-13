@@ -937,3 +937,31 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 .emb-code { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 10px; background: var(--soft); color: var(--ink); font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; resize: none; }
 .emb-title { display: flex; align-items: center; min-width: 0; }
 .emb-name { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============================================================ pager (10 per page) */
+
+.pgr { display: flex; justify-content: center; align-items: center; gap: 4px; margin: 10px 0 4px; flex-wrap: nowrap; }
+.pgr-btn { min-width: 38px; height: 38px; padding: 0 6px; border: 0; border-radius: 10px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); font: inherit; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.pgr-btn[aria-current='page'] { background: var(--ink); color: var(--bg); box-shadow: none; }
+.pgr-btn:disabled { opacity: 0.35; cursor: default; }
+.pgr-btn:first-child, .pgr-btn:last-child { font-size: 20px; line-height: 1; }
+.pgr-gap { min-width: 18px; text-align: center; color: var(--ink-3); }
+@media (hover: hover) { .pgr-btn:not(:disabled):not([aria-current]):hover { background: var(--soft); } }
+@media (max-width: 360px) { .pgr { gap: 3px; } .pgr-btn { min-width: 34px; height: 36px; } }
+
+/* folded sections: "Not ranked yet (12)", "How it works" */
+.fold { margin: 10px 0 0; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+.fold > summary { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; font-weight: 700; font-size: 14px; cursor: pointer; list-style: none; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::after { content: ''; width: 8px; height: 8px; margin-left: auto; border-right: 2px solid var(--ink-2); border-bottom: 2px solid var(--ink-2); transform: rotate(45deg) translateY(-2px); transition: transform 0.15s; }
+.fold[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
+.fold-n { padding: 1px 8px; border-radius: 999px; background: var(--soft); color: var(--ink-2); font-size: 12px; }
+.fold-body { padding: 0 8px 8px; }
+.fold-body .board { margin: 0; }
+.fold.how { background: none; box-shadow: none; }
+.fold.how > summary { min-height: 40px; padding: 0 2px; color: var(--ink-2); font-size: 13px; }
+.fold.how .lb-how { margin: 0 2px 6px; }
+.h2h-cols { margin: 0 0 4px; padding: 0 14px; }
+.h2h-match { padding: 10px 14px; }
+.h2h-list { gap: 6px; }
+.h2h-sub { margin-top: 4px; font-size: 12px; }

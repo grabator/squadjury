@@ -78,10 +78,21 @@ for (const opt of [{ user: 'Graba' }, { user: 'Graba', scheme: 'dark' }, { user:
   await p.locator('#gwpick').click(); await p.waitForTimeout(300);
   await p.locator('.gw-tile[data-gw="5"]').click(); await p.waitForTimeout(900);
   if (!p.url().includes('gw5')) issues.push(`${tag}: picker did not switch to GW5`);
-  // me: open an older gameweek group if any
+  // me: switch to another gameweek of verdicts, and page 2 when there is one
   await p.goto(BASE + '/me'); await p.waitForTimeout(1000);
-  const grp = p.locator('.gw-group summary').first();
-  if (await grp.count()) { await grp.click(); await p.waitForTimeout(800); await inspect(p, `${tag} me older gw`); }
+  const chip = p.locator('[data-vgw][aria-pressed="false"]').first();
+  if (await chip.count()) { await chip.click(); await p.waitForTimeout(800); await inspect(p, `${tag} me older gw`); }
+  const next = p.locator('#verdicts .pgr [aria-label="Next"]:not([disabled])');
+  if (await next.count()) { await next.click(); await p.waitForTimeout(800); await inspect(p, `${tag} me verdicts page 2`); }
+  // leaderboard: page 2 of a past gameweek
+  await p.goto(BASE + '/leaderboard?tab=gw6'); await p.waitForTimeout(900);
+  const pg2 = p.locator('#lb-list .pgr [aria-label="Page 2"]');
+  if (await pg2.count()) {
+    await pg2.click(); await p.waitForTimeout(500);
+    const first = await p.locator('#lb-list li .pos').first().textContent();
+    if (first.trim() !== '11') issues.push(`${tag}: page 2 does not start at #11 (${first})`);
+    await inspect(p, `${tag} leaderboard page 2`);
+  } else issues.push(`${tag}: no pager on GW6 (the example data has more than 10 squads)`);
   // tab order: the first few focusable things have visible labels
   await ctx.close();
 }

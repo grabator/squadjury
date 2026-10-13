@@ -1,6 +1,6 @@
 // Service worker: the app shell loads instantly on repeat visits.
 // Our JS and CSS are network first, fonts and images cache first; the API and share pages always go to the network.
-const VERSION = 'sj-v19';
+const VERSION = 'sj-v20';
 const SHELL = ['/', '/css/app.css?v=13', '/js/app.js?v=13', '/img/logo/logo.svg', '/img/logo/mark.svg', '/img/logo/logo-white.svg', '/fonts/archivo-latin-var.woff2', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {

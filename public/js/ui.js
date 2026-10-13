@@ -132,3 +132,60 @@ export const ICONS = {
   lock: ic('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
   duel: ic('<path d="M4 4l9 9M4 4h4M4 4v4M20 4l-9 9M20 4h-4M20 4v4M7 17l-3 3M17 17l3 3M9 15l-2 2M15 15l2 2"/>'),
 };
+
+// ==== pagination: 10 rows per page, a classic bar "‹ 1 2 3 … 9 ›" under the list
+
+export const PAGE_SIZE = 10;
+
+/** Page numbers to show: the first, the last and the current page, gaps as null. */
+export function pageNumbers(page, pages) {
+  // At most 5 numbers and gaps, so the bar fits a 360 px phone: 1 2 3 … 9, 1 … 5 … 9, 1 … 7 8 9.
+  const want = new Set([1, pages, page]);
+  if (page <= 3) [2, 3].forEach((p) => want.add(p));
+  if (page >= pages - 2) [pages - 1, pages - 2].forEach((p) => want.add(p));
+  const nums = [...want].filter((p) => p >= 1 && p <= pages).sort((a, b) => a - b);
+  const out = [];
+  nums.forEach((p, i) => {
+    if (i && p - nums[i - 1] > 1) out.push(null);
+    out.push(p);
+  });
+  return out;
+}
+
+/** The pager bar, or nothing when everything fits on one page. */
+export function pagerHtml(page, pages, label = t('pager.label')) {
+  if (pages <= 1) return '';
+  return html`<nav class="pgr" aria-label="${label}">
+    <button type="button" class="pgr-btn" data-goto="${page - 1}" aria-label="${t('pager.prev')}" ${raw(page <= 1 ? 'disabled' : '')}>‹</button>
+    ${pageNumbers(page, pages).map((p) => (p == null
+      ? html`<span class="pgr-gap" aria-hidden="true">…</span>`
+      : html`<button type="button" class="pgr-btn" data-goto="${p}" ${raw(p === page ? 'aria-current="page"' : '')} aria-label="${t('pager.page', { n: p })}">${p}</button>`))}
+    <button type="button" class="pgr-btn" data-goto="${page + 1}" aria-label="${t('pager.next')}" ${raw(page >= pages ? 'disabled' : '')}>›</button>
+  </nav>`;
+}
+
+/**
+ * A list shown 10 rows at a time. box gets the list and the pager; renderRows(slice, offset)
+ * returns the rows' HTML. Returns { go(page) }. The page with `focus(item)` true opens first.
+ */
+export function pagedList(box, items, renderRows, { size = PAGE_SIZE, page = 1, focus = null, label, onPage } = {}) {
+  const pages = Math.max(1, Math.ceil(items.length / size));
+  if (focus) {
+    const i = items.findIndex(focus);
+    if (i >= 0 && page === 1) page = Math.floor(i / size) + 1;
+  }
+  const go = (p, scroll = false) => {
+    page = Math.min(pages, Math.max(1, p));
+    const from = (page - 1) * size;
+    box.innerHTML = renderRows(items.slice(from, from + size), from).s + (pagerHtml(page, pages, label).s || '');
+    box.querySelectorAll('.pgr [data-goto]').forEach((b) => b.addEventListener('click', () => go(+b.dataset.goto, true)));
+    if (scroll) {
+      const top = box.getBoundingClientRect().top;
+      if (top < 0 || top > innerHeight * 0.6) box.scrollIntoView({ block: 'start', behavior: reduceMotion() ? 'auto' : 'smooth' });
+      box.querySelector('.pgr [aria-current]')?.focus({ preventScroll: true });
+    }
+    onPage?.(page);
+  };
+  go(page);
+  return { go: (p) => go(p, true), get page() { return page; }, pages };
+}

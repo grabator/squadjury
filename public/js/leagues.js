@@ -2,7 +2,7 @@
 // and the settings sheet (rename, new code, members, leave).
 
 import { t } from './i18n.js';
-import { html, raw, $, $$, sheet, toast, errText, ICONS } from './ui.js';
+import { html, raw, $, $$, sheet, toast, errText, ICONS, pagedList } from './ui.js';
 import { api } from './api.js';
 import { store } from './store.js';
 import { signIn } from './auth.js';
@@ -149,8 +149,7 @@ export async function settingsSheet(code, onChange) {
         <span class="err" id="lg-rn-e" role="alert"></span></form>
       <div class="lg-setrow"><div><b>${t('league.newCode')}</b><span>${t('league.newCodeText')}</span></div><button class="btn btn-sm" id="lg-newcode">${t('league.newCode')}</button></div>` : ''}
     <h3 class="section-h" style="margin-top:18px">${t('league.membersTitle')}</h3>
-    <ul class="list lg-members">${league.memberList.map((m) => html`<li><span class="item"><span>${m.nickname}${m.owner ? html` <span class="tag">${t('league.owner')}</span>` : ''}</span>
-      ${owner && !m.owner ? html`<button class="link-btn" data-kick="${m.id}" data-nick="${m.nickname}">${t('league.kick')}</button>` : ''}</span></li>`)}</ul>
+    <div id="lg-mem"></div>
     <button class="btn btn-danger btn-block" id="lg-leave" style="margin-top:16px">${t('league.leave')}</button>
     <p class="hint" style="text-align:center;margin-top:6px">${t('league.leaveText')}</p>`, { label: t('league.settings') });
   const el = sh.el;
@@ -174,13 +173,24 @@ export async function settingsSheet(code, onChange) {
       onChange?.(l);
     } catch (err) { toast(errText(err), { bad: true }); }
   });
-  el.querySelectorAll('[data-kick]').forEach((b) => b.addEventListener('click', async () => {
+  // Members, 10 at a time; the owner can remove anyone but themselves.
+  let members = league.memberList;
+  let pager;
+  const drawMembers = (page = 1) => {
+    pager = pagedList($('#lg-mem', el), members, (slice) => html`<ul class="list lg-members">${slice.map((m) => html`<li><span class="item"><span>${m.nickname}${m.owner ? html` <span class="tag">${t('league.owner')}</span>` : ''}</span>
+      ${owner && !m.owner ? html`<button class="link-btn" data-kick="${m.id}" data-nick="${m.nickname}">${t('league.kick')}</button>` : ''}</span></li>`)}</ul>`, { page, label: t('league.membersTitle') });
+  };
+  drawMembers();
+  $('#lg-mem', el).addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-kick]');
+    if (!b) return;
     try {
       await api(`/api/leagues/${code}/kick`, { method: 'POST', body: { userId: +b.dataset.kick } });
-      b.closest('li').remove();
+      members = members.filter((m) => m.id !== +b.dataset.kick);
+      drawMembers(Math.min(pager.page, Math.max(1, Math.ceil(members.length / 10))));
       toast(t('league.kicked'));
     } catch (err) { toast(errText(err), { bad: true }); }
-  }));
+  });
   $('#lg-leave', el).addEventListener('click', async () => {
     try {
       await api(`/api/leagues/${code}/leave`, { method: 'POST' });

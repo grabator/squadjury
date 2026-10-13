@@ -947,7 +947,7 @@ route('GET', '/api/leaderboard/duels', async (c) => {
   if (!gw) return json({ gw: null, ranked: [] });
   const rows = await c.env.DB.prepare(
     `SELECT t.share_key, t.user_id, t.elo, t.duel_w, t.duel_l, u.nickname, u.x_handle, u.demo FROM teams t JOIN users u ON u.id = t.user_id
-      WHERE t.gw = ? AND t.hidden = 0 AND t.duel_w + t.duel_l >= ? ORDER BY t.elo DESC, t.duel_w DESC LIMIT 100`,
+      WHERE t.gw = ? AND t.hidden = 0 AND t.duel_w + t.duel_l >= ? ORDER BY t.elo DESC, t.duel_w DESC LIMIT 300`,
   ).bind(gw, MIN_DUELS).all();
   const row = (r, i) => ({
     rank: i + 1, key: r.share_key, nickname: r.nickname, x: r.x_handle || null, demo: !!r.demo, mine: r.user_id === c.user?.id,
@@ -988,8 +988,8 @@ route('GET', '/api/leaderboard', async (c) => {
     return json(
       {
         gw: gwNum(gw), live: true, deadline: open.deadline, gameweeks: gws.results, total: s.total,
-        ranked: s.ranked.slice(0, 100).map((r) => row(r, false)),
-        pending: s.pending.slice(0, 50).map((r) => row(r, false)),
+        ranked: s.ranked.slice(0, 500).map((r) => row(r, false)),
+        pending: s.pending.slice(0, 300).map((r) => row(r, false)),
         me: meRanked ? row(meRanked, false) : mePending ? row(mePending, false) : null,
       },
       { headers: { 'cache-control': 'private, max-age=5' } },
@@ -1019,7 +1019,7 @@ route('GET', '/api/leaderboard', async (c) => {
   const me = all.find((r) => r.user_id === c.user?.id);
   const hasPoints = byPoints || !!(await c.env.DB.prepare('SELECT 1 FROM teams WHERE gw = ? AND points IS NOT NULL AND hidden = 0 LIMIT 1').bind(gw).first());
   return json(
-    { gw: gwNum(gw), live: false, gameweeks: gws.results, total: all.length, hasPoints, sort: byPoints ? 'points' : 'jury', ranked: all.slice(0, 10).map((r) => row(r, true)), pending: [], me: me ? row(me, true) : null },
+    { gw: gwNum(gw), live: false, gameweeks: gws.results, total: all.length, hasPoints, sort: byPoints ? 'points' : 'jury', ranked: all.slice(0, 500).map((r) => row(r, true)), pending: [], me: me ? row(me, true) : null },
     { headers: { 'cache-control': 'private, max-age=60' } },
   );
 });
@@ -1039,7 +1039,7 @@ route('GET', '/api/season', async (c) => {
     `SELECT u.id, u.nickname, u.x_handle, u.demo, SUM(CASE WHEN r.rank <= 10 THEN 1 ELSE 0 END) AS top10,
             SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) AS wins, AVG(r.avg) AS avg, MIN(r.rank) AS best, COUNT(*) AS played
        FROM results r JOIN users u ON u.id = r.user_id WHERE r.gw > ? AND r.gw < ? GROUP BY u.id
-      HAVING top10 > 0 ORDER BY top10 DESC, wins DESC, avg DESC LIMIT 50`,
+      HAVING top10 > 0 ORDER BY top10 DESC, wins DESC, avg DESC LIMIT 300`,
   ).bind(c.season.base, c.season.base + 100).all();
   return json({
     season: rows.results.map((r, i) => ({
@@ -1377,7 +1377,7 @@ route('GET', '/api/scouts', async (c) => {
         WHERE s.gw > ? AND s.gw < ? GROUP BY s.user_id ORDER BY score DESC, verdicts DESC`,
     ).bind(lo, hi).all();
     const ranked = rerankBy(keep(rows.results)).map(out);
-    return json({ type: 'season', ranked: ranked.slice(0, 100), me: ranked.find((r) => r.mine) || null, total: ranked.length });
+    return json({ type: 'season', ranked: ranked.slice(0, 300), me: ranked.find((r) => r.mine) || null, total: ranked.length });
   }
   const gwsRes = await c.env.DB.prepare("SELECT id, scouts_at, scouts_teams, points_status FROM gameweeks WHERE status = 'locked' AND id > ? AND id < ? ORDER BY id DESC").bind(lo, hi).all();
   const asked = +url.searchParams.get('gw');
@@ -1393,7 +1393,7 @@ route('GET', '/api/scouts', async (c) => {
     const n = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE user_id = ? AND gw = ?').bind(c.user.id, g.id).first();
     if (n.n) me = { mine: true, nickname: c.user.nickname, verdicts: n.n, needs: Math.max(0, MIN_VERDICTS - n.n) };
   }
-  return json({ type: 'gw', gw: gwNum(g.id), status, teams: g.scouts_teams, minVerdicts: MIN_VERDICTS, minTeams: MIN_TEAMS, total: ranked.length, ranked: ranked.slice(0, 100), me });
+  return json({ type: 'gw', gw: gwNum(g.id), status, teams: g.scouts_teams, minVerdicts: MIN_VERDICTS, minTeams: MIN_TEAMS, total: ranked.length, ranked: ranked.slice(0, 300), me });
 });
 
 // ==== embed

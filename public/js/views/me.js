@@ -2,15 +2,13 @@
 
 import { t } from '../i18n.js';
 import { badgeRowHtml, openBadgesSheet, toastBadges } from '../badges.js';
-import { html, raw, $, $$, sheet, toast, errText, ICONS } from '../ui.js';
+import { html, raw, $, sheet, toast, errText, ICONS, pagerHtml, pagedList } from '../ui.js';
 import { api } from '../api.js';
 import { store, refreshState } from '../store.js';
 import { ensureUser, pickNickname } from '../auth.js';
 import { navigate } from '../app.js';
 import { soundOn, setSound } from '../sound.js';
 import { myLeagues, openLeagueSheet, membersText } from '../leagues.js';
-
-const SQUADS_PAGE = 10;
 
 const aboutHtml = () => html`<h2 class="section-h">${t('me.about')}</h2>
   <ul class="list about-links">
@@ -68,7 +66,6 @@ export async function mount(el) {
   }
   const [prof, cur] = await Promise.all([api('/api/me/profile'), api('/api/me/verdicts?size=10')]);
   const st = prof.stats;
-  const older = cur.gws.filter((g) => g.gw !== cur.gw);
   el.innerHTML = html`<div>
     <div class="profile-head"><span class="ycard"></span>
       <div style="min-width:0;flex:1"><h1>${s.user.nickname}</h1>
@@ -82,12 +79,8 @@ export async function mount(el) {
     ${badgeRowHtml(prof.badges)}
     ${prof.scouts?.last ? html`<a class="scout-line" href="/leaderboard?tab=gw${prof.scouts.last.gw}&sort=scouts"><b>${t('scout.profile', prof.scouts.last)}</b>${prof.scouts.season ? html`<span>${t('scout.profileSeason', { ...prof.scouts.season, n: prof.scouts.season.gws })}</span>` : ''}</a>` : ''}
 
-    <h2 class="section-h">${cur.gw ? t('me.verdictsGw', { gw: cur.gw }) : t('me.verdictsAll')}</h2>
-    ${cur.total
-      ? html`<ul class="list" id="cur">${verdictRows(cur.items)}</ul>
-        ${cur.total > cur.items.length ? html`<a class="show-all" href="/me/verdicts?gw=${cur.gw}">${t('me.showAll', { n: cur.total })}</a>` : ''}`
-      : html`<p class="sub">${t('me.verdictsEmpty')}</p>`}
-    ${older.map((g) => html`<details class="gw-group" data-gw="${g.gw}"><summary>GW${g.gw}<small>${t('lb.votes', { n: g.count })}</small></summary><ul class="list"><li><span class="item"><span class="skeleton" style="width:60%;height:14px"></span></span></li></ul></details>`)}
+    <h2 class="section-h">${t('me.verdictsAll')}</h2>
+    <div id="verdicts"></div>
 
     <h2 class="section-h">${t('league.leagues')}</h2>
     <div id="leagues"><div class="skeleton" style="height:56px"></div></div>
@@ -105,20 +98,8 @@ export async function mount(el) {
   </div>`.s;
 
   wireCommon(el);
-  const curBox = $('#cur', el);
-  if (curBox) wireVerdicts(curBox, { open: cur.open, onChange: () => mount(el) });
-  for (const d of $$('.gw-group', el)) {
-    d.addEventListener('toggle', async () => {
-      if (!d.open || d.dataset.loaded) return;
-      d.dataset.loaded = '1';
-      const r = await api(`/api/me/verdicts?gw=${d.dataset.gw}&size=10`);
-      const list = $('.list', d);
-      list.innerHTML = verdictRows(r.items).s;
-      if (r.total > r.items.length) d.insertAdjacentHTML('beforeend', html`<a class="show-all" href="/me/verdicts?gw=${r.gw}">${t('me.showAll', { n: r.total })}</a>`.s);
-      wireVerdicts(list, { open: r.open });
-    });
-  }
-  squadsList($('#squads', el), prof.squads, 1);
+  verdictsSection($('#verdicts', el), cur);
+  squadsList($('#squads', el), prof.squads);
   leaguesList($('#leagues', el));
 
   $('#badgerow', el)?.addEventListener('click', () => openBadgesSheet(() => $('.badge-row .new-dot', el)?.remove()));
@@ -146,21 +127,37 @@ export async function mount(el) {
   };
 }
 
+/** Your verdicts: one chip per gameweek, then that gameweek's verdicts 10 at a time. */
+function verdictsSection(box, r) {
+  const gws = r.gws.length ? r.gws : [];
+  const chips = gws.length > 1
+    ? html`<div class="h2h-gws" role="group" aria-label="${t('lb.pickGw')}">${gws.map((g) => html`<button type="button" data-vgw="${g.gw}" aria-pressed="${String(g.gw === r.gw)}">GW${g.gw} <small>${g.count}</small></button>`)}</div>`
+    : '';
+  box.innerHTML = html`${chips}
+    ${r.total
+      ? html`<p class="sub" style="margin:0 0 6px">${t('me.verdictsGw', { gw: r.gw })} · ${t('lb.votes', { n: r.total })}</p><ul class="list" id="vlist">${verdictRows(r.items)}</ul>${pagerHtml(r.page, r.pages)}`
+      : html`<p class="sub">${t('me.verdictsEmpty')}</p>`}`.s;
+  const load = async (gw, page) => {
+    try { verdictsSection(box, await api(`/api/me/verdicts?gw=${gw}&page=${page}&size=10`)); } catch (e) { toast(errText(e), { bad: true }); }
+  };
+  box.querySelectorAll('[data-vgw]').forEach((b) => b.addEventListener('click', () => load(+b.dataset.vgw, 1)));
+  box.querySelectorAll('.pgr [data-goto]').forEach((b) => b.addEventListener('click', async () => {
+    await load(r.gw, +b.dataset.goto);
+    box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }));
+  const list = $('#vlist', box);
+  if (list) wireVerdicts(list, { open: r.open, onChange: () => load(r.gw, r.page) });
+}
+
 /** Your squads, one row per gameweek, ten per page. */
-function squadsList(box, squads, page) {
+function squadsList(box, squads) {
   if (!squads.length) {
     box.innerHTML = html`<p class="sub">${store.state.gw ? t('squad.none', { gw: store.state.gw.id }) : ''}</p>`.s;
     return;
   }
-  const pages = Math.ceil(squads.length / SQUADS_PAGE);
-  const items = squads.slice((page - 1) * SQUADS_PAGE, page * SQUADS_PAGE);
-  box.innerHTML = html`<ul class="list">${items.map((q) => html`<li><a href="/t/${q.key}">
-      <span><b>GW${q.gw}</b>${q.live ? html` <span class="tag">${t('me.live')}</span>` : ''}<br><small>${t('lb.votes', { n: q.votes })}${q.rank ? ` · #${q.rank}` : ''}</small></span>
-      <span class="num">${q.avg != null ? q.avg.toFixed(1) : '-'}</span></a></li>`)}</ul>
-    ${pages > 1 ? html`<div class="pager"><button class="btn btn-sm btn-ghost" data-p="${page - 1}" ${raw(page === 1 ? 'disabled' : '')}>${t('pager.prev')}</button>
-      <span class="sub" style="margin:0">${page} / ${pages}</span>
-      <button class="btn btn-sm btn-ghost" data-p="${page + 1}" ${raw(page === pages ? 'disabled' : '')}>${t('pager.next')}</button></div>` : ''}`.s;
-  box.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => squadsList(box, squads, +b.dataset.p)));
+  pagedList(box, squads, (items) => html`<ul class="list">${items.map((q) => html`<li><a href="/t/${q.key}">
+      <span><b>GW${q.gw}</b>${q.live ? html` <span class="tag">${t('me.live')}</span>` : ''}<br><small>${t('lb.votes', { n: q.votes })}${q.rank ? ` · #${q.rank}` : ''}${q.points != null ? ` · ${t('pts.pts', { n: q.points })}` : ''}</small></span>
+      <span class="num">${q.avg != null ? q.avg.toFixed(1) : '-'}</span></a></li>`)}</ul>`, { label: t('me.squads') });
 }
 
 /** Your leagues, each one opens its table; and a button to create or join one. */
