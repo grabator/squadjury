@@ -6,22 +6,23 @@ const SESSION_COOKIE = 'sj_session';
 const SESSION_DAYS = 90;
 const GOOGLE_CERTS = 'https://www.googleapis.com/oauth2/v3/certs';
 
-let certCache = { keys: null, until: 0 };
+const certCache = new Map(); // JWKS url -> { keys, until }
 
-async function googleKeys(now) {
-  if (certCache.keys && certCache.until > now) return certCache.keys;
-  const res = await fetch(GOOGLE_CERTS);
-  if (!res.ok) fail(502, 'google_unreachable');
+async function jwks(url, now) {
+  const hit = certCache.get(url);
+  if (hit && hit.until > now) return hit.keys;
+  const res = await fetch(url);
+  if (!res.ok) fail(502, 'sign_in_unreachable');
   const maxAge = +(res.headers.get('cache-control') || '').match(/max-age=(\d+)/)?.[1] || 3600;
-  certCache = { keys: (await res.json()).keys, until: now + maxAge * 1000 };
-  return certCache.keys;
+  const keys = (await res.json()).keys;
+  certCache.set(url, { keys, until: now + maxAge * 1000 });
+  return keys;
 }
 
 const b64url = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
 
-/** Verifies a Google ID token (RS256 signature, audience, issuer, expiry). */
-export async function verifyGoogleToken(token, clientId, now) {
-  if (!clientId) fail(500, 'google_not_configured');
+/** Verifies an RS256 ID token against a JWKS: signature, audience, issuer and expiry. */
+export async function verifyIdToken(token, { jwksUrl, issuers, audience }, now) {
   const parts = String(token || '').split('.');
   if (parts.length !== 3) fail(401, 'bad_token');
   let header, payload;
@@ -32,15 +33,37 @@ export async function verifyGoogleToken(token, clientId, now) {
     fail(401, 'bad_token');
   }
   if (header.alg !== 'RS256') fail(401, 'bad_token');
-  const jwk = (await googleKeys(now)).find((k) => k.kid === header.kid);
+  const jwk = (await jwks(jwksUrl, now)).find((k) => k.kid === header.kid);
   if (!jwk) fail(401, 'bad_token');
   const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
   const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64url(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
   if (!ok) fail(401, 'bad_token');
-  if (payload.aud !== clientId) fail(401, 'bad_token');
-  if (payload.iss !== 'accounts.google.com' && payload.iss !== 'https://accounts.google.com') fail(401, 'bad_token');
+  if (payload.aud !== audience) fail(401, 'bad_token');
+  if (!issuers.includes(payload.iss)) fail(401, 'bad_token');
   if (!payload.exp || payload.exp * 1000 < now) fail(401, 'token_expired');
   return payload;
+}
+
+/** Verifies a Google ID token (from Google Identity Services). */
+export async function verifyGoogleToken(token, clientId, now) {
+  if (!clientId) fail(500, 'google_not_configured');
+  return verifyIdToken(token, { jwksUrl: GOOGLE_CERTS, issuers: ['accounts.google.com', 'https://accounts.google.com'], audience: clientId }, now);
+}
+
+/**
+ * Verifies an Apple ID token (Sign in with Apple JS). Ready, but only used once APPLE_CLIENT_ID
+ * (the Services ID from Apple Developer) is set. See README, "Sign in with Apple".
+ */
+export async function verifyAppleToken(token, clientId, now) {
+  if (!clientId) fail(404, 'not_found');
+  return verifyIdToken(token, { jwksUrl: 'https://appleid.apple.com/auth/keys', issuers: ['https://appleid.apple.com'], audience: clientId }, now);
+}
+
+/** A plain check of an email address: something@domain.tld, at most 254 characters. */
+export function checkEmail(e) {
+  const email = String(e || '').trim().toLowerCase();
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(email)) fail(400, 'email_format');
+  return email;
 }
 
 export async function createSession(env, userId, now, secure) {

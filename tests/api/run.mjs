@@ -289,6 +289,35 @@ await check('badges: 18 in groups with progress, first verdict unlocks, the new 
   assert.equal((await fetch(BASE + '/api/me/badges')).status, 401);
 });
 
+await check('email link: works once, expires after 15 minutes, 3 per hour per email, the same email is the same account', async () => {
+  const mail = `link${Date.now()}@example.test`;
+  const M = client('mailer');
+  assert.equal((await M.call('POST', '/api/auth/email', { email: 'not an email' })).status, 400);
+  const sent = await M.call('POST', '/api/auth/email', { email: mail });
+  assert.equal(sent.status, 200, JSON.stringify(sent.data));
+  const token = new URL(sent.data.devLink).searchParams.get('token');
+  const first = await M.call('POST', '/api/auth/email/verify', { token });
+  assert.equal(first.status, 200, JSON.stringify(first.data));
+  assert.equal(first.data.nickname, null);
+  assert.ok(first.data.suggestion);
+  assert.equal((await M.call('PATCH', '/api/me', { nickname: first.data.suggestion })).status, 200);
+  assert.equal((await M.call('POST', '/api/auth/email/verify', { token })).status, 410); // used
+  // A second link for the same email signs in to the same account.
+  const again = await M.call('POST', '/api/auth/email', { email: mail.toUpperCase() });
+  const N = client('mailer2');
+  const second = await N.call('POST', '/api/auth/email/verify', { token: new URL(again.data.devLink).searchParams.get('token') });
+  assert.equal(second.data.nickname, first.data.suggestion);
+  // Expired: 16 minutes later.
+  const late = await M.call('POST', '/api/auth/email', { email: mail });
+  const lateToken = new URL(late.data.devLink).searchParams.get('token');
+  const res = await fetch(`${BASE}/api/auth/email/verify`, { method: 'POST', headers: { origin: BASE, 'content-type': 'application/json', 'x-sj-now': new Date(Date.now() + 16 * 60e3).toISOString() }, body: JSON.stringify({ token: lateToken }) });
+  assert.equal(res.status, 410);
+  assert.equal((await res.json()).error, 'link_expired');
+  assert.equal((await M.call('POST', '/api/auth/email', { email: mail })).status, 429); // 4th this hour
+  assert.equal((await M.call('POST', '/api/auth/email/verify', { token: 'x'.repeat(43) })).status, 400);
+  assert.equal((await M.call('POST', '/api/auth/apple', { idToken: 'a.b.c' })).status, 404); // Apple is off until set up
+});
+
 await check('3 reports hide a squad from judging and from its link', async () => {
   for (const u of [C, D, E]) assert.equal((await u.call('POST', '/api/reports', { key: keyA })).status, 200);
   assert.equal((await F.call('GET', `/api/teams/${keyA}`)).status, 404);

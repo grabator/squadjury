@@ -17,6 +17,7 @@ const routes = [
   [/^\/l\/([A-Za-z0-9]{6})\/?$/, () => import('./views/league.js')],
   [/^\/(how|rules|privacy)\/?$/, () => import('./views/pages.js')],
   [/^\/admin\/?$/, () => import('./views/admin.js')],
+  [/^\/login\/?$/, () => import('./views/login.js')],
 ];
 
 let current = null;

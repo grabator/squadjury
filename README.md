@@ -18,7 +18,7 @@ Built mobile first, with no framework and no build step, on Cloudflare Workers.
 
 ## Features
 
-- **Sign in with Google**, one tap, then pick a nickname (and optionally add your X username).
+- **Sign in with Google or an email link**, then pick a nickname (and optionally add your X username). The email link works once and for 15 minutes; the same email is the same account either way. Sign in with Apple is ready in the code and switches on with one setting.
 - **Squad reader:** upload a Pick Team screenshot and the browser reads the 15 players, their positions, the bench, the captain and the vice captain. Nothing to type. Anything it misses can be fixed with a player search.
 - **Judge:** one squad at a time on a bright pitch that fills the screen. Tap 1 to 10, a yellow card shows your verdict and the next squad slides in. Swipe left (or press S) to skip; on a keyboard, keys 1 to 9 and 0 give a verdict.
 - **Leaderboard:** one clean list: live standings for the open gameweek, the final top 10 of any past gameweek (picked from a list) and a Season table. Your row is marked and stays pinned while you scroll.
@@ -94,6 +94,7 @@ The browser tests look for Chromium in the usual places; set `CHROME_PATH` to po
    ```bash
    npx wrangler secret put ADMIN_EMAILS
    npx wrangler secret put ADMIN_TOKEN
+   npx wrangler secret put RESEND_API_KEY
    ```
    `ADMIN_TOKEN` is any long random text; `npm run points` uses it when FPL blocks the Worker.
 4. Apply the schema and deploy:
@@ -102,6 +103,28 @@ The browser tests look for Chromium in the usual places; set `CHROME_PATH` to po
    npm run deploy
    ```
 5. In the Cloudflare dashboard, add `squadjury.com` as a custom domain of the `squadjury` Worker.
+
+## Email sign in (Resend)
+
+The sign in link is sent with [Resend](https://resend.com) (free up to 3,000 emails a month).
+
+1. Make an account at resend.com and open **Domains**, **Add Domain**, `squadjury.com`.
+2. Resend shows DNS records (an MX and a TXT for SPF on a `send` subdomain, and a TXT for DKIM). In the Cloudflare dashboard open `squadjury.com`, **DNS**, **Records**, and add each one exactly as shown (Proxy status: DNS only). Back in Resend press **Verify**; it usually takes a few minutes.
+3. In Resend open **API Keys**, **Create API Key** (permission: Sending access, domain: squadjury.com) and copy it.
+4. Store it as a secret:
+   ```bash
+   npx wrangler secret put RESEND_API_KEY
+   ```
+5. Optional: the sender is `SquadJury <login@squadjury.com>`. To change it, add `MAIL_FROM` under `vars` in `wrangler.jsonc`.
+
+Limits: 3 links per hour per email and 10 per IP address. Without the key (local development) the link is shown in the sign in sheet instead of being emailed.
+
+## Sign in with Apple (ready, switched off)
+
+The code is in place (`/api/auth/apple`, the button in the sign in sheet). It needs an Apple Developer account (99 USD a year):
+
+1. In Apple Developer, **Certificates, IDs & Profiles**: make an **App ID** with Sign in with Apple, then a **Services ID** (for example `com.squadjury.web`) with Sign in with Apple, domain `squadjury.com` and return URL `https://squadjury.com/login`.
+2. Add `"APPLE_CLIENT_ID": "com.squadjury.web"` (the Services ID) under `vars` in `wrangler.jsonc` and deploy. The "Continue with Apple" button appears by itself.
 
 ## Seasons
 

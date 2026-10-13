@@ -21,6 +21,19 @@ function loadGsi() {
   return gsiLoading;
 }
 
+let appleLoading = null;
+function loadApple() {
+  if (window.AppleID?.auth) return Promise.resolve();
+  appleLoading ??= new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.append(s);
+  });
+  return appleLoading;
+}
+
 /** Opens the sign in sheet. Resolves true once signed in with a nickname. */
 export function signIn({ title = t('judge.signInToJudge'), text = t('judge.signInText') } = {}) {
   return new Promise((resolve) => {
@@ -30,6 +43,13 @@ export function signIn({ title = t('judge.signInToJudge'), text = t('judge.signI
       html`<h2>${title}</h2><p>${text}</p>
         <div class="gsi" id="gsi"></div>
         ${!st.googleClientId ? html`<p class="hint">${t('auth.notConfigured')}</p>` : ''}
+        ${st.appleClientId ? html`<button type="button" class="btn btn-block apple-btn" id="apple">${t('auth.apple')}</button>` : ''}
+        ${st.emailLogin ? html`<div class="or">${t('auth.or')}</div>
+          <form id="mailf" class="field mail-form" novalidate><label for="mail">${t('auth.emailLabel')}</label>
+            <input id="mail" name="email" type="email" inputmode="email" autocomplete="email" required placeholder="you@example.com" aria-describedby="mail-e">
+            <span class="err" id="mail-e" role="alert"></span>
+            <button class="btn btn-block" type="submit">${t('auth.emailGo')}</button></form>
+          <div id="mailsent" hidden></div>` : ''}
         ${st.devLogin
           ? html`<div class="or">${t('auth.dev')}</div>
             <form id="devf" class="field"><label for="devn">${t('auth.devName')}</label>
@@ -60,6 +80,41 @@ export function signIn({ title = t('judge.signInToJudge'), text = t('judge.signI
         })
         .catch(() => toast(t('err.offline'), { bad: true }));
     }
+    // Email me a link: the link signs in on whichever device opens it.
+    $('#mailf', s.el)?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target, btn = $('button', f);
+      btn.disabled = true;
+      try {
+        const r = await api('/api/auth/email', { method: 'POST', body: { email: f.email.value, ref } });
+        try { sessionStorage.setItem('sj-login-back', location.pathname + location.search); } catch {}
+        const box = $('#mailsent', s.el);
+        f.hidden = true;
+        box.hidden = false;
+        box.innerHTML = html`<div class="mail-sent"><span class="ycard" aria-hidden="true"></span><div><b>${t('auth.emailSentTitle')}</b>
+          <p>${t('auth.emailSent', { email: f.email.value.trim() })}</p>
+          ${r.devLink ? html`<a class="btn btn-sm" href="${r.devLink}">${t('auth.devLink')}</a>` : ''}
+          <button type="button" class="link-btn" id="mailagain">${t('auth.emailOther')}</button></div></div>`.s;
+        $('#mailagain', box).onclick = () => { box.hidden = true; f.hidden = false; btn.disabled = false; f.email.focus(); };
+        $('.mail-sent b', box).setAttribute('tabindex', '-1');
+        $('.mail-sent b', box).focus();
+      } catch (err) {
+        $('#mail-e', s.el).textContent = errText(err);
+        btn.disabled = false;
+      }
+    });
+    $('#apple', s.el)?.addEventListener('click', async () => {
+      try {
+        await loadApple();
+        window.AppleID.auth.init({ clientId: st.appleClientId, scope: 'name email', redirectURI: `${location.origin}/login`, usePopup: true });
+        const r = await window.AppleID.auth.signIn();
+        const name = [r.user?.name?.firstName, r.user?.name?.lastName].filter(Boolean).join(' ');
+        await finish(await api('/api/auth/apple', { method: 'POST', body: { idToken: r.authorization.id_token, ref, name } }));
+      } catch (err) {
+        if (err?.error === 'popup_closed_by_user') return;
+        toast(errText(err), { bad: true });
+      }
+    });
     $('#devf', s.el)?.addEventListener('submit', async (e) => {
       e.preventDefault();
       try { await finish(await api('/api/auth/dev', { method: 'POST', body: { name: e.target.n.value, ref } })); }

@@ -13,7 +13,7 @@ const step = async (name, fn) => {
   const t0 = Date.now();
   try { await fn(); results.push(`ok   ${name} (${Date.now() - t0} ms)`); }
   catch (e) {
-    results.push(`FAIL ${name}: ${e.message.split('\n')[0]}`);
+    results.push(`FAIL ${name}: ${e.message.split('\n').slice(0, 3).join(' ')}`);
     await shot(page, 'e2e-fail');
     console.log((await page.locator('main').innerText()).slice(0, 600));
     throw e;
@@ -45,7 +45,7 @@ try {
 
   await step('sign in from the Post tab (dev login) and pick a nickname', async () => {
     await page.goto(BASE + '/post');
-    await page.getByRole('button', { name: 'Continue with Google' }).click();
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await page.locator('#devn').fill(nick);
     await page.getByRole('button', { name: 'Sign in as test juror' }).click();
     await page.locator('#nick').fill(nick);
@@ -222,6 +222,33 @@ try {
     await fp.getByText(nick).first().waitFor();
     await shot(fp, 'e2e-14-league-table');
     await friend.close();
+  });
+
+  await step('sign in with an email link: Email me a link, open the link, pick a nickname', async () => {
+    const guest = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await guest.addInitScript(() => { try { localStorage.setItem('sj-intro', '1'); } catch {} });
+    await guest.route('https://accounts.google.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
+    const gp = await guest.newPage();
+    gp.on('pageerror', (e) => errors.push(String(e)));
+    await gp.goto(BASE + '/leaderboard');
+    await gp.locator('.board, .empty').first().waitFor();
+    await gp.evaluate(() => { import('/js/auth.js').then((m) => m.signIn()); });
+    await gp.getByRole('button', { name: 'Email me a link' }).waitFor();
+    await gp.locator('#mail').fill(`e2e${Date.now()}@example.test`);
+    await shot(gp, 'e2e-15-email-form');
+    await gp.getByRole('button', { name: 'Email me a link' }).click();
+    await gp.getByText('Check your inbox').waitFor();
+    await shot(gp, 'e2e-16-email-sent');
+    const link = await gp.getByRole('link', { name: 'Open the link (development)' }).getAttribute('href');
+    await gp.goto(link);
+    const nick = `Mail${Date.now() % 100000}`;
+    await gp.locator('#nick').fill(nick);
+    await gp.getByRole('button', { name: 'Continue', exact: true }).click();
+    await gp.waitForURL(/\/leaderboard/, { timeout: 15000 });
+    const me = await gp.evaluate(async () => (await (await fetch('/api/state')).json()).user);
+    assert.equal(me.nickname, nick);
+    assert.ok(!gp.url().includes('token='));
+    await guest.close();
   });
 
   assert.deepEqual(errors, [], 'no console errors');

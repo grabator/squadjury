@@ -908,3 +908,12 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 .badge-public { display: flex; justify-content: center; padding: 2px 0; }
 :root[data-theme="dark"] .bdg.on { background: #3a3410; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .bdg.on { background: #3a3410; } }
+.mail-form { margin-top: 2px; }
+.mail-form .btn { margin-top: 8px; }
+.mail-sent { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 12px; background: var(--soft); }
+.mail-sent .ycard { width: 18px; height: 24px; border-radius: 3px; flex: none; margin-top: 2px; }
+.mail-sent b { font-size: 16px; font-weight: 800; outline: none; }
+.mail-sent p { margin: 4px 0 8px; color: var(--ink-2); font-size: 14px; }
+.mail-sent .btn { margin: 0 8px 6px 0; }
+.apple-btn { margin-top: 8px; background: #000; color: #fff; }
+.login-page { padding-top: 48px; }

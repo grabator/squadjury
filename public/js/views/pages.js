@@ -9,7 +9,7 @@ const PAGES = {
     <p class="sub">Post your squad. The jury decides.</p>
     <button class="btn" data-intro>${t('intro.again')}</button>
     <h2>1. Post your squad</h2>
-    <p>Sign in with Google, then upload a screenshot of the <strong>Pick Team</strong> screen from the official FPL app. SquadJury reads your 15 players, captain and vice captain right in your browser. Check them, fix anything we missed and send your squad to the jury.</p>
+    <p>Sign in with Google or with a link we email you, then upload a screenshot of the <strong>Pick Team</strong> screen from the official FPL app. SquadJury reads your 15 players, captain and vice captain right in your browser. Check them, fix anything we missed and send your squad to the jury.</p>
     <h2>2. Judge other squads</h2>
     <p>Squads appear one at a time. Tap <strong>how good the squad will be this gameweek</strong>, from 1 (flop) to 10 (haul), and the next one comes up. Fixtures, captain, differentials, the bench: your call, that is what a jury is for. You see the jury average only after you give your own verdict, and nobody ever sees who gave which verdict.</p>
     <h2>3. Climb the leaderboard</h2>
@@ -64,7 +64,7 @@ const PAGES = {
     <p>SquadJury keeps as little as it can.</p>
     <h2>What we store</h2>
     <ul>
-      <li><strong>Account:</strong> your Google account id and email (to sign you in, never shown to anyone), your nickname and the optional X username you add.</li>
+      <li><strong>Account:</strong> your email and, if you use them, your Google or Apple account id (to sign you in, never shown to anyone). Sign in links are stored only as a fingerprint and expire after 15 minutes. your nickname and the optional X username you add.</li>
       <li><strong>Squads:</strong> the players you post and your screenshot. Screenshots are deleted two gameweeks later, unless the squad finished in the top 10.</li>
       <li><strong>Verdicts:</strong> the scores you give. Owners only see averages and totals.</li>
       <li><strong>Technical:</strong> a session cookie that keeps you signed in for 90 days, and short lived counters used to stop spam.</li>

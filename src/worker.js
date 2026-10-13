@@ -1,8 +1,8 @@
 // SquadJury Worker: JSON API, images from R2, share pages and the deadline cron.
 // Static files (the app itself) are served by Workers static assets.
 
-import { json, fail, HttpError, readJson, checkOrigin, clientIp, rateLimit, randomKey, esc } from './lib/http.js';
-import { verifyGoogleToken, createSession, endSession, currentUser, isAdmin, checkNickname, checkXHandle, suggestNickname } from './lib/auth.js';
+import { json, fail, HttpError, readJson, checkOrigin, clientIp, rateLimit, randomKey, esc, sha256 } from './lib/http.js';
+import { verifyGoogleToken, verifyAppleToken, checkEmail, createSession, endSession, currentUser, isAdmin, checkNickname, checkXHandle, suggestNickname } from './lib/auth.js';
 import { getFpl } from './lib/fpl.js';
 import { syncGameweeks, liveStandings, refreshVoterWeight, teamOut, placeOf, avgOf } from './lib/core.js';
 import { validate } from '../public/js/ocr/match.js';
@@ -12,6 +12,7 @@ import { runBackup, listBackups } from './lib/backup.js';
 import { pointsJob, scoreGameweek, fetchLive } from './lib/pointsjob.js';
 import { juryCall, pointsRanks } from './lib/points.js';
 import { scoreScouts } from './lib/scoutjob.js';
+import { sendLoginEmail } from './lib/mail.js';
 import { evaluateBadges, badgeJob } from './lib/badgejob.js';
 import { BADGES, GROUPS, byId as badgeById, progressOf, streaks } from './lib/badges.js';
 import { MIN_VERDICTS, MIN_TEAMS } from './lib/scouts.js';
@@ -157,6 +158,8 @@ route('GET', '/api/state', async (c) => {
       return prev ? Date.parse(prev.deadline_time) : null;
     })() : null,
     googleClientId: c.env.GOOGLE_CLIENT_ID || null,
+    appleClientId: c.env.APPLE_CLIENT_ID || null,
+    emailLogin: !!c.env.RESEND_API_KEY || c.env.DEV_LOGIN === '1',
     devLogin: c.env.DEV_LOGIN === '1',
   });
 });
@@ -199,6 +202,11 @@ route('POST', '/api/auth/google', async (c) => {
   const { credential, ref } = await readJson(c.req);
   const g = await verifyGoogleToken(credential, c.env.GOOGLE_CLIENT_ID, c.now);
   let user = await c.env.DB.prepare('SELECT * FROM users WHERE google_sub = ?').bind(g.sub).first();
+  // Same email as an account made with an email link (or Apple): the same account.
+  if (!user && g.email && g.email_verified !== false) {
+    user = await userByEmail(c.env, g.email, 'google_sub');
+    if (user) await c.env.DB.prepare('UPDATE users SET google_sub = ? WHERE id = ?').bind(g.sub, user.id).run();
+  }
   if (user?.banned) fail(403, 'banned');
   if (!user) {
     const { source, referredBy } = await resolveRef(c.env, ref);
@@ -209,6 +217,85 @@ route('POST', '/api/auth/google', async (c) => {
   }
   const cookie = await createSession(c.env, user.id, c.now, isSecure(c.req));
   const suggestion = user.nickname ? null : await suggestNickname(c.env, g.name || g.given_name);
+  return json({ nickname: user.nickname, suggestion }, { headers: { 'set-cookie': cookie } });
+});
+
+/** An account with this email that has no sign in of this kind yet (column: google_sub or apple_sub). */
+async function userByEmail(env, email, column = null) {
+  return env.DB.prepare(
+    `SELECT * FROM users WHERE email = ? COLLATE NOCASE ${column ? `AND ${column} IS NULL` : ''} ORDER BY nickname IS NULL, id LIMIT 1`,
+  ).bind(email).first();
+}
+
+const LINK_MINUTES = 15;
+
+/** Email me a link: a sign in link that works once and for 15 minutes. */
+route('POST', '/api/auth/email', async (c) => {
+  const { email: raw, ref } = await readJson(c.req);
+  const email = checkEmail(raw);
+  const devOnly = !c.env.RESEND_API_KEY;
+  if (devOnly && c.env.DEV_LOGIN !== '1') fail(503, 'email_not_configured');
+  await rateLimit(c.env, `mailip:${clientIp(c.req)}`, 10, 3600, c.now);
+  await rateLimit(c.env, `mail:${email}`, 3, 3600, c.now);
+  const token = randomKey(32);
+  await c.env.DB.prepare('INSERT INTO login_links (id, email, ref_json, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
+    .bind(await sha256(token), email, ref ? JSON.stringify(ref).slice(0, 500) : null, c.now, c.now + LINK_MINUTES * 60e3).run();
+  const link = `${new URL(c.req.url).origin}/login?token=${token}`;
+  // Without a Resend key (development) the link comes back in the answer instead of an email.
+  if (devOnly) return json({ sent: true, devLink: link });
+  try {
+    await sendLoginEmail(c.env, email, link);
+  } catch (e) {
+    console.log(JSON.stringify({ msg: 'login email failed', error: String(e) }));
+    fail(502, 'email_failed');
+  }
+  return json({ sent: true });
+});
+
+route('POST', '/api/auth/email/verify', async (c) => {
+  await rateLimit(c.env, `verify:${clientIp(c.req)}`, 30, 3600, c.now);
+  const { token } = await readJson(c.req);
+  if (!/^[A-Za-z0-9_-]{20,80}$/.test(String(token || ''))) fail(400, 'link_invalid');
+  const id = await sha256(token);
+  const link = await c.env.DB.prepare('SELECT * FROM login_links WHERE id = ?').bind(id).first();
+  if (!link) fail(400, 'link_invalid');
+  if (link.used_at) fail(410, 'link_used');
+  if (link.expires_at < c.now) fail(410, 'link_expired');
+  const r = await c.env.DB.prepare('UPDATE login_links SET used_at = ? WHERE id = ? AND used_at IS NULL').bind(c.now, id).run();
+  if (!r.meta.changes) fail(410, 'link_used');
+  let user = await userByEmail(c.env, link.email);
+  if (user?.banned) fail(403, 'banned');
+  if (!user) {
+    let ref = null;
+    try { ref = JSON.parse(link.ref_json || 'null'); } catch {}
+    const { source, referredBy } = await resolveRef(c.env, ref);
+    user = await c.env.DB.prepare('INSERT INTO users (email, created_at, source, referred_by) VALUES (?, ?, ?, ?) RETURNING *')
+      .bind(link.email, c.now, source, referredBy).first();
+  }
+  const cookie = await createSession(c.env, user.id, c.now, isSecure(c.req));
+  const suggestion = user.nickname ? null : await suggestNickname(c.env, link.email.split('@')[0].replace(/[._-]+/g, ' '));
+  return json({ nickname: user.nickname, suggestion }, { headers: { 'set-cookie': cookie } });
+});
+
+/** Sign in with Apple: ready, switched on by setting APPLE_CLIENT_ID (see README). */
+route('POST', '/api/auth/apple', async (c) => {
+  await rateLimit(c.env, `auth:${clientIp(c.req)}`, 30, 3600, c.now);
+  const { idToken, ref, name } = await readJson(c.req);
+  const a = await verifyAppleToken(idToken, c.env.APPLE_CLIENT_ID, c.now);
+  let user = await c.env.DB.prepare('SELECT * FROM users WHERE apple_sub = ?').bind(a.sub).first();
+  const verified = a.email && (a.email_verified === true || a.email_verified === 'true');
+  if (!user && verified) {
+    user = await userByEmail(c.env, a.email, 'apple_sub');
+    if (user) await c.env.DB.prepare('UPDATE users SET apple_sub = ? WHERE id = ?').bind(a.sub, user.id).run();
+  }
+  if (user?.banned) fail(403, 'banned');
+  if (!user) {
+    const { source, referredBy } = await resolveRef(c.env, ref);
+    user = await c.env.DB.prepare('INSERT INTO users (apple_sub, email, created_at, source, referred_by) VALUES (?, ?, ?, ?, ?) RETURNING *')
+      .bind(a.sub, verified ? a.email : null, c.now, source, referredBy).first();
+  }
+  const cookie = await createSession(c.env, user.id, c.now, isSecure(c.req));
+  const suggestion = user.nickname ? null : await suggestNickname(c.env, name || (a.email || '').split('@')[0]);
   return json({ nickname: user.nickname, suggestion }, { headers: { 'set-cookie': cookie } });
 });
 
@@ -271,6 +358,7 @@ route('DELETE', '/api/me', async (c) => {
     c.env.DB.prepare('DELETE FROM duel_offers WHERE user_id = ?').bind(u.id),
     c.env.DB.prepare('DELETE FROM scouts WHERE user_id = ?').bind(u.id),
     c.env.DB.prepare('DELETE FROM badges WHERE user_id = ?').bind(u.id),
+    c.env.DB.prepare('DELETE FROM login_links WHERE email = ? COLLATE NOCASE').bind(u.email || ''),
     c.env.DB.prepare('DELETE FROM plan_votes WHERE user_id = ?1 OR plan_id IN (SELECT id FROM plans WHERE user_id = ?1)').bind(u.id),
     c.env.DB.prepare('DELETE FROM plans WHERE user_id = ?').bind(u.id),
     c.env.DB.prepare('DELETE FROM teams WHERE user_id = ?').bind(u.id),
