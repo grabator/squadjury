@@ -966,3 +966,14 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 .h2h-match { padding: 10px 14px; }
 .h2h-list { gap: 6px; }
 .h2h-sub { margin-top: 4px; font-size: 12px; }
+
+/* My squad: the same 12 px between every card */
+.squad-page > .duel-row, .squad-page > .plan-card, .squad-page > .plan-done, .squad-page > .pts-wait, .squad-page > .pts-box { margin-bottom: 12px; }
+/* Plan B invite: on phones the button goes under the text, so the text is not squeezed */
+@media (max-width: 520px) {
+  .plan-card.add { grid-template-columns: minmax(0, 1fr); }
+  .plan-card.add .btn { justify-self: start; }
+}
+/* share buttons: one line each, also "Messenger" and "Copy link" on narrow phones */
+.chan { min-width: 0; padding: 0 8px; gap: 6px; white-space: nowrap; overflow: hidden; }
+@media (max-width: 400px) { .chan { font-size: 13px; } .chan svg { width: 16px; height: 16px; } }
