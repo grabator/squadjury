@@ -16,8 +16,13 @@ const PAGES = {
     <p>Verdicts stay open until the FPL deadline of the gameweek. At the deadline the gameweek locks and the final top 10 is saved on the leaderboard.</p>
     <h2>4. See the real points</h2>
     <p>When the gameweek is over, SquadJury adds up the real FPL points of every squad: the starting XI, the captain doubled and automatic substitutions from the bench. Then you see if the jury got it right. Add your <strong>FPL team ID</strong> in your profile and your exact points from FPL are used, with transfer hits and chips.</p>
+    <h2>Duels</h2>
+    <p>Switch Judge to <strong>Duel</strong> and you see two squads at once. Tap the better one. Every pick moves the squads' duel rating (it starts at 1500, like chess ratings) and their win and loss record, shown on the leaderboard under Duels. A duel counts as one judged squad. Picks made in under a second, or always on the same side, do not move the rating.</p>
+    <h2>Plan A vs Plan B</h2>
+    <p>Not sure about a transfer or the captain? After posting your squad, add Plan B. Jurors see both in Duel mode and pick the plan they would go with. Choose your plan at least 30 minutes before the deadline, otherwise the plan with more votes goes in. These votes never change the leaderboard.</p>
     <h2>Private leagues</h2>
     <p>Make a league for your friends, your office or your mini league, and share its link or 6 character code. Everyone in it gets their own table every gameweek and for the season. The verdicts are the same as on the main leaderboard, so nobody can boost a friend just inside the league.</p>
+    <p>With 4 or more members the league also plays <strong>head to head</strong>: every gameweek you meet one member, like an FPL H2H league. The jury result is who won more duels between the two squads (with fewer than 3 duel votes, the better jury rating wins). The points result comes after the gameweek, from real FPL points. A win is 3 points and a draw 1, in a Jury table and a Points table. No squad by the deadline loses 0:3.</p>
     <h2>Share it</h2>
     <p>Every squad has its own link. Send it to your mini league, or post the square image of your squad on X with one tap.</p>
   </div>`,
@@ -36,11 +41,14 @@ const PAGES = {
       <li>Verdicts are anonymous to squad owners.</li>
     </ul>
     <h2>The leaderboard</h2>
-    <p>A squad needs <strong>at least 5 verdicts</strong>, and its owner needs to judge <strong>at least 5 other squads</strong> that gameweek (or every other squad, while there are fewer), to be ranked.</p>
+    <p>A squad needs <strong>at least 5 verdicts</strong>, and its owner needs to judge <strong>at least 5 other squads</strong> that gameweek (or every other squad, while there are fewer), to be ranked. A duel counts as one judged squad.</p>
     <p><strong>How the rank is worked out:</strong> more verdicts make a score more reliable, so a squad with only a few verdicts needs high marks from more people to reach the top. Technically, each average is blended with the gameweek average as if it had 5 extra votes at that average. The leaderboard shows the real average.</p>
+    <h2>Duels</h2>
+    <p>The duel rating starts at 1500 and moves after every duel (Elo, K 24): beating a higher rated squad moves it more. A squad needs 5 duels to be listed. You can judge up to 200 duels per gameweek and each pair only once. Nobody ever sees who picked which squad.</p>
     <h2>Fair play</h2>
     <ul>
       <li>Accounts that only ever give 1 or 10 count for half.</li>
+      <li>Duel picks made in under a second, or nearly always on the same side, do not move the duel rating.</li>
       <li>Verdicts are rate limited, and squads reported 3 times are hidden until reviewed.</li>
       <li>Accounts that cheat are banned.</li>
     </ul>

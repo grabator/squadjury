@@ -759,3 +759,101 @@ main.fit-post:has(.post-entry) > .view { height: 100%; }
 .seg { display: inline-flex; padding: 3px; margin: 0 0 10px; border-radius: 999px; background: var(--soft); }
 .seg button { min-height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: none; color: var(--ink-2); font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
 .seg button[aria-pressed='true'] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+
+/* ============================================================ duels */
+
+.jtop { display: flex; align-items: center; gap: 10px; flex: none; margin: 0 0 6px; min-width: 0; }
+.jtop .seg { margin: 0; flex: none; }
+.jtop .seg button { min-height: 30px; padding: 0 12px; font-size: 13.5px; }
+.jtop #mybar { flex: 1 1 auto; min-width: 0; }
+.jtop .mine { margin: 0; }
+
+.duel { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.duel.enter { animation: enter 0.22s var(--ease) both; }
+.duel.leave { transition: opacity 0.18s ease-in, transform 0.18s ease-in; opacity: 0; transform: translateY(-12px); }
+.duel-title { display: flex; align-items: center; gap: 8px; margin: 0 2px; font-weight: 800; font-size: 14px; flex: none; }
+.duel-title .ycard { width: 12px; height: 16px; border-radius: 2px; }
+.duel-pair { flex: 1 1 auto; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr); gap: 2px; }
+.duel-pair .vs { justify-self: center; z-index: 3; margin: -12px 0; padding: 2px 10px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 900; letter-spacing: 0.08em; }
+.dcard { min-height: 0; padding: 6px; overflow: hidden; transition: opacity 0.18s, transform 0.18s var(--ease), box-shadow 0.18s; }
+.dcard .jcard-head { position: relative; z-index: 2; padding: 0 2px 4px 4px; pointer-events: none; }
+.dcard .jcard-head :is(button, a) { pointer-events: auto; }
+.dcard .who b { font-size: 15px; }
+.dcard .squad-box { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; container-type: size; }
+.dcard .squad { aspect-ratio: auto; height: 100%; width: min(100%, 100cqh * 2); gap: 0; }
+.dcard .pitch { padding: 1.2cqh 0.6cqi; }
+.dcard .bench, .dcard .pl .fix { display: none; }
+.dcard .pl .shirt { width: clamp(18px, min(10cqi, 9.5cqh), 46px); }
+.dcard .pl .name { font-size: clamp(10.5px, min(3.1cqi, 4.6cqh), 14px); }
+.dcard .pl .armband { width: clamp(13px, min(4.2cqi, 4.4cqh), 20px); font-size: clamp(8px, 2.6cqi, 12px); }
+.dcard .pl.diff .name { background: var(--yellow); color: var(--on-yellow); }
+.dpick { position: absolute; inset: 0; z-index: 1; border: 0; border-radius: 12px; background: none; cursor: pointer; }
+.dpick:focus-visible { outline: 3px solid var(--yellow); outline-offset: -3px; }
+@media (hover: hover) { .dcard:hover { box-shadow: inset 0 0 0 2px var(--ink), var(--shadow); } }
+.dcard.won { box-shadow: inset 0 0 0 3px var(--yellow), var(--shadow); transform: scale(1.01); }
+.dcard.lost { opacity: 0.35; transform: scale(0.98); }
+.win-card {
+  position: absolute; left: 50%; top: 50%; z-index: 5; padding: 14px 18px; border-radius: 10px; pointer-events: none;
+  background: var(--yellow); color: var(--on-yellow); font-size: 30px; font-weight: 900; font-stretch: 90%; letter-spacing: 0.04em;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25); transform: translate(-50%, -50%) rotate(-7deg); animation: show-card 0.2s var(--ease) both;
+}
+.dcard .verdict-line { bottom: 8px; }
+.duel-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.judge.is-duel .controls { padding-top: 8px; }
+
+/* Bigger screens: the two squads side by side, with the bench. */
+@media (min-width: 900px) {
+  .duel-pair { grid-template-rows: none; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; }
+  .duel-pair .vs { align-self: center; margin: 0 -14px; }
+  .dcard .squad { width: min(100%, 100cqh * 0.78); }
+  .dcard .bench { display: flex; }
+  .dcard .pl .fix { display: block; }
+  .dcard .pl .shirt { width: clamp(18px, min(11cqi, 7.2cqh), 46px); }
+  .home:has(.is-duel) { grid-template-columns: minmax(0, 760px) 300px; }
+}
+.duel-row { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0; padding: 12px 14px; border: 0; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.duel-row svg { width: 22px; height: 22px; flex: none; }
+.duel-row > span:not(.chev) { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.duel-row b { font-weight: 800; font-size: 15px; }
+.duel-row small { color: var(--ink-2); font-size: 13px; }
+.duel-row .chev { font-size: 22px; color: var(--ink-3); }
+.duel-list .res { margin-left: auto; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+.duel-list .res.w { background: var(--yellow); color: var(--on-yellow); }
+.duel-list .res.l { background: var(--soft); color: var(--ink-2); }
+.ycard.mini { display: inline-block; width: 10px; height: 13px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; flex: none; }
+.h2h-gws { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 6px; margin: 0 0 4px; scrollbar-width: none; }
+.h2h-gws button { flex: none; min-height: 34px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink); font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
+.h2h-gws button[aria-pressed='true'] { background: var(--ink); color: var(--bg); box-shadow: none; }
+.h2h-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
+.h2h-match { padding: 12px 14px; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+.h2h-match.me { box-shadow: inset 0 0 0 2px var(--yellow); }
+.h2h-head, .h2h-line { display: grid; grid-template-columns: minmax(0, 1fr) 64px 56px; align-items: center; gap: 8px; }
+.h2h-head { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.h2h-head span, .h2h-cell { text-align: right; }
+.h2h-line { min-height: 32px; }
+.h2h-name { display: flex; align-items: center; min-width: 0; font-size: 15px; }
+.h2h-name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; }
+.h2h-name .tag { margin-left: 6px; font-size: 10px; flex: none; }
+.h2h-name.avg b { color: var(--ink-2); font-weight: 700; }
+.h2h-line.me .h2h-name b { text-decoration: underline 2px var(--yellow); text-underline-offset: 3px; }
+.h2h-cell { font-size: 19px; font-weight: 900; font-stretch: 90%; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.h2h-cell.win { color: var(--ink); }
+.h2h-sub { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.h2h-share { margin-top: 10px; }
+.live-dot { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--yellow); color: var(--on-yellow); font-size: 11px; font-weight: 800; text-transform: uppercase; vertical-align: 2px; }
+.plan-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; padding: 14px 16px; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+.plan-card.add { grid-template-columns: 1fr auto; align-items: center; }
+.plan-card h2 { margin: 0; font-size: 17px; font-weight: 800; }
+.plan-card p { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; }
+.plan-bar { height: 10px; border-radius: 999px; background: var(--soft); overflow: hidden; }
+.plan-bar span { display: block; height: 100%; background: var(--yellow); border-radius: 999px; }
+.plan-res { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0; }
+.plan-res b { color: var(--ink); font-size: 15px; }
+.plan-res span { font-size: 13px; }
+.plan-diff { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-2); }
+.plan-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.plan-actions .btn { min-width: 0; white-space: normal; }
+.plan-card .hint { font-size: 12.5px; }
+.plan-done { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--soft); font-size: 14px; font-weight: 600; }
+.plan-pitch { max-width: 420px; margin: 0 auto; }
+.done .link-btn { margin-top: 4px; }

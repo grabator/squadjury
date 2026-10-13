@@ -29,7 +29,7 @@ const data = JSON.parse((raw[0] === 0x1f ? gunzipSync(raw) : raw).toString('utf8
 const lit = (v) => (v === null || v === undefined ? 'NULL' : typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
 
 // Children first when deleting, parents first when inserting.
-const ORDER = ['users', 'gameweeks', 'teams', 'votes', 'results', 'reports'];
+const ORDER = ['users', 'gameweeks', 'teams', 'votes', 'results', 'reports', 'leagues', 'league_members', 'h2h', 'duels', 'plans', 'plan_votes'];
 const names = Object.keys(data.tables).sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99));
 const sql = ['PRAGMA defer_foreign_keys = on;'];
 for (const name of [...names].reverse()) sql.push(`DELETE FROM "${name}";`);

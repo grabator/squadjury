@@ -88,6 +88,22 @@ try {
     await shot(page, 'e2e-6-after');
   });
 
+  await step('Duel mode: two squads, tap the better one, a WIN card and how many agree', async () => {
+    await page.goto(BASE + '/');
+    await page.getByRole('button', { name: 'Duel', exact: true }).click();
+    await page.locator('.dcard').nth(1).waitFor();
+    assert.equal(await page.locator('.dcard').count(), 2);
+    await page.waitForTimeout(1100);
+    await page.locator('.dcard[data-side="first"] .dpick').click();
+    await page.locator('.win-card').waitFor();
+    await page.locator('.dcard .verdict-line span').waitFor();
+    assert.match(await page.locator('.dcard .verdict-line span').textContent(), /agree|First vote/);
+    await shot(page, 'e2e-6b-duel');
+    await page.waitForTimeout(1500);
+    await page.getByRole('button', { name: 'Rate', exact: true }).click();
+    await page.locator('.vbtn').first().waitFor();
+  });
+
   await step('my squad page shows the squad and share buttons', async () => {
     await page.goto(BASE + '/squad');
     await page.getByRole('link', { name: 'Post on X' }).waitFor();

@@ -6,8 +6,9 @@ import { api } from '../api.js';
 import { loadFpl } from '../fpl.js';
 import { store } from '../store.js';
 import { navigate } from '../app.js';
-import { teamCardHtml, wireTeamCard, xText, xIntent, shareUrl, rateUrl, shareImage, canShareFiles, channelsHtml, wireChannels, pointsHtml } from './common.js';
+import { teamCardHtml, wireTeamCard, xText, xIntent, shareUrl, rateUrl, shareImage, canShareFiles, channelsHtml, wireChannels, pointsHtml, duelRowHtml, wireDuelRow } from './common.js';
 import { renderShareImage, downloadBlob } from '../share.js';
+import { squadHtml } from '../pitch.js';
 
 export async function mount(el, keyFromRoute) {
   const s = store.state;
@@ -44,6 +45,8 @@ export function renderMine(el, fpl, team) {
     ${team.votes ? html`<section class="chart" aria-labelledby="dist-h"><h2 id="dist-h">${t('squad.dist')}</h2>
       <div class="hist" role="img" aria-label="${t('squad.dist')}: ${dist.map((n, i) => `${i + 1}: ${n}`).join(', ')}">${dist.map((n, i) => raw(`<i class="${i === top ? 'top' : ''}" style="height:${Math.max(3, Math.round((n / max) * 100))}%"></i>`))}</div>
       <div class="hist-x" aria-hidden="true">${dist.map((_, i) => raw(`<span>${i + 1}</span>`))}</div></section>` : ''}
+    ${duelRowHtml(team)}
+    ${planHtml(fpl, team)}
     ${hasResult ? html`<section class="result-card" aria-labelledby="res-h">
       <h2 id="res-h">${t('pts.resultTitle', { gw: team.gw })}</h2>
       ${pointsHtml(team)}
@@ -63,6 +66,10 @@ export function renderMine(el, fpl, team) {
     ${hasResult ? '' : html`<p style="text-align:center;margin:12px 0 0"><button class="link-btn" id="story">${t('squad.story')}</button>${!team.locked ? html` · <button class="link-btn" id="replace">${t('squad.replace')}</button>` : ''}</p>`}
   </div>`.s;
   wireTeamCard($('.jcard', el), fpl, team);
+  wireDuelRow(el, team);
+  wirePlan(el, fpl, team);
+  // Plan B became the squad: its link preview is drawn again.
+  if (!team.locked && !team.og) uploadOg(fpl, team, p);
 
   const gr = $('.get-rated', el);
   if (gr) {
@@ -113,6 +120,86 @@ export function renderMine(el, fpl, team) {
       <div class="row"><button class="btn btn-ghost" data-no>${t('post.cancel')}</button><button class="btn btn-danger" data-yes>${t('post.replaceGo')}</button></div>`);
     $('[data-no]', s.el).onclick = s.close;
     $('[data-yes]', s.el).onclick = () => { s.close(); navigate('/post?replace=1'); };
+  });
+}
+
+async function uploadOg(fpl, team, place) {
+  try {
+    const blob = await renderShareImage('og', fpl, team, place);
+    const fd = new FormData();
+    fd.set('og', blob, 'card.jpg');
+    await api('/api/teams/mine/og', { method: 'PUT', form: fd });
+  } catch {}
+}
+
+/** Players in one plan and not the other, and the captain when it changes. */
+function planDiff(fpl, a, b) {
+  const name = (id) => fpl.byId.get(id)?.web_name || '?';
+  const ids = (x) => new Set(x.picks.map((p) => p.id));
+  const A = ids(a), B = ids(b);
+  const out = [...A].filter((id) => !B.has(id)).map(name);
+  const inn = [...B].filter((id) => !A.has(id)).map(name);
+  const parts = [];
+  const list = (names) => (names.length > 4 ? `${names.slice(0, 4).join(', ')} +${names.length - 4}` : names.join(', '));
+  if (out.length) parts.push(t('plan.diffOut', { names: list(out) }));
+  if (inn.length) parts.push(t('plan.diffIn', { names: list(inn) }));
+  if (a.captain !== b.captain) parts.push(t('plan.diffCaptain', { a: name(a.captain), b: name(b.captain) }));
+  return parts;
+}
+
+const when = (ms) => new Date(ms).toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+
+function planHtml(fpl, team) {
+  if (team.locked) return '';
+  const pl = team.plan;
+  if (!pl) {
+    return team.canPlan ? html`<section class="plan-card add"><div><h2>${t('plan.addTitle')}</h2><p>${t('plan.addText')}</p></div>
+      <a class="btn btn-sm" href="/post?plan=b">${raw(ICONS.plus)}${t('plan.add')}</a></section>` : '';
+  }
+  const total = pl.votesA + pl.votesB;
+  const pa = total ? Math.round((pl.votesA / total) * 100) : 50;
+  if (pl.chosen) return html`<p class="plan-done">${t('plan.chosen', { x: pl.chosen.toUpperCase(), n: total })}</p>`;
+  const diff = planDiff(fpl, team, pl);
+  return html`<section class="plan-card" aria-labelledby="plan-h">
+    <h2 id="plan-h">${t('plan.title')}</h2>
+    <div class="plan-bar" role="img" aria-label="${t('plan.result', { a: pa, b: 100 - pa, n: total })}"><span style="width:${pa}%"></span></div>
+    <p class="plan-res"><b>${t('plan.planA')} ${total ? `${pa}%` : '-'}</b><span>${t('plan.votes', { n: total })}</span><b>${t('plan.planB')} ${total ? `${100 - pa}%` : '-'}</b></p>
+    ${diff.length ? html`<ul class="plan-diff">${diff.map((d) => html`<li>${d}</li>`)}</ul>` : ''}
+    <div class="plan-actions">
+      <button type="button" class="btn btn-sm" data-choose="a">${t('plan.makeA')}</button>
+      <button type="button" class="btn btn-sm" data-choose="b">${t('plan.makeB')}</button>
+    </div>
+    <p class="hint">${t('plan.closes', { when: when(pl.closesAt) })} <button type="button" class="link-btn" id="plan-view">${t('plan.view')}</button> · <button type="button" class="link-btn" id="plan-del">${t('plan.remove')}</button></p>
+  </section>`;
+}
+
+function wirePlan(el, fpl, team) {
+  const pl = team.plan;
+  if (!pl) return;
+  el.querySelectorAll('[data-choose]').forEach((b) => b.addEventListener('click', () => {
+    const x = b.dataset.choose;
+    const s = sheet(html`<h2>${t('plan.confirmTitle', { x: x.toUpperCase() })}</h2><p>${t('plan.confirmText')}</p>
+      <div class="row"><button class="btn btn-ghost" data-no>${t('post.cancel')}</button><button class="btn btn-go" data-yes>${t('plan.confirmGo')}</button></div>`, { label: t('plan.title') });
+    $('[data-no]', s.el).onclick = s.close;
+    $('[data-yes]', s.el).onclick = async () => {
+      try {
+        await api('/api/plans/mine/choose', { method: 'POST', body: { pick: x } });
+        s.close();
+        toast(t('plan.done', { x: x.toUpperCase() }));
+        const { team: fresh } = await api(`/api/teams/${team.key}`);
+        renderMine(el, fpl, fresh);
+      } catch (e) { toast(errText(e), { bad: true }); }
+    };
+  }));
+  $('#plan-view', el)?.addEventListener('click', () => {
+    sheet(html`<h2>${t('plan.planB')}</h2><div class="plan-pitch">${squadHtml(fpl, { ...pl, gw: team.gw })}</div>`, { label: t('plan.planB') });
+  });
+  $('#plan-del', el)?.addEventListener('click', async () => {
+    try {
+      await api('/api/plans/mine', { method: 'DELETE' });
+      const { team: fresh } = await api(`/api/teams/${team.key}`);
+      renderMine(el, fpl, fresh);
+    } catch (e) { toast(errText(e), { bad: true }); }
   });
 }
 

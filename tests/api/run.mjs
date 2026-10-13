@@ -119,6 +119,38 @@ await check('your verdicts come one page at a time', async () => {
   assert.equal((await fetch(BASE + '/api/me/verdicts')).status, 401);
 });
 
+await check('duels: sign in first, a quick pick does not count, a pair only once, never your own squad', async () => {
+  assert.equal((await fetch(BASE + '/api/duels/next')).status, 401);
+  for (const [u, seed] of [[D, 21], [E, 22]]) assert.equal((await u.call('POST', '/api/teams', form(randomSquad(seed)), true)).status, 201);
+  const owners = new Map();
+  for (const u of [A, C, D, E]) owners.set((await u.call('GET', '/api/state')).data.mine?.key, u);
+  const first = (await F.call('GET', '/api/duels/next?n=3')).data;
+  assert.ok(first.pairs.length >= 1, JSON.stringify(first));
+  const [p1, p2] = first.pairs;
+  // Too quick: saved, but not counted for the rating.
+  const quick = await F.call('POST', '/api/duels', { first: p1.first.key, second: p1.second.key, pick: p1.first.key });
+  assert.equal(quick.status, 200, JSON.stringify(quick.data));
+  assert.equal(quick.data.counted, false);
+  assert.equal(quick.data.agree, 100);
+  assert.equal((await F.call('POST', '/api/duels', { first: p1.second.key, second: p1.first.key, pick: p1.first.key })).status, 409);
+  if (p2) {
+    await new Promise((r) => setTimeout(r, 1100));
+    const ok = await F.call('POST', '/api/duels', { first: p2.first.key, second: p2.second.key, pick: p2.second.key });
+    assert.equal(ok.data.counted, true);
+    const winner = owners.get(p2.second.key);
+    const t = (await winner.call('GET', `/api/teams/${p2.second.key}`)).data.team;
+    assert.deepEqual([t.duels.w, t.duels.l], [1, 0]);
+    assert.ok(t.duels.rating > 1500);
+    assert.equal((await F.call('GET', '/api/state')).data.judged, 1);
+  }
+  const own = (await D.call('GET', '/api/state')).data.mine.key;
+  const other = [...owners.keys()].find((k) => k && k !== own);
+  assert.equal((await D.call('POST', '/api/duels', { first: own, second: other, pick: own })).status, 403);
+  const next = (await D.call('GET', '/api/duels/next?n=4')).data.pairs;
+  assert.ok(next.every((p) => p.first.key !== own && p.second.key !== own));
+  assert.equal((await A.call('GET', '/api/leaderboard/duels')).status, 200);
+});
+
 await check('cross site writes are refused', async () => {
   const r = await fetch(BASE + '/api/votes', { method: 'POST', headers: { origin: 'https://evil.example', 'content-type': 'application/json' }, body: JSON.stringify({ key: keyA, score: 1 }) });
   assert.equal(r.status, 403);
@@ -187,6 +219,54 @@ await check('leagues: create, join by code or link, member only table, owner onl
   assert.equal((await E.call('GET', `/api/leagues/${fresh}`)).data.league.isOwner, true);
   const page = await (await fetch(`${BASE}/l/${fresh}`)).text();
   assert.match(page, /og:title" content="Join &quot;Office FPL&quot; on SquadJury/);
+});
+
+await check('Plan B: one per squad, jurors vote A or B in Duels, the owner picks and B becomes the squad', async () => {
+  assert.equal((await D.call('POST', '/api/plans', form(randomSquad(21)), true)).status, 400); // same as Plan A
+  const made = await D.call('POST', '/api/plans', form(randomSquad(31)), true);
+  assert.equal(made.status, 201, JSON.stringify(made.data));
+  assert.equal((await D.call('POST', '/api/plans', form(randomSquad(32)), true)).status, 409);
+  assert.equal((await F.call('POST', '/api/plans', form(randomSquad(33)), true)).status, 404); // no squad yet
+  const pairs = (await F.call('GET', '/api/duels/next?n=4')).data.pairs;
+  const pp = pairs.find((p) => p.kind === 'plan');
+  assert.ok(pp, JSON.stringify(pairs.map((p) => p.kind)));
+  assert.equal(pp.plan, made.data.plan.key);
+  assert.deepEqual([pp.first.label, pp.second.label], ['A', 'B']);
+  const v = await F.call('POST', '/api/plans/vote', { plan: pp.plan, pick: 'b' });
+  assert.deepEqual([v.status, v.data.votes, v.data.agree], [200, 1, 100]);
+  assert.equal((await D.call('POST', '/api/plans/vote', { plan: pp.plan, pick: 'a' })).status, 403);
+  const key = (await D.call('GET', '/api/state')).data.mine.key;
+  const mine = (await D.call('GET', `/api/teams/${key}`)).data.team;
+  assert.deepEqual([mine.plan.votesA, mine.plan.votesB, mine.plan.chosen], [0, 1, null]);
+  assert.equal((await F.call('GET', `/api/teams/${key}`)).data.team.plan, undefined); // only the owner sees it
+  const chosen = await D.call('POST', '/api/plans/mine/choose', { pick: 'b' });
+  assert.equal(chosen.status, 200);
+  assert.equal(chosen.data.team.key, key);
+  assert.deepEqual(chosen.data.team.picks.map((p) => p.id), randomSquad(31).map((p) => p.id));
+  assert.equal((await D.call('POST', '/api/plans/mine/choose', { pick: 'a' })).status, 409);
+  assert.ok(!(await F.call('GET', '/api/duels/next?n=4')).data.pairs.some((p) => p.kind === 'plan'));
+});
+
+await check('league H2H: 4 members get fixtures, everyone plays once, members judge the fixtures first', async () => {
+  const made = (await A.call('POST', '/api/leagues', { name: 'H2H Test' })).data.league;
+  for (const u of [C, D]) assert.equal((await u.call('POST', '/api/leagues/join', { code: made.code })).status, 200);
+  const three = (await A.call('GET', `/api/leagues/${made.code}/h2h`)).data;
+  assert.equal(three.gws.length, 0);
+  assert.equal((await E.call('POST', '/api/leagues/join', { code: made.code })).status, 200);
+  const r = (await A.call('GET', `/api/leagues/${made.code}/h2h`)).data;
+  assert.equal(r.gw, gw.id);
+  assert.equal(r.matches.length, 2);
+  const names = r.matches.flatMap((m) => [m.home.nickname, m.away.nickname]);
+  assert.equal(new Set(names).size, 4);
+  assert.ok(r.matches.every((m) => ['H', 'A', 'D'].includes(m.jury.res)));
+  assert.equal(r.tables.jury.length, 4);
+  assert.equal((await B.call('GET', `/api/leagues/${made.code}/h2h`)).status, 403);
+  // B joins later: not in this gameweek's fixtures, but gets them first in Duel mode.
+  assert.equal((await B.call('POST', '/api/leagues/join', { code: made.code })).status, 200);
+  const pairs = (await B.call('GET', '/api/duels/next?n=3')).data.pairs;
+  assert.equal(pairs[0].kind, 'league', JSON.stringify(pairs.map((p) => p.kind)));
+  assert.equal(pairs[0].league, 'H2H Test');
+  assert.equal((await B.call('GET', `/api/leagues/${made.code}/h2h`)).data.matches.length, 2);
 });
 
 await check('3 reports hide a squad from judging and from its link', async () => {

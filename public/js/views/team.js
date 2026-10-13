@@ -6,7 +6,7 @@ import { api } from '../api.js';
 import { loadFpl } from '../fpl.js';
 import { store } from '../store.js';
 import { ensureUser } from '../auth.js';
-import { teamCardHtml, wireTeamCard, verdictCard, pointsHtml } from './common.js';
+import { teamCardHtml, wireTeamCard, verdictCard, pointsHtml, duelRowHtml, wireDuelRow } from './common.js';
 import { whistle } from '../sound.js';
 import { renderMine } from './squad.js';
 
@@ -32,6 +32,7 @@ function draw(el, fpl, team) {
           <div class="meta"><b>${t('judge.juryAvg')}</b><span>${t('lb.votes', { n: team.votes })}${p.rank ? ` · ${t('squad.rank', { rank: p.rank, total: p.total })}` : ''}</span></div></div>`
       : ''}
     ${team.locked ? pointsHtml(team) : ''}
+    ${duelRowHtml(team)}
     <article class="jcard">${teamCardHtml(fpl, team)}</article>
     ${canVote
       ? html`<div class="controls" style="padding:0">
@@ -42,6 +43,7 @@ function draw(el, fpl, team) {
   </div>`.s;
   const card = $('.jcard', el);
   wireTeamCard(card, fpl, team);
+  wireDuelRow(el, team);
   el.querySelectorAll('.vbtn').forEach((b) =>
     b.addEventListener('click', async () => {
       if (!(await ensureUser())) return;

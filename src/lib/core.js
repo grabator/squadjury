@@ -53,7 +53,8 @@ export async function liveStandings(env, gw) {
       `SELECT t.id, t.user_id, t.share_key, t.vote_sum, t.vote_count, t.image_key, t.picks_json, t.captain_id, t.vice_id,
               u.nickname, u.x_handle, u.demo,
               COALESCE(SUM(v.score * vu.vote_weight), 0) AS wsum, COALESCE(SUM(vu.vote_weight), 0) AS wcnt,
-              (SELECT COUNT(*) FROM votes j WHERE j.user_id = t.user_id AND j.gw = t.gw) AS judged
+              (SELECT COUNT(*) FROM votes j WHERE j.user_id = t.user_id AND j.gw = t.gw)
+                + (SELECT COUNT(*) FROM duels d WHERE d.user_id = t.user_id AND d.gw = t.gw AND d.counted = 1) AS judged
          FROM teams t
          JOIN users u ON u.id = t.user_id
          LEFT JOIN votes v ON v.team_id = t.id
@@ -104,6 +105,7 @@ export function teamOut(t, extra = {}) {
     votes: t.vote_count,
     points: t.points ?? null,
     verified: t.points_verified === 1,
+    duels: t.elo != null ? { w: t.duel_w, l: t.duel_l, rating: Math.round(t.elo) } : null,
     ...extra,
   };
 }

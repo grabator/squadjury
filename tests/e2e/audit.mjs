@@ -6,7 +6,7 @@ import { launch } from '../../scripts/browser.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const axe = readFileSync(new URL('../../node_modules/axe-core/axe.min.js', import.meta.url), 'utf8');
 const RKEY = (await (await fetch(`${BASE}/api/judge/next?n=1`)).json()).teams?.[0]?.key;
-const PAGES = ['/', '/leaderboard', '/leaderboard?tab=gw6', '/leaderboard?tab=season', '/post', '/squad', '/me', '/me/verdicts', '/how', '/rules', '/privacy', '/nope', '/l/EXAMP7', '/l/NOPE22', ...(RKEY ? [`/r/${RKEY}`] : [])];
+const PAGES = ['/', '/leaderboard', '/leaderboard?tab=gw6', '/leaderboard?tab=season', '/post', '/squad', '/me', '/me/verdicts', '/how', '/rules', '/privacy', '/nope', '/l/EXAMP7', '/l/NOPE22', '/?duel', '/leaderboard?league=EXAMP7&tab=h2h', ...(RKEY ? [`/r/${RKEY}`] : [])];
 const WIDTHS = [360, 390, 430, 1280];
 
 const browser = await launch();
@@ -33,9 +33,12 @@ for (const { signedIn, w, scheme } of RUNS) {
         const r = await fetch('/api/auth/dev', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: n }) });
         const d = await r.json();
         if (!d.nickname) await fetch('/api/me', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nickname: d.suggestion }) });
+        await fetch('/api/leagues/join', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'EXAMP7' }) });
       }, `auditor${w}`);
     }
     for (const path of PAGES) {
+      // "/?duel" is the Judge screen in Duel mode.
+      await page.evaluate((duel) => { try { localStorage.setItem('sj-mode', duel ? 'duel' : 'rate'); } catch {} }, path === '/?duel').catch(() => {});
       await page.goto(BASE + path);
       await page.waitForTimeout(700);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);

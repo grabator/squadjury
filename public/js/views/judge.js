@@ -9,13 +9,19 @@ import { store } from '../store.js';
 import { ensureUser } from '../auth.js';
 import { teamCardHtml, wireTeamCard, verdictCard, xIntent, shareUrl } from './common.js';
 import { whistle } from '../sound.js';
+import { squadHtml, formationOf } from '../pitch.js';
 
 let root, fpl, queue = [], skipped = [], busy = false, unsub, onKey, asideTimer, undoTimer;
 const HINT_KEY = 'sj-hint';
+const MODE_KEY = 'sj-mode';
 let early = null;
+// Duel mode: pairs of squads, the pairs skipped with "Too close", and when the pair appeared.
+let mode = 'rate', pairs = [], skippedPairs = [], shownAt = 0;
+const savedMode = () => { try { return localStorage.getItem(MODE_KEY) === 'duel' ? 'duel' : 'rate'; } catch { return 'rate'; } };
 
 /** Called by the app shell on first load of "/": asks for squads while everything else is loading. */
 export function prefetch() {
+  if (savedMode() === 'duel' && store.state.user?.nickname) return;
   early ??= api('/api/judge/next?n=4&skip=').catch(() => null);
 }
 
@@ -27,7 +33,10 @@ export async function mount(el) {
   el.innerHTML = html`<div class="home">
       <section class="judge" aria-labelledby="judge-h">
         <h1 class="sr-only" id="judge-h">${t('judge.title')}</h1>
-        <div id="mybar"></div>
+        <div class="jtop"><div class="seg seg-mode" role="group" aria-label="${t('duel.modeLabel')}">
+          <button type="button" data-mode="rate" aria-pressed="true">${t('duel.rate')}</button>
+          <button type="button" data-mode="duel" aria-pressed="false">${t('duel.duel')}</button></div>
+          <div id="mybar"></div></div>
         <div class="deck" id="deck" aria-live="polite"></div>
         <div class="controls" id="controls"></div>
       </section>
@@ -35,12 +44,24 @@ export async function mount(el) {
     </div>`.s;
   renderBar();
   unsub = store.subscribe(renderBar);
-  await fill();
-  show();
+  el.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  mode = savedMode() === 'duel' && store.state.user?.nickname ? 'duel' : 'rate';
+  paintMode();
+  if (mode === 'duel') await startDuels();
+  else {
+    await fill();
+    show();
+  }
   loadAside();
   asideTimer = setInterval(loadAside, 30000);
   onKey = (e) => {
     if (e.target.closest('input, textarea, .sheet') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (mode === 'duel') {
+      if (e.key === '1' || e.key === 'ArrowUp') duelPick('first');
+      else if (e.key === '2' || e.key === 'ArrowDown') duelPick('second');
+      else if (e.key.toLowerCase() === 's') tooClose();
+      return;
+    }
     if (/^[0-9]$/.test(e.key)) vote(e.key === '0' ? 10 : +e.key);
     else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 's') skip();
   };
@@ -111,6 +132,7 @@ async function fill() {
 const firstTime = () => { try { return !localStorage.getItem(HINT_KEY); } catch { return false; } };
 
 function show() {
+  if (mode === 'duel') return showDuel();
   const deck = $('#deck', root);
   const controls = $('#controls', root);
   const team = queue[0];
@@ -239,6 +261,161 @@ async function vote(score) {
   await new Promise((r) => setTimeout(r, reduceMotion() ? 450 : 750));
   await next();
   offerUndo(team, score);
+}
+
+
+// ==== Duel mode
+
+function paintMode() {
+  root.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  $('.judge', root)?.classList.toggle('is-duel', mode === 'duel');
+}
+
+async function setMode(next) {
+  if (next === mode || busy) return;
+  if (next === 'duel' && !store.state.user?.nickname) {
+    if (!(await ensureUser({ title: t('duel.signIn'), text: t('duel.signInText') }))) return;
+  }
+  mode = next;
+  try { localStorage.setItem(MODE_KEY, mode); } catch {}
+  paintMode();
+  $('#controls', root).innerHTML = '';
+  if (mode === 'duel') await startDuels();
+  else {
+    if (!queue.length) await fill();
+    show();
+  }
+}
+
+async function startDuels() {
+  if (!pairs.length) await fillPairs();
+  showDuel();
+}
+
+const pairId = (p) => `${p.first.key}~${p.second.key}`;
+
+async function fillPairs() {
+  if (!store.state.gw) return;
+  const have = pairs.map(pairId);
+  try {
+    const r = await api(`/api/duels/next?n=3&skip=${[...have, ...skippedPairs].join(',')}`);
+    for (const p of r.pairs) if (!have.includes(pairId(p))) pairs.push(p);
+    if (r.limit) pairs.limit = true;
+  } catch (e) {
+    if (!pairs.length) {
+      $('#deck', root).innerHTML = html`<div class="empty" style="margin:auto"><h2>${t('err.generic')}</h2><p>${errText(e)}</p><button class="btn" id="retry">${t('err.tryAgain')}</button></div>`.s;
+      $('#retry', root).onclick = startDuels;
+    }
+  }
+}
+
+/** Players that are not the same in both plans (or a different captain) get a mark. */
+function markPlanDiff(el, p) {
+  const ids = (x) => new Set(x.picks.map((q) => q.id));
+  const a = ids(p.first), b = ids(p.second);
+  const diff = new Set([...a].filter((id) => !b.has(id)).concat([...b].filter((id) => !a.has(id))));
+  if (p.first.captain !== p.second.captain) diff.add(p.first.captain).add(p.second.captain);
+  el.querySelectorAll('.pl[data-id]').forEach((n) => n.classList.toggle('diff', diff.has(+n.dataset.id)));
+}
+
+function duelCard(p, side) {
+  const team = p[side];
+  const label = p.kind === 'plan' ? t('duel.plan', { x: team.label }) : team.nickname;
+  const body = p.kind === 'plan'
+    ? html`<div class="jcard-head"><div class="who"><b>${label}</b><span>${formationOf(fpl, team.picks)}</span></div></div>
+        <div class="squad-box squad-view">${squadHtml(fpl, team)}</div>`
+    : teamCardHtml(fpl, team);
+  return html`<article class="dcard jcard" data-side="${side}">${body}
+      <button type="button" class="dpick" aria-label="${t('duel.pick', { name: label })}"></button></article>`;
+}
+
+function showDuel() {
+  const deck = $('#deck', root);
+  const controls = $('#controls', root);
+  const p = pairs[0];
+  if (!p) {
+    const s = store.state;
+    deck.innerHTML = html`<div class="empty" style="margin:auto"><span class="ycard"></span>
+        <h2>${!s.gw ? t('clock.season') : pairs.limit ? t('duel.limitTitle') : t('duel.emptyTitle')}</h2>
+        <p>${pairs.limit ? t('duel.limitText') : t('duel.emptyText')}</p>
+        <div class="row" style="justify-content:center"><button class="btn btn-go" id="to-rate">${t('duel.toRate')}</button></div></div>`.s;
+    controls.innerHTML = '';
+    $('#to-rate', deck).onclick = () => setMode('rate');
+    return;
+  }
+  deck.innerHTML = html`<div class="duel enter ${p.kind}">
+      ${p.kind === 'plan' ? html`<p class="duel-title"><span class="ycard" aria-hidden="true"></span>${t('duel.planTitle', { nick: p.nickname })}</p>` : ''}
+      ${p.kind === 'league' ? html`<p class="duel-title"><span class="lg-chip">${p.league}</span>${t('duel.leagueTitle')}</p>` : ''}
+      <div class="duel-pair">${duelCard(p, 'first')}<span class="vs" aria-hidden="true">VS</span>${duelCard(p, 'second')}</div>
+    </div>`.s;
+  deck.querySelectorAll('.dcard').forEach((card) => {
+    const team = p[card.dataset.side];
+    if (p.kind !== 'plan') wireTeamCard(card, fpl, team);
+    $('.dpick', card).addEventListener('click', () => duelPick(card.dataset.side));
+  });
+  if (p.kind === 'plan') markPlanDiff(deck, p);
+  shownAt = performance.now();
+  if (!controls.querySelector('.duel-actions')) {
+    controls.innerHTML = html`<div class="duel-actions">
+        <span class="judge-hint">${p.kind === 'plan' ? t('duel.planHint') : t('duel.hint')}</span>
+        <button type="button" class="skip" id="tooclose">${t('duel.tooClose')}</button>
+      </div>`.s;
+    $('#tooclose', controls).addEventListener('click', tooClose);
+  } else {
+    $('.judge-hint', controls).textContent = p.kind === 'plan' ? t('duel.planHint') : t('duel.hint');
+  }
+}
+
+async function nextPair() {
+  const box = $('.duel', root);
+  if (box && !reduceMotion()) {
+    box.classList.add('leave');
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  pairs.shift();
+  if (pairs.length < 2 && !pairs.limit) await fillPairs();
+  showDuel();
+  busy = false;
+}
+
+function tooClose() {
+  if (busy || !pairs[0]) return;
+  busy = true;
+  haptic(10);
+  skippedPairs.push(pairId(pairs[0]));
+  nextPair();
+}
+
+async function duelPick(side) {
+  const p = pairs[0];
+  if (busy || !p) return;
+  busy = true;
+  haptic(20);
+  const other = side === 'first' ? 'second' : 'first';
+  const win = $(`.dcard[data-side="${side}"]`, root), lose = $(`.dcard[data-side="${other}"]`, root);
+  win?.classList.add('won');
+  lose?.classList.add('lost');
+  win?.insertAdjacentHTML('beforeend', html`<div class="win-card" aria-hidden="true">${p.kind === 'plan' ? t('duel.plan', { x: p[side].label }) : 'WIN'}</div>`.s);
+  const line = document.createElement('p');
+  line.className = 'verdict-line';
+  win?.append(line);
+  const req = p.kind === 'plan'
+    ? api('/api/plans/vote', { method: 'POST', body: { plan: p.plan, pick: side === 'first' ? 'a' : 'b' } })
+    : api('/api/duels', { method: 'POST', body: { first: p.first.key, second: p.second.key, pick: p[side].key } });
+  const before = store.state.judged;
+  const done = withRetry(() => req)
+    .then((r) => {
+      line.innerHTML = html`<span>${r.votes > 1 ? t('duel.agree', { n: r.agree }) : t('duel.firstVote')}</span>`.s;
+      if (r.judged != null) {
+        store.set({ judged: r.judged });
+        if (before < store.state.minJudged && r.judged >= store.state.minJudged && store.state.mine) toast(t('judge.unlocked'), { ms: 3600 });
+      }
+    })
+    .catch((e) => toast(e.code === 'offline' ? t('judge.sentFail') : errText(e), { bad: true }));
+  // Long enough to read "62% agree", short enough to keep the game quick.
+  await Promise.race([done, new Promise((r) => setTimeout(r, 900))]);
+  await new Promise((r) => setTimeout(r, reduceMotion() ? 500 : 700));
+  await nextPair();
 }
 
 /** Desktop only: the live top 10 next to the card. */

@@ -33,7 +33,7 @@ function playerCell(fpl, pick, gw, { captain, vice, row, col, editable, index })
   if (editable) {
     return html`<div class="${cls}" style="${style}"><button type="button" class="pick" data-index="${index}" aria-label="${label}">${inner}</button></div>`;
   }
-  return html`<div class="${cls}" style="${style}" role="listitem" aria-label="${label}">${inner}</div>`;
+  return html`<div class="${cls}" style="${style}" role="listitem" aria-label="${label}" data-id="${p ? p.id : ''}">${inner}</div>`;
 }
 
 // Lines of a real pitch seen from above: touchline, halfway line, both boxes and six yard boxes.

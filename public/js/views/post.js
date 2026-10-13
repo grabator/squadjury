@@ -12,18 +12,20 @@ import { validate } from '../ocr/match.js';
 import { renderShareImage } from '../share.js';
 import { xIntent, xText, shareUrl, shareImage, canShareFiles } from './common.js';
 
-let root, fpl, draft, shotBitmap, replace = false, onPaste, onDrag;
+let root, fpl, draft, shotBitmap, replace = false, planB = false, onPaste, onDrag;
 
 export async function mount(el) {
   root = el;
   replace = new URLSearchParams(location.search).has('replace');
+  planB = new URLSearchParams(location.search).get('plan') === 'b';
   fpl = await loadFpl();
   const s = store.state;
   if (!s.gw) {
     el.innerHTML = html`<div class="empty"><h2>${t('clock.season')}</h2><p>${t('post.closed')}</p></div>`.s;
     return;
   }
-  if (s.mine && !replace) return navigate('/squad', { replace: true });
+  if (s.mine && !replace && !planB) return navigate('/squad', { replace: true });
+  if (planB && !s.mine) planB = false;
   if (!s.user?.nickname) {
     el.innerHTML = entryHtml(false);
     $('#signin', el).onclick = async () => { if (await ensureUser({ title: t('post.signIn') })) mount(el); };
@@ -43,7 +45,7 @@ export function unmount() {
 function entryHtml(signedIn) {
   const gw = store.state.gw.id;
   return html`<div class="post-entry">
-    <div class="page-head"><h1 class="title">${replace ? t('squad.replace') : t('post.title')}</h1><p class="sub">${t('post.sub')}</p></div>
+    <div class="page-head"><h1 class="title">${planB ? t('plan.postTitle') : replace ? t('squad.replace') : t('post.title')}</h1><p class="sub">${planB ? t('plan.postSub') : t('post.sub')}</p></div>
     <div class="example"><img src="/img/example-pick-team.svg" alt="${t('post.exampleAlt')}"></div>
     <ol class="steps"><li>${t('post.step1')}</li><li>${t('post.step2', { gw })}</li><li>${t('post.step3')}</li></ol>
     ${signedIn
@@ -279,6 +281,18 @@ async function send() {
   try {
     const ocr = await import('../ocr/client.js');
     const picks = draft.picks.map((p) => ({ id: p.id }));
+    if (planB) {
+      const shot = await ocr.compress(shotBitmap);
+      const form = new FormData();
+      form.set('picks', JSON.stringify(picks));
+      if (draft.captain) form.set('captain', String(draft.captain));
+      if (draft.vice) form.set('vice', String(draft.vice));
+      form.set('image', shot, 'plan.' + (shot.type === 'image/webp' ? 'webp' : 'jpg'));
+      await api('/api/plans', { method: 'POST', form });
+      URL.revokeObjectURL(draft.url);
+      toast(t('plan.live'), { ms: 3500 });
+      return navigate('/squad');
+    }
     const [shot, og] = await Promise.all([ocr.compress(shotBitmap), renderShareImage('og', fpl, previewTeam(), null)]);
     const form = new FormData();
     form.set('picks', JSON.stringify(picks));
@@ -312,7 +326,8 @@ async function done() {
         <button class="btn" id="copy">${raw(ICONS.link)}${t('squad.copy')}</button>
       </div>
       ${canShareFiles() ? html`<button class="btn btn-block" id="shareimg" style="max-width:420px">${raw(ICONS.share)}${t('squad.shareImage')}</button>` : ''}
-      <a class="btn btn-ghost btn-block" href="/" style="max-width:420px">${t('post.startJudging')}</a></div>`.s;
+      <a class="btn btn-ghost btn-block" href="/" style="max-width:420px">${t('post.startJudging')}</a>
+      <a class="link-btn" href="/post?plan=b">${t('plan.add')}</a></div>`.s;
   $('#shareimg', root)?.addEventListener('click', () => shareImage(fpl, team, null).catch((e) => toast(errText(e), { bad: true })));
   $('#copy', root).onclick = async () => {
     try { await navigator.clipboard.writeText(shareUrl(team)); toast(t('squad.copied')); } catch { toast(shareUrl(team)); }

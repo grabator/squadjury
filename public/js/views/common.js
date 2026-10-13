@@ -74,6 +74,30 @@ export function pointsHtml(team) {
   </section>`;
 }
 
+/** "Duels: 34 W · 12 L (74%)". For the owner: "Your squad won 34 of 46 duels" and the best win. Tap for the last 10. */
+export function duelRowHtml(team) {
+  const d = team.duels;
+  if (!d || !(d.w + d.l)) return '';
+  const n = d.w + d.l;
+  const pct = Math.round((d.w / n) * 100);
+  const main = team.mine ? t('duel.mineWon', { w: d.w, n }) : t('duel.record', { w: d.w, l: d.l, pct });
+  const best = team.mine && team.bestWin
+    ? (team.bestWin.rank ? t('duel.bestWin', { rank: team.bestWin.rank, nick: team.bestWin.nickname }) : t('duel.bestWinNoRank', { nick: team.bestWin.nickname }))
+    : d.rank ? t('duel.ratingRank', { n: d.rating, rank: d.rank }) : t('duel.rating', { n: d.rating });
+  return html`<button type="button" class="duel-row" id="duelrow" aria-haspopup="dialog">${raw(ICONS.duel)}<span><b>${main}</b><small>${best}</small></span><span class="chev" aria-hidden="true">›</span></button>`;
+}
+
+export function wireDuelRow(el, team) {
+  $('#duelrow', el)?.addEventListener('click', async () => {
+    try {
+      const r = await api(`/api/teams/${team.key}/duels`);
+      sheet(html`<h2>${t('duel.recordTitle')}</h2><p>${t('duel.recordText')}</p>
+        <ul class="list duel-list">${r.last.map((x) => html`<li><a class="item" href="/t/${x.key}"><span>${t('duel.vs', { nick: x.nickname })}${x.demo ? html`<span class="tag">${t('judge.exampleShort')}</span>` : ''}</span>
+          <span class="res ${x.won ? 'w' : 'l'}">${x.won ? t('duel.won') : t('duel.lost')}</span></a></li>`)}</ul>`, { label: t('duel.recordTitle') });
+    } catch (e) { toast(errText(e), { bad: true }); }
+  });
+}
+
 /** Link that opens the squad ready to be rated, while its gameweek is open. `s` names the channel. */
 export const rateUrl = (team, s) => `${location.origin}/r/${team.key}${s ? `?s=${s}` : ''}`;
 export const shareUrl = (team, s = 'x') => (team.locked ? `${location.origin}/t/${team.key}` : rateUrl(team, s));

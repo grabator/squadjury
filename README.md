@@ -25,6 +25,9 @@ Built mobile first, with no framework and no build step, on Cloudflare Workers.
 - **Fair ranking:** a squad needs 5 verdicts, and its owner must judge 5 other squads, to be ranked. The rank uses a Bayesian average so a handful of 10s cannot beat a squad with many strong verdicts.
 - **My squad:** live verdict, rank, "better than X% of squads", how the jury voted, and sharing.
 - **Share:** each squad has its own link with a link preview card (1200x630), a one tap "Post on X", and images to post: a square 1080x1080 for X and 1080x1920 for stories.
+- **Duels:** a Duel mode in Judge shows two squads, the juror taps the better one. Every squad gets a duel rating (Elo, start 1500, K 24) and a win/loss record, with a Duels view on the leaderboard and the last 10 duels on the squad page. Too quick picks (under 1 second), always the same side and more than 200 duels per gameweek do not count.
+- **League head to head:** leagues with 4+ members get round robin fixtures every gameweek (odd numbers play "Average"). Each match has a Jury result (duel votes between the two squads, before the deadline) and a Points result (real FPL points), with a Jury table and a Points table and a share image for the winner.
+- **Plan A vs Plan B:** a second version of your squad that jurors compare in Duel mode. Pick one at least 30 minutes before the deadline, or the plan with more votes is used.
 - **Real points:** after the gameweek the real FPL points of every squad are added (starting XI, captain doubled, automatic substitutions), with a Jury / Points switch on the leaderboard and a result image to share. With an FPL team ID in the profile the exact FPL score is used.
 - **Me:** your numbers, your verdicts grouped by gameweek and shown a page at a time, your squads, and settings. Light and dark theme follow the phone.
 - **Deadlines from FPL:** voting closes at the official deadline, the gameweek locks and its results are frozen automatically.

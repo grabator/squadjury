@@ -367,6 +367,70 @@ export async function renderLeagueImage(league) {
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
 }
 
+/** 1080x1080 image for the winner of a head to head match: "I beat Need", GW and league. */
+export async function renderH2HImage({ gw, opp, league, score, me }) {
+  await fonts();
+  const w = 1080, h = 1080;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const g = canvas.getContext('2d');
+  g.fillStyle = C.bg;
+  g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 10; i++) {
+    g.fillStyle = i % 2 ? C.grass2 : C.grass1;
+    g.fillRect(0, h - 300 + i * 30, w, 30);
+  }
+  const pad = 80;
+  await brand(g, pad, 80, 52, false);
+  g.textAlign = 'left';
+  g.textBaseline = 'alphabetic';
+  g.fillStyle = C.ink2;
+  setFont(g, 800, 34);
+  g.fillText(t('h2h.imageSub', { gw }).toUpperCase(), pad, 270);
+  if (league) {
+    setFont(g, 600, 34);
+    g.fillText(league, pad, 320);
+  }
+  g.fillStyle = C.ink;
+  setFont(g, 900, 96, 'semi-condensed');
+  g.fillText(t('h2h.imageTitle', { opp: '' }).trim(), pad, 450);
+  const size = fit(g, opp, w - pad * 2 - 40, 150, 900, 'semi-condensed');
+  setFont(g, 900, size, 'semi-condensed');
+  g.fillText(opp, pad, 450 + size);
+  if (me) {
+    g.fillStyle = C.ink2;
+    setFont(g, 700, 34);
+    g.fillText(me, pad, 450 + size + 64);
+  }
+  // The yellow card: WIN, and the points when the points decided it.
+  const cw = 230, ch = cw * 1.31, cx = w - pad - cw / 2, cy = h - 300;
+  g.save();
+  g.translate(cx, cy);
+  g.rotate(0.12);
+  g.shadowColor = 'rgba(0,0,0,.22)';
+  g.shadowBlur = 34;
+  g.shadowOffsetY = 14;
+  roundRect(g, -cw / 2, -ch / 2, cw, ch, 24);
+  g.fillStyle = C.yellow;
+  g.fill();
+  g.shadowColor = 'transparent';
+  g.fillStyle = C.ink;
+  g.textAlign = 'center';
+  setFont(g, 900, 84, 'semi-condensed');
+  g.fillText('WIN', 0, score ? -10 : 30);
+  if (score) {
+    setFont(g, 900, 52, 'semi-condensed');
+    g.fillText(`${score[0]}:${score[1]}`, 0, 70);
+  }
+  g.restore();
+  g.fillStyle = '#fff';
+  g.textAlign = 'left';
+  setFont(g, 800, 34);
+  g.fillText('squadjury.com', pad, h - 70);
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+}
+
 export async function downloadBlob(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
