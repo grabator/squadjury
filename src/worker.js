@@ -1,7 +1,7 @@
 // SquadJury Worker: JSON API, images from R2, share pages and the deadline cron.
 // Static files (the app itself) are served by Workers static assets.
 
-import { json, fail, HttpError, readJson, checkOrigin, clientIp, rateLimit, randomKey, esc, sha256 } from './lib/http.js';
+import { json, fail, HttpError, readJson, checkOrigin, getCookie, clientIp, rateLimit, randomKey, esc, sha256 } from './lib/http.js';
 import { verifyGoogleToken, verifyAppleToken, checkEmail, createSession, endSession, currentUser, isAdmin, checkNickname, checkXHandle, suggestNickname } from './lib/auth.js';
 import { getFpl } from './lib/fpl.js';
 import { syncGameweeks, liveStandings, refreshVoterWeight, teamOut, placeOf, avgOf } from './lib/core.js';
@@ -197,9 +197,9 @@ route('GET', '/api/fpl', async (c) =>
 
 // ==== auth
 
-route('POST', '/api/auth/google', async (c) => {
+/** Google sign in: finds or makes the account and starts a session. */
+async function googleLogin(c, credential, ref) {
   await rateLimit(c.env, `auth:${clientIp(c.req)}`, 30, 3600, c.now);
-  const { credential, ref } = await readJson(c.req);
   const g = await verifyGoogleToken(credential, c.env.GOOGLE_CLIENT_ID, c.now);
   let user = await c.env.DB.prepare('SELECT * FROM users WHERE google_sub = ?').bind(g.sub).first();
   // Same email as an account made with an email link (or Apple): the same account.
@@ -217,7 +217,41 @@ route('POST', '/api/auth/google', async (c) => {
   }
   const cookie = await createSession(c.env, user.id, c.now, isSecure(c.req));
   const suggestion = user.nickname ? null : await suggestNickname(c.env, g.name || g.given_name);
-  return json({ nickname: user.nickname, suggestion }, { headers: { 'set-cookie': cookie } });
+  return { nickname: user.nickname, suggestion, cookie };
+}
+
+route('POST', '/api/auth/google', async (c) => {
+  const { credential, ref } = await readJson(c.req);
+  const { nickname, suggestion, cookie } = await googleLogin(c, credential, ref);
+  return json({ nickname, suggestion }, { headers: { 'set-cookie': cookie } });
+});
+
+/**
+ * Google sign in on phones: the whole page goes to Google and Google posts the answer back here (redirect mode).
+ * The popup does not work in browsers inside apps (Viber, WhatsApp, Instagram), which block its cookies.
+ * Google's g_csrf_token cookie must match the field in the form (Google's own check against forged posts).
+ */
+route('POST', '/api/auth/google/redirect', async (c) => {
+  const back = (q) => {
+    const headers = new Headers({ location: `/login?${new URLSearchParams(q)}`, 'cache-control': 'no-store' });
+    headers.append('set-cookie', 'sj-gref=; Path=/; Max-Age=0; SameSite=None; Secure');
+    return { headers };
+  };
+  try {
+    const form = await c.req.formData();
+    const token = form.get('g_csrf_token');
+    if (!token || token !== getCookie(c.req, 'g_csrf_token')) fail(400, 'google_csrf');
+    let ref = null;
+    try { ref = JSON.parse(getCookie(c.req, 'sj-gref') || 'null'); } catch {}
+    const { nickname, suggestion, cookie } = await googleLogin(c, String(form.get('credential') || ''), ref);
+    const { headers } = back(nickname ? { google: 'ok' } : { google: 'new', s: suggestion || '' });
+    headers.append('set-cookie', cookie);
+    return new Response(null, { status: 303, headers });
+  } catch (e) {
+    const code = e instanceof HttpError ? e.code : 'generic';
+    if (!(e instanceof HttpError)) console.log(JSON.stringify({ msg: 'google_redirect', error: String(e?.stack || e) }));
+    return new Response(null, { status: 303, ...back({ google: 'fail', e: code }) });
+  }
 });
 
 /** An account with this email that has no sign in of this kind yet (column: google_sub or apple_sub). */
@@ -1657,7 +1691,8 @@ export default {
     try {
       const upload = url.pathname.match(/^\/u\/([A-Za-z0-9_.-]{6,80})$/);
       if (upload) return await image({ env, req }, upload[1]);
-      checkOrigin(req);
+      // Google posts the redirect sign in from its own site; that route checks Google's g_csrf_token instead.
+      if (url.pathname !== '/api/auth/google/redirect') checkOrigin(req);
       const fpl = await getFpl(env, now);
       let openMemo;
       const c = {
