@@ -90,7 +90,7 @@ The browser tests look for Chromium in the usual places; set `CHROME_PATH` to po
    npx wrangler r2 bucket create squadjury-images
    ```
    Put the `database_id` printed by the first command into `wrangler.jsonc`.
-2. In Google Cloud, create an OAuth client id of type **Web application** with `https://squadjury.com` as an authorised JavaScript origin, and put the client id in `GOOGLE_CLIENT_ID` in `wrangler.jsonc`.
+2. In Google Cloud, create an OAuth client id of type **Web application** with `https://squadjury.com` as an authorised JavaScript origin, and put the client id in `GOOGLE_CLIENT_ID` in `wrangler.jsonc`. Under **Authorised redirect URIs** add `https://squadjury.com/api/auth/google/redirect`: on phones the sign in goes to Google and back instead of using a popup, because popups break in browsers inside apps (Viber, WhatsApp, Instagram) with "Cookies are disabled".
 3. Store the Google email(s) that may open `/admin` as a secret (comma separated), so they never end up in the repo:
    ```bash
    npx wrangler secret put ADMIN_EMAILS

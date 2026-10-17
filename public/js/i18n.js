@@ -73,6 +73,8 @@ const en = {
   'auth.linkTitle': 'Signing you in',
   'auth.linkBad': 'This sign in link does not work',
   'auth.linkAgain': 'Send a new link',
+  'auth.googleFail': 'Google sign in did not finish',
+  'auth.googleCookies': 'Your browser blocked the sign in. Open squadjury.com in Safari or Chrome and try again, or use an email link.',
   'auth.nickTitle': 'Pick your nickname',
   'auth.nickText': 'This is how the jury and the leaderboard will see you.',
   'auth.nickLabel': 'Nickname',

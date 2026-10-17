@@ -34,6 +34,15 @@ function loadApple() {
   return appleLoading;
 }
 
+/**
+ * Google's popup breaks in browsers inside apps (Viber, WhatsApp, Instagram, Facebook) and on many phones,
+ * because the popup's cookies are blocked ("Cookies are disabled"). There the page goes to Google instead.
+ */
+function useRedirect() {
+  const ua = navigator.userAgent || '';
+  return /FBAN|FBAV|Instagram|Line\/|WhatsApp|Viber|Snapchat|TikTok|; wv\)/i.test(ua) || matchMedia('(pointer: coarse)').matches;
+}
+
 /** Opens the sign in sheet. Resolves true once signed in with a nickname. */
 export function signIn({ title = t('judge.signInToJudge'), text = t('judge.signInText') } = {}) {
   return new Promise((resolve) => {
@@ -69,13 +78,20 @@ export function signIn({ title = t('judge.signInToJudge'), text = t('judge.signI
     if (st.googleClientId) {
       loadGsi()
         .then(() => {
-          window.google.accounts.id.initialize({
-            client_id: st.googleClientId,
-            callback: async ({ credential }) => {
-              try { await finish(await api('/api/auth/google', { method: 'POST', body: { credential, ref } })); }
-              catch (e) { toast(errText(e), { bad: true }); }
-            },
-          });
+          if (useRedirect()) {
+            // Phones: the page goes to Google and comes back to /login (see views/login.js).
+            try { sessionStorage.setItem('sj-login-back', location.pathname + location.search); } catch {}
+            document.cookie = `sj-gref=${encodeURIComponent(JSON.stringify(ref))}; Path=/; Max-Age=900; SameSite=None${location.protocol === 'https:' ? '; Secure' : ''}`;
+            window.google.accounts.id.initialize({ client_id: st.googleClientId, ux_mode: 'redirect', login_uri: `${location.origin}/api/auth/google/redirect` });
+          } else {
+            window.google.accounts.id.initialize({
+              client_id: st.googleClientId,
+              callback: async ({ credential }) => {
+                try { await finish(await api('/api/auth/google', { method: 'POST', body: { credential, ref } })); }
+                catch (e) { toast(errText(e), { bad: true }); }
+              },
+            });
+          }
           window.google.accounts.id.renderButton($('#gsi', s.el), { theme: 'filled_black', size: 'large', shape: 'pill', text: 'continue_with', width: 300 });
         })
         .catch(() => toast(t('err.offline'), { bad: true }));

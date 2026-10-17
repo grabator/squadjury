@@ -50,6 +50,27 @@ const [A, B, C, D, E, F] = users;
 const state = (await A.call('GET', '/api/state')).data;
 const gw = state.gw;
 
+await check('google redirect sign in: posts from Google are let in, a missing or wrong g_csrf_token is refused', async () => {
+  const post = (body, cookie) => fetch(BASE + '/api/auth/google/redirect', {
+    method: 'POST', redirect: 'manual',
+    headers: { origin: 'https://accounts.google.com', 'content-type': 'application/x-www-form-urlencoded', ...(cookie ? { cookie } : {}) },
+    body: new URLSearchParams(body),
+  });
+  let r = await post({ credential: 'x', g_csrf_token: 'abc' });
+  assert.equal(r.status, 303);
+  assert.equal(r.headers.get('location'), '/login?google=fail&e=google_csrf');
+  r = await post({ credential: 'x', g_csrf_token: 'abc' }, 'g_csrf_token=other');
+  assert.equal(r.headers.get('location'), '/login?google=fail&e=google_csrf');
+  r = await post({ credential: 'not.a.token', g_csrf_token: 'abc' }, 'g_csrf_token=abc');
+  assert.equal(r.status, 303);
+  assert.match(r.headers.get('location'), /^\/login\?google=fail&e=/);
+  assert.ok(!/google_csrf/.test(r.headers.get('location')));
+  assert.ok(!(r.headers.get('set-cookie') || '').includes('sj_session'));
+  // other writes from another site are still refused
+  r = await fetch(BASE + '/api/auth/logout', { method: 'POST', headers: { origin: 'https://accounts.google.com' } });
+  assert.equal(r.status, 403);
+});
+
 await check('posting a valid squad works, a second post is refused', async () => {
   assert.equal((await A.call('POST', '/api/teams', form(randomSquad(11)), true)).status, 201);
   assert.equal((await A.call('POST', '/api/teams', form(randomSquad(12)), true)).status, 409);
