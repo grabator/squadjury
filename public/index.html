@@ -38,6 +38,7 @@
   <link rel="modulepreload" href="/js/views/karijera.js">
   <link rel="modulepreload" href="/js/views/vodic.js">
   <link rel="modulepreload" href="/js/views/kutak.js">
+  <link rel="modulepreload" href="/js/views/trofeji.js">
   <script type="module" src="/js/app.js"></script>
 </head>
 <body>
@@ -46,6 +47,7 @@
       <svg class="sp-mark" viewBox="0 0 100 100"><defs><linearGradient id="spc" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#00ff87"/><stop offset="1" stop-color="#05f0ff"/></linearGradient><linearGradient id="spp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b1480"/><stop offset="1" stop-color="#2a0538"/></linearGradient></defs><rect class="sp-tile" x="4" y="4" width="92" height="92" rx="24" fill="url(#spp)"/><g transform="translate(1 0)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="sp-d sp-r1" pathLength="1" d="M33 50A13 13 0 0 1 33 76H25" stroke="#ff3355" stroke-width="8"/><path class="sp-d sp-r2" pathLength="1" d="M28 68.5L20 76L28 83.5" stroke="#ff3355" stroke-width="6.4"/><path class="sp-d sp-g1" pathLength="1" d="M33 50A13 13 0 0 1 33 24H44" stroke="#00e676" stroke-width="8"/><path class="sp-d sp-g2" pathLength="1" d="M41 16.5L49 24L41 31.5" stroke="#00e676" stroke-width="6.4"/><path class="sp-d sp-c" pathLength="1" d="M60 60L68 74L84 24" stroke="url(#spc)" stroke-width="8.5"/></g></svg>
       <p class="sp-word"><span>Squad</span><em>Jury</em></p>
       <p class="sp-tag"><span class="t-en">Plan your team. Rate the rest.</span><span class="t-bs" lang="bs">Planiraj svoj tim. Ocijeni tuđe.</span></p>
+      <p class="sp-load"><span class="t-en">Loading</span><span class="t-bs" lang="bs">Učitavanje</span><i>.</i><i>.</i><i>.</i></p>
     </div>
   </div>
   <a class="skip" href="#main"><span class="t-en">Skip to content</span><span class="t-bs" lang="bs">Preskoči na sadržaj</span></a>
@@ -55,6 +57,7 @@
   </div>
   <nav class="tabs" id="tabs" aria-label="Menu" hidden></nav>
   <nav class="more-sheet" id="more" aria-label="More" hidden></nav>
+  <div class="acct" id="acct" role="dialog" aria-label="Team" hidden></div>
   <dialog class="pd" id="pd" aria-labelledby="pd-h"></dialog>
   <dialog class="cmd" id="cmd" aria-label="Search"></dialog>
   <p class="sr" id="status" role="status" aria-live="polite"></p>

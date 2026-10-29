@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { route, fromDemo, slimBootstrap, slimLive } from '../src/worker.js';
+import { route, fromDemo, slimBootstrap, slimLive, find } from '../src/worker.js';
 
 test('rute', () => {
   assert.deepEqual(route('/api/entry/123/picks/9'), { kind: 'picks', id: 123, gw: 9, up: '/entry/123/event/9/picks/' });
@@ -54,4 +54,17 @@ test('stare SquadJury adrese vode na /jury', async () => {
   assert.equal(r.headers.get('location'), 'https://x.test/jury/leaderboard?tab=gw');
   assert.equal((await w.fetch(new Request('https://x.test/me/verdicts'), env, {})).headers.get('location'), 'https://x.test/jury/me/verdicts');
   assert.equal(await (await w.fetch(new Request('https://x.test/'), env, {})).text(), 'asset');
+});
+
+test('find: traži po imenu tima ili menadžera kroz stranice lige', async () => {
+  const pages = { 1: { league: { name: 'Liga' }, standings: { has_next: true, results: [{ entry: 5, entry_name: 'Džeko FC', player_name: 'Ana A', rank: 1, total: 90 }] } }, 2: { standings: { has_next: false, results: [{ entry: 6, entry_name: 'Bench Boys', player_name: 'Đorđe Dž', rank: 51, total: 40 }] } } };
+  const calls = [];
+  const one = async (r) => { calls.push(r.up); return pages[r.page]; };
+  const a = await find(7, 'dzeko', one);
+  assert.deepEqual(a.results.map((x) => x.entry), [5]);
+  assert.equal(a.league.name, 'Liga'); assert.equal(a.scanned, 2);
+  assert.deepEqual(calls, ['/leagues-classic/7/standings/?page_standings=1', '/leagues-classic/7/standings/?page_standings=2']);
+  assert.deepEqual((await find(7, 'djordje', one)).results.map((x) => x.entry), [6]);
+  assert.deepEqual((await find(7, 'x', one)).results, []);
+  assert.equal(route('/api/find').kind, 'find');
 });

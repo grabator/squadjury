@@ -72,6 +72,14 @@ Ispod svakog igrača na terenu stoji bonus (B0 do B3) i odbrambeni doprinos (DC)
 
 `npm run backtest -- 2026-27 4 6` provjerava model na odigranim kolima: za svako kolo vidi samo ranija kola, pa se procjena poredi sa stvarnim bodovima (javni podaci sa github.com/vaastav/Fantasy-Premier-League). Na osnovu te provjere, za sljedeće kolo aplikacija uzima 90% zvanične FPL procjene (ep_next) i 10% našeg modela; za kola poslije toga FPL procjene nema, pa radi naš model.
 
+## Trofeji
+
+Stranica Trofeji dijeli nagrade u privatnoj ligi, kolo po kolo: Menadžer kola (najviše bodova u ligi), Kapiten kola (najbolji kapiten, zadnja 4 kola i prvih 20 timova na tabeli), Skok kola (najveći skok na tabeli) i Vrh lige (prvo mjesto poslije kola). Računa se iz javnih FPL podataka prvih 50 timova lige. Kod istog rezultata nagradu dobiju svi. Logika je u `leagueAwards` (public/js/model.js).
+
+## Pronađi tim po imenu
+
+FPL nema pretragu svih timova po imenu. Na početnom ekranu zato postoji traženje unutar lige: upiše se ime tima ili menadžera i broj (ili link) lige, a `GET /api/find?league=:id&q=ime` prolazi kroz tabelu lige (najviše 20 stranica po 50 timova). Otvoreni timovi se pamte u pregledniku pod "Nedavni timovi", pa se između njih prelazi preko inicijala gore desno.
+
 ## Jezik
 
 Aplikacija je na engleskom (zadano) i bosanskom. Izbor (EN/BS) je na početnom ekranu, u bočnom meniju, u meniju "Više" na mobitelu i u SquadJury postavkama (Ja). Pamti se u pregledniku (`sj-lang`) i važi za oba dijela. Tekstovi FPL dijela su u kodu kao `tr(bosanski, engleski)` (public/js/i18n.js), a SquadJury tekstovi u public/jury/js/i18n.js i i18n-bs.js.
