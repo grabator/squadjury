@@ -87,3 +87,11 @@ export function countUp(root) {
     requestAnimationFrame(step);
   });
 }
+
+/** Izbor lige: tvoje (privatne) lige pa javne. id je id <select> elementa. */
+export function leaguePick(leagues, cur, id = 'lg-sel') {
+  if (!leagues.length) return '';
+  const opt = (l) => `<option value="${l.id}"${l.id === cur ? ' selected' : ''}>${esc(l.name)}</option>`;
+  const mine = leagues.filter((l) => l.mine), pub = leagues.filter((l) => !l.mine);
+  return `<label class="field lg-pick">Liga<select id="${id}">${mine.length && pub.length ? `<optgroup label="Tvoje lige">${mine.map(opt).join('')}</optgroup><optgroup label="Javne lige">${pub.map(opt).join('')}</optgroup>` : leagues.map(opt).join('')}</select></label>`;
+}

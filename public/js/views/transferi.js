@@ -1,9 +1,13 @@
 // Transferi: besplatni transferi, pojedinačni i dvostruki prijedlozi, minus 4, šta ako, cijene.
 import { S } from '../state.js';
 import { transferIdeas, transferPairs, hitWorth, whatIf, alerts, freeTransfers, risers, xp, num, fmt, price, int, POS_BS } from '../model.js';
-import { esc, ic, pbtn, $, fdrChip } from '../ui.js';
+import { esc, ic, pbtn, $, fdrChip, shirt } from '../ui.js';
 
 export const title = 'Transferi';
+const POS_SHORT = { 1: 'GOL', 2: 'ODB', 3: 'VEZ', 4: 'NAP' };
+// jedan igrač u redu transfera: mali dres, ime, cijena i klub
+const pcell = (ix, e, cls) => `<span class="trx-p ${cls}"><span class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}</span><span class="trx-n">${pbtn(e)}<span class="sub">£${price(e)}m · ${esc(ix.teams.get(e.team).short_name)}</span></span></span>`;
+const swapCells = (ix, out, inn) => `${pcell(ix, out, 'o')}<span class="trx-arrow" aria-hidden="true">→</span><span class="sr">mijenja se za</span>${pcell(ix, inn, 'i')}`;
 let hz = 5;
 const mk = { pos: 0, max: 0, sort: 'xp', q: '' };
 
@@ -25,8 +29,8 @@ export async function render() {
       <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chg up" style="font-size:14px">${ft} ${ft === 1 ? 'besplatan transfer' : 'besplatna transfera'}</span><span class="chg nt" style="font-size:14px">svaki dodatni −4</span></div></div>
     <div class="grid2">
       <div class="stack">
-        <section class="g card" aria-labelledby="h-ideas"><div class="ch" style="margin:0"><h2 id="h-ideas" class="ct">Najbolji pojedinačni transferi</h2><div class="seg" role="group" aria-label="Za koliko kola">${[1, 3, 5].map((n) => `<button type="button" data-hz="${n}" aria-pressed="${hz === n}">${n} ${n === 1 ? 'kolo' : 'kola'}</button>`).join('')}</div></div><div class="list" style="margin-top:12px">${ideas.length ? ideas.map((t) => `<div class="tr"><span class="k">${POS_BS[t.out.element_type]}</span><div class="swap"><div class="p o">${pbtn(t.out)}<span class="sub">£${price(t.out)}m, ${esc(ix.teams.get(t.out.team).short_name)}</span></div>${ic('swap')}<div class="p i">${pbtn(t.inn)}<span class="sub">£${price(t.inn)}m, ${esc(ix.teams.get(t.inn.team).short_name)}</span></div></div>${verdict(t.gain, ft >= 1 ? 0 : 4)}</div>`).join('') : '<p class="muted">Nema transfera koji se jasno isplati.</p>'}</div></section>
-        <section class="g card" aria-labelledby="h-pairs"><h2 id="h-pairs" class="ct">Dva transfera odjednom</h2><p class="sub" style="margin-top:4px">${pairCost ? `Imaš ${ft} besplatan, pa bi ovo koštalo −${pairCost}.` : 'Imaš dovoljno besplatnih transfera za ovo.'}</p><div class="list" style="margin-top:12px">${pairs.length ? pairs.map((t) => `<div class="tr two"><div style="display:grid;gap:6px">${t.outs.map((o, i) => `<div class="swap"><div class="p o">${pbtn(o)}<span class="sub">£${price(o)}m</span></div>${ic('swap')}<div class="p i">${pbtn(t.ins[i])}<span class="sub">£${price(t.ins[i])}m</span></div></div>`).join('')}</div>${verdict(t.gain, pairCost)}</div>`).join('') : '<p class="muted">Nema dobre kombinacije u okviru budžeta.</p>'}</div>
+        <section class="g card" aria-labelledby="h-ideas"><div class="ch" style="margin:0"><h2 id="h-ideas" class="ct">Najbolji pojedinačni transferi</h2><div class="seg" role="group" aria-label="Za koliko kola">${[1, 3, 5].map((n) => `<button type="button" data-hz="${n}" aria-pressed="${hz === n}">${n} ${n === 1 ? 'kolo' : 'kola'}</button>`).join('')}</div></div><div class="list" style="margin-top:12px">${ideas.length ? ideas.map((t) => `<div class="trx"><span class="trx-pos">${POS_SHORT[t.out.element_type]}</span>${swapCells(ix, t.out, t.inn)}${verdict(t.gain, ft >= 1 ? 0 : 4)}</div>`).join('') : '<p class="muted">Nema transfera koji se jasno isplati.</p>'}</div></section>
+        <section class="g card" aria-labelledby="h-pairs"><h2 id="h-pairs" class="ct">Dva transfera odjednom</h2><p class="sub" style="margin-top:4px">${pairCost ? `Imaš ${ft} besplatan, pa bi ovo koštalo −${pairCost}.` : 'Imaš dovoljno besplatnih transfera za ovo.'}</p><div class="list" style="margin-top:12px">${pairs.length ? pairs.map((t) => `<div class="trx two"><div class="trx-lines">${t.outs.map((o, k) => `<div class="trx-line">${swapCells(ix, o, t.ins[k])}</div>`).join('')}</div>${verdict(t.gain, pairCost)}</div>`).join('') : '<p class="muted">Nema dobre kombinacije u okviru budžeta.</p>'}</div>
           <p class="sub" style="margin-top:10px">Minus 4 se isplati samo ako transfer kroz 5 kola donese bar 2 boda više od tih 4. Prodajna cijena u FPL-u može biti malo niža od trenutne, pa provjeri budžet.</p></section>
       </div>
       <div class="stack">

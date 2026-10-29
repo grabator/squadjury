@@ -22,6 +22,12 @@ Dizajn u bojama Premier lige (ljubičasta, zelena, cijan, roza) sa staklenim pan
 - **Karijera:** nivo i XP menadžera, najbolje kolo, brojač žaljenja (kapiten i klupa), kalendar sezone, značke i slika sezone za story.
 - **Vodič:** osnovna pravila FPL-a.
 
+**Novo: lige, kapiteni, izgled**
+- Sve tvoje klasične lige (privatne, pa javne): u Ligi, Rivalu i Uživo prvo biraš ligu, pa rivala iz nje. Izbor se pamti. Kod velikih javnih liga se prikazuje prvih 50 i tvoje mjesto.
+- Kapitenski pogoci (ekran Kapiten): pogodak je kapiten sa 6+ bodova (12+ sa duplim). Broj pogodaka, koliko puta je kapiten bio najbolji u timu, bodovi od kapitena, koliko je ostalo na stolu, najduži niz i kartica za svako kolo. U Ligi tabela pogodaka za članove lige (zadnja 4 kola).
+- Vlastiti padajući meniji i prijedlozi umjesto sistemskih (`public/js/dd.js`), sa tastaturom i čitačem ekrana.
+- Kompaktniji transferi (jedan red po transferu), igrači na terenu se suze kad ih je 5 u redu.
+
 **Novo: Zanimljivosti kola** (meni Kolo)
 - Rekordi igrača protiv protivnika iz sljedećeg kola: utakmice, golovi, asistencije i bodovi po utakmici u Premier ligi od sezone 2016/17.
 - Izdvojeno: najviše golova, najviše asistencija, najviše bodova po utakmici, igrač kojem protivnik „ne leži” i najbolji iz tvog tima.

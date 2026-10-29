@@ -1,7 +1,7 @@
 // Uživo: bodovi tvog tima u kolu, događaji (golovi, asistencije, bonus) i dvoboj sa rivalom iz lige.
-import { S, live, league, picksOf, teamOf, refreshLive } from '../state.js';
+import { S, live, league, picksOf, teamOf, refreshLive, setLeague } from '../state.js';
 import { POS_BS, pl, int } from '../model.js';
-import { esc, pbtn, pitchCard } from '../ui.js';
+import { esc, pbtn, pitchCard, leaguePick } from '../ui.js';
 
 export const prefetch = () => { live(S.lastGw).catch(() => {}); league().catch(() => {}); };
 export const title = 'Uživo';
@@ -18,17 +18,19 @@ export async function render() {
   const mine = teamPoints(me, lv), benchPts = S.bench.reduce((s, id) => s + (lv.get(id)?.total_points || 0), 0);
   const L = await league().catch(() => null);
   const others = (L?.standings?.results || []).filter((r) => r.entry !== S.id);
+  if (rivalId && !others.some((r) => r.entry === rivalId)) rivalId = null;
   if (!rivalId && others.length) { const myRow = L.standings.results.find((r) => r.entry === S.id); rivalId = (L.standings.results.find((r) => myRow && r.rank === myRow.rank - 1) || others[0]).entry; }
   let duel = '';
   if (rivalId) {
     const rp = teamOf(await picksOf(rivalId, gw)), rname = others.find((r) => r.entry === rivalId)?.entry_name || 'Rival';
     const theirs = teamPoints(rp, lv), total = Math.max(1, mine + theirs);
     const leftMine = S.xi.filter((id) => !(lv.get(id)?.minutes)).length, leftTheirs = rp.xi.filter((id) => !(lv.get(id)?.minutes)).length;
-    duel = `<section class="g card" aria-labelledby="h-duel"><div class="ch"><h2 id="h-duel" class="ct">Dvoboj</h2><label class="field" style="min-width:200px"><span class="sr">Rival</span><select id="rival">${others.map((r) => `<option value="${r.entry}"${r.entry === rivalId ? ' selected' : ''}>${esc(r.entry_name)}</option>`).join('')}</select></label></div>
+    duel = `<section class="g card" aria-labelledby="h-duel"><div class="ch"><h2 id="h-duel" class="ct">Dvoboj</h2></div><div class="pick2">${leaguePick(S.leagues, S.leagueId)}<label class="field">Rival<select id="rival">${others.map((r) => `<option value="${r.entry}"${r.entry === rivalId ? ' selected' : ''}>${esc(r.entry_name)}</option>`).join('')}</select></label></div>
       <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;gap:10px"><div><p class="sub">${esc(S.entry.name)}</p><p class="big" style="color:var(--green)">${mine}</p></div><p class="cond" style="font-size:28px;color:var(--d)">:</p><div><p class="sub">${esc(rname)}</p><p class="big" style="color:#ff6aa6">${theirs}</p></div></div>
       <div class="odds mt" aria-hidden="true"><i style="width:${(mine / total * 100).toFixed(0)}%;background:linear-gradient(90deg,#00c46a,var(--green))"></i><i style="width:${(theirs / total * 100).toFixed(0)}%;background:linear-gradient(90deg,var(--pink),#ff6aa6)"></i></div>
       <p class="sub" style="margin-top:10px">${mine === theirs ? 'Izjednačeno.' : mine > theirs ? `Vodiš ${mine - theirs} ${pl(mine - theirs, 'bod', 'boda', 'bodova')}.` : `Zaostaješ ${theirs - mine} ${pl(theirs - mine, 'bod', 'boda', 'bodova')}.`} Bez minuta još: ti ${leftMine}, rival ${leftTheirs} igrača.</p></section>`;
   }
+  else if (S.leagues.length) duel = `<section class="g card"><h2 class="ct">Dvoboj</h2><div class="pick2" style="margin-top:12px">${leaguePick(S.leagues, S.leagueId)}</div><p class="muted" style="margin-top:10px">U ovoj ligi nema drugih menadžera. Izaberi drugu ligu.</p></section>`;
   // događaji
   const feed = [];
   for (const id of [...S.xi, ...S.bench]) {
@@ -65,6 +67,8 @@ export async function render() {
 export function bind(rerender) {
   const sel = document.getElementById('rival');
   if (sel) sel.onchange = () => { rivalId = +sel.value; rerender(); };
+  const lg = document.getElementById('lg-sel');
+  if (lg) lg.onchange = () => { setLeague(+lg.value); rivalId = null; rerender(); };
   clearInterval(timer);
   const ev = S.ix.events.find((e) => e.id === S.lastGw);
   if (ev && !ev.finished) timer = setInterval(() => { if (location.hash.includes('uzivo') && !document.hidden) { refreshLive(S.lastGw); rerender(true); } else clearInterval(timer); }, 60000);

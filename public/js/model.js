@@ -394,6 +394,22 @@ export function badges(history, events, captainPts = {}) {
 }
 
 /** Brojač žaljenja: bodovi ostavljeni na klupi, minus bodovi i (kad je poznato) propušteni kapiten. */
+/**
+ * Kapitenski pogoci kroz sezonu. Pogodak: kapiten donio 6+ bodova (12+ sa duplim).
+ * Promašaj: 2 ili manje (samo minute ili nije igrao). Najbolji izbor: niko iz prvih 11 nije donio više.
+ */
+export const CAP_HIT = 6, CAP_MISS = 2;
+export function captainStats(rows) {
+  const n = rows.length;
+  const hits = rows.filter((r) => r.cap >= CAP_HIT).length, misses = rows.filter((r) => r.cap <= CAP_MISS).length;
+  const best = rows.filter((r) => r.cap >= r.best).length;
+  const total = rows.reduce((s, r) => s + r.cap * r.mult, 0);
+  const lost = rows.reduce((s, r) => s + Math.max(0, r.best - r.cap) * (r.mult - 1), 0);
+  let streak = 0, run = 0;
+  for (const r of rows) { run = r.cap >= CAP_HIT ? run + 1 : 0; streak = Math.max(streak, run); }
+  return { n, hits, misses, best, total, lost, streak, rate: n ? hits / n : 0 };
+}
+
 export function regrets(history, captainMiss = {}) {
   const bench = history.current.reduce((s, x) => s + (x.points_on_bench || 0), 0);
   const hits = history.current.reduce((s, x) => s + (x.event_transfers_cost || 0), 0);

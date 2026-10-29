@@ -1,5 +1,6 @@
 // FPL Manager: meni, rute, kartica igrača i početni ekran. Ekrani su u js/views/.
 import { setDemo, isDemo, warm } from './api.js';
+import { enhance } from './dd.js';
 import { S, load, reset, element, warmCaptainHistory } from './state.js';
 import { xp, fixturesFor, reason, fmt, price, num, POS_BS, dayShort, dateShort, dateLong } from './model.js';
 import { $, esc, ic, ROUTES, TABS, shirt, fdrChip } from './ui.js';
@@ -77,6 +78,7 @@ async function openPlayer(id) {
   dlg.querySelector('[data-close]').onclick = () => dlg.close();
   const ci = $('#pd-cmp');
   ci.oninput = () => { const v = ci.value.trim().toLowerCase(); const o = [...ix.players.values()].find((x) => x.id !== e.id && x.web_name.toLowerCase() === v); $('#pd-cmp-res').innerHTML = o ? compare(ix, e, o) : ''; };
+  enhance(dlg);
   if (!dlg.open) dlg.showModal();
   dlg.scrollTop = 0;
   try {
@@ -176,6 +178,7 @@ async function render(quiet) {
     main.dataset.v = r;
     if (!quiet && !calm) { main.classList.remove('in'); void main.offsetWidth; main.classList.add('in'); }
     v.bind?.((q) => render(q));
+    enhance(main);
     if (!warmed) { warmed = true; (window.requestIdleCallback || setTimeout)(() => { warm(...(S.leagueId ? ['/league/' + S.leagueId] : []), '/live/' + S.lastGw); warmCaptainHistory(8); }); }
   } catch (e) {
     clearTimeout(skT);

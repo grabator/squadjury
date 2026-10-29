@@ -1,7 +1,7 @@
 // Rival radar: šansa da pobijediš rivala sljedeće kolo, njegov vjerovatni kapiten, razlike u timovima i sezona jedan na jedan.
-import { S, league, picksOf, teamOf, historyOf } from '../state.js';
+import { S, league, picksOf, teamOf, historyOf, setLeague } from '../state.js';
 import { duelOdds, compareSquads, predictCaptain, captainOptions, fmt, pct, pl } from '../model.js';
-import { esc, pbtn } from '../ui.js';
+import { esc, pbtn, leaguePick } from '../ui.js';
 
 export const prefetch = () => { league().catch(() => {}); };
 export const title = 'Rival';
@@ -12,7 +12,7 @@ export async function render() {
   const L = await league().catch(() => null);
   const rows = L?.standings?.results || [];
   const others = rows.filter((r) => r.entry !== S.id);
-  if (!others.length) return `<div class="head"><h1>Rival radar</h1></div><section class="g card"><p class="muted">Za rival radar treba bar jedna klasična mini liga sa još nekim menadžerom.</p></section>`;
+  if (!others.length) return `<div class="head"><div><h1>Rival radar</h1><p class="sub">Izaberi ligu, pa menadžera iz nje kao rivala</p></div><div class="pick2">${leaguePick(S.leagues, S.leagueId)}</div></div><section class="g card"><p class="muted">${S.leagues.length ? 'U ovoj ligi nema drugih menadžera.' : 'Za rival radar treba bar jedna klasična liga sa još nekim menadžerom.'}</p></section>`;
   const myRow = rows.find((r) => r.entry === S.id);
   if (!rivalId || !others.some((r) => r.entry === rivalId)) rivalId = (rows.find((r) => myRow && r.rank === myRow.rank - 1) || others[0]).entry;
   const rr = others.find((r) => r.entry === rivalId);
@@ -31,8 +31,8 @@ export async function render() {
   const tip = odds.win >= 0.55 ? `Ti si favorit. Najsigurnije je da kapiten bude isti kao njegov (${esc(theirCap?.e.web_name || '')}), pa tvoje prednosti ostaju na tvojim igračima koje on nema.`
     : `On je favorit. Da ga stigneš, tvoj kapiten može biti igrač kojeg on nema${diffCap ? ', npr. <b>' + esc(diffCap.e.web_name) + '</b>' : ''}. Tako svaki njegov bod računaš duplo.`;
   const list = (arr) => arr.length ? arr.map((x) => `<div class="li"><span class="k">${esc(ix.teams.get(x.e.team).short_name)}</span><span>${pbtn(x.e)}</span><span class="chg vi">${fmt(x.xp)}</span></div>`).join('') : '<p class="muted">Nema.</p>';
-  return `<div class="head"><div><h1>Rival radar</h1><p class="sub">Kolo ${ix.nextGw}: šta će rival vjerovatno uraditi i kako ga prestići</p></div>
-      <label class="field" style="min-width:220px">Rival<select id="rival">${others.map((r) => `<option value="${r.entry}"${r.entry === rivalId ? ' selected' : ''}>${esc(r.entry_name)} (${r.rank}.)</option>`).join('')}</select></label></div>
+  return `<div class="head"><div><h1>Rival radar</h1><p class="sub">Kolo ${ix.nextGw}: izaberi ligu i rivala, pa vidi šta će vjerovatno uraditi i kako ga prestići</p></div>
+      <div class="pick2">${leaguePick(S.leagues, S.leagueId)}<label class="field">Rival<select id="rival">${others.map((r) => `<option value="${r.entry}"${r.entry === rivalId ? ' selected' : ''}>${esc(r.entry_name)} (${r.rank}.)</option>`).join('')}</select></label></div></div>
     <div class="grid3">
       <section class="g card"><p class="sub">Šansa da ga pobijediš u kolu ${ix.nextGw}</p><p class="big" style="margin-top:4px;color:${odds.win >= 0.5 ? 'var(--green)' : '#ff6aa6'}">${pct(odds.win)}</p>
         <div class="odds" style="margin-top:10px" aria-hidden="true"><i style="width:${pct(odds.win)};background:var(--green)"></i><i style="width:${pct(odds.draw)};background:rgba(255,255,255,.4)"></i><i style="width:${pct(odds.lose)};background:var(--pink)"></i></div>
@@ -51,4 +51,6 @@ export async function render() {
 export function bind(rerender) {
   const sel = document.getElementById('rival');
   if (sel) sel.onchange = () => { rivalId = +sel.value; rerender(); };
+  const lg = document.getElementById('lg-sel');
+  if (lg) lg.onchange = () => { setLeague(+lg.value); rivalId = null; rerender(); };
 }
