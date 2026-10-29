@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>SquadJury: Rate FPL Teams and Squads Before the Deadline</title>
+    <meta name="description" content="Post your Fantasy Premier League squad and let the community judge it from 1 to 10. Top rated squads of every gameweek make the leaderboard.">
+    <meta name="theme-color" content="#2a0a3d">
+    <meta name="color-scheme" content="dark">
+    <link rel="icon" href="/jury/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/jury/img/icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="/jury/img/icons/apple-touch-icon.png">
+    <link rel="manifest" href="/jury/manifest.webmanifest">
+    <link rel="preload" href="/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/jury/css/app.css?v=22">
+    <link rel="modulepreload" href="/jury/js/views/judge.js">
+    <link rel="modulepreload" href="/jury/js/views/common.js">
+    <link rel="modulepreload" href="/jury/js/fpl.js">
+    <link rel="modulepreload" href="/jury/js/pitch.js">
+    <link rel="modulepreload" href="/jury/js/sound.js">
+    <link rel="modulepreload" href="/jury/js/auth.js">
+    <!-- og:start -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="SquadJury">
+    <meta property="og:title" content="SquadJury: Post your squad. The jury decides.">
+    <meta property="og:description" content="Post your FPL squad and let the community judge it from 1 to 10 before the deadline.">
+    <meta property="og:image" content="/jury/img/og-default.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <!-- og:end -->
+  </head>
+  <body>
+    <a class="sr-only" href="#app">Skip to content</a>
+    <header class="topbar">
+      <div class="brand-wrap"><a class="fm-back" href="/#/pregled" title="Nazad na FPL Manager"><i aria-hidden="true">FM</i><span>Manager</span></a><a class="brand" href="/jury/" aria-label="SquadJury home"><img src="/jury/img/logo/logo-white.svg" alt="SquadJury" width="86" height="24"></a></div>
+      <button type="button" class="clock" id="clock" aria-label="Deadline"></button>
+    </header>
+    <nav class="tabs" id="tabs" aria-label="Main"></nav>
+    <main id="app" tabindex="-1">
+      <div class="skeleton" style="height:70vh"></div>
+    </main>
+    <noscript><p style="padding:16px">SquadJury needs JavaScript to run.</p></noscript>
+    <script type="module" src="/jury/js/app.js?v=22"></script>
+  </body>
+</html>

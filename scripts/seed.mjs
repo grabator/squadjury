@@ -8,9 +8,9 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { seasonOf, gwKey } from '../src/lib/season.js';
-import { elo, pairKey, roundRobin } from '../src/lib/duels.js';
-import { scoutScores } from '../src/lib/scouts.js';
+import { seasonOf, gwKey } from '../src/jury/lib/season.js';
+import { elo, pairKey, roundRobin } from '../src/jury/lib/duels.js';
+import { scoutScores } from '../src/jury/lib/scouts.js';
 
 const remote = process.argv.includes('--remote');
 if (remote && process.env.DEMO_MODE !== '1') {
@@ -18,7 +18,7 @@ if (remote && process.env.DEMO_MODE !== '1') {
   process.exit(1);
 }
 
-const snap = JSON.parse(readFileSync(new URL('../src/data/fpl-snapshot.json', import.meta.url)));
+const snap = JSON.parse(readFileSync(new URL('../src/jury/data/fpl-snapshot.json', import.meta.url)));
 let seed = 20261011;
 const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 const pick = (arr) => arr[Math.floor(rnd() * arr.length)];

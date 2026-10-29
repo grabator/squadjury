@@ -1,49 +1,17 @@
-// Service worker: the app shell loads instantly on repeat visits.
-// Our JS and CSS are network first, fonts and images cache first; the API and share pages always go to the network.
-const VERSION = 'sj-v22';
-const SHELL = ['/', '/css/app.css?v=13', '/js/app.js?v=13', '/img/logo/logo.svg', '/img/logo/mark.svg', '/img/logo/logo-white.svg', '/fonts/archivo-latin-var.woff2', '/manifest.webmanifest'];
-
-self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
-});
-
-self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
-});
-
+// Service worker: aplikacija radi i bez mreže (zadnja učitana verzija), podaci uvijek prvo sa mreže.
+const V = 'fm-v4';
+const VIEWS = ['pregled', 'tim', 'kapiten', 'transferi', 'raspored', 'uzivo', 'rival', 'liga', 'karijera', 'vodic'].map((v) => '/js/views/' + v + '.js');
+const SHELL = ['/', '/css/app.css', '/js/boot.js', '/js/app.js', '/js/api.js', '/js/model.js', '/js/state.js', '/js/ui.js', ...VIEWS, '/img/stadion.webp', '/fonts/manrope-latin.woff2', '/fonts/barlow-condensed-800.woff2'];
+self.addEventListener('install', (e) => { e.waitUntil(caches.open(V).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
+self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== V).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', (e) => {
-  const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/u/') || url.pathname.startsWith('/t/') || url.pathname.startsWith('/embed/')) return;
-  // Page navigations: network first, so a new version shows up; the cached shell when offline.
-  if (e.request.mode === 'navigate') {
-    e.respondWith(fetch(e.request).catch(() => caches.match('/')));
+  const u = new URL(e.request.url);
+  if (e.request.method !== 'GET' || u.origin !== location.origin) return;
+  // SquadJury (/jury, njegov API i linkovi za dijeljenje) ima svoj service worker
+  if (/^\/(jury|t|r|l|u|embed)(\/|$)/.test(u.pathname) || (u.pathname.startsWith('/api/') && !/^\/api\/(bootstrap|fixtures|entry|live|league|element|team)(\/|$)/.test(u.pathname))) return;
+  if (u.pathname.startsWith('/api/')) {
+    e.respondWith(fetch(e.request).then((r) => { const c = r.clone(); caches.open(V).then((x) => x.put(e.request, c)); return r; }).catch(() => caches.match(e.request)));
     return;
   }
-  // Our own code (JS and CSS): network first, so every file comes from the same deploy.
-  // Cache first here once mixed an old i18n.js with a new intro.js after a deploy.
-  if (/\.(js|css)$/.test(url.pathname) && !url.pathname.startsWith('/vendor/')) {
-    e.respondWith(
-      fetch(e.request)
-        .then((res) => {
-          if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(e.request, copy)); }
-          return res;
-        })
-        .catch(() => caches.match(e.request)),
-    );
-    return;
-  }
-  // Fonts, images and the OCR engine never change under the same name: cache first.
-  e.respondWith(
-    caches.match(e.request).then((hit) =>
-      hit ||
-      fetch(e.request).then((res) => {
-        if (res.ok && /\.(woff2|svg|png|gz|js)$/.test(url.pathname)) {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put(e.request, copy));
-        }
-        return res;
-      }),
-    ),
-  );
+  e.respondWith(fetch(e.request).then((r) => { const c = r.clone(); caches.open(V).then((x) => x.put(e.request, c)); return r; }).catch(() => caches.match(e.request).then((r) => r || caches.match('/'))));
 });

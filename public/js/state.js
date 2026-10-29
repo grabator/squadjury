@@ -1,0 +1,48 @@
+// Stanje aplikacije i učitavanje podataka (sve preko /api, keš u api.js).
+import { get, forget } from './api.js';
+import { index } from './model.js';
+
+export const S = { ready: false };
+
+export async function load(id) {
+  const [boot, fixtures, team] = await Promise.all([get('/bootstrap'), get('/fixtures'), get('/team/' + id)]);
+  const { entry, history, picks } = team;
+  if (!picks) { const e = new Error('Ovaj tim još nema odigrano kolo.'); e.status = 404; throw e; }
+  const ix = index(boot, fixtures);
+  const lastGw = team.gw;
+  const ids = picks.picks.map((p) => p.element);
+  const last = history.current[history.current.length - 1] || {};
+  Object.assign(S, {
+    ready: true, id, ix, entry, history, picks, ids, xi: ids.slice(0, 11), bench: ids.slice(11), lastGw,
+    captain: picks.picks.find((p) => p.is_captain)?.element, vice: picks.picks.find((p) => p.is_vice_captain)?.element,
+    bank: last.bank ?? entry.last_deadline_bank ?? 0, league: null, leagueId: entry.leagues?.classic?.find((l) => l.id > 0)?.id || null
+  });
+}
+export function reset() { for (const k of Object.keys(S)) delete S[k]; S.ready = false; }
+
+export async function league() {
+  if (!S.leagueId) return null;
+  if (!S.league) S.league = await get('/league/' + S.leagueId);
+  return S.league;
+}
+const lives = new Map();
+export const refreshLive = (gw) => forget('/live/' + gw);
+export const live = (gw) => { const k = get('/live/' + gw); if (!lives.has(gw) || lives.get(gw).src !== k) { const m = k.then((d) => new Map(d.elements.map((e) => [e.id, e.stats]))); m.src = k; lives.set(gw, m); } return lives.get(gw); };
+export const picksOf = (entryId, gw) => get('/entry/' + entryId + '/picks/' + gw);
+export const historyOf = (entryId) => get('/entry/' + entryId + '/history');
+export const element = (id) => get('/element/' + id);
+export const teamOf = (p) => { const ids = p.picks.map((x) => x.element); return { xi: ids.slice(0, 11), bench: ids.slice(11), captain: p.picks.find((x) => x.is_captain)?.element, vice: p.picks.find((x) => x.is_vice_captain)?.element }; };
+
+// bodovi kapitena (i najboljeg mogućeg kapitena) po kolima, za karijeru i žaljenje; zadnjih n kola
+const lastGws = (n) => S.history.current.slice(-n).map((h) => h.event);
+export const warmCaptainHistory = (n = 8) => { for (const gw of lastGws(n)) { picksOf(S.id, gw).catch(() => {}); live(gw).catch(() => {}); } };
+export async function captainHistory(n = 8) {
+  const gws = lastGws(n);
+  const rows = await Promise.all(gws.map(async (gw) => {
+    const [p, lv] = await Promise.all([picksOf(S.id, gw), live(gw)]);
+    const t = teamOf(p), pts = (id) => lv.get(id)?.total_points || 0;
+    const cap = pts(t.captain), best = Math.max(...t.xi.map(pts));
+    return { gw, cap, best, chip: p.active_chip };
+  }));
+  return rows;
+}

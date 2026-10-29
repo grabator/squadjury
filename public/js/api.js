@@ -1,56 +1,23 @@
-// Thin fetch wrapper for the SquadJury API.
+// Pozivi prema našem Workeru. U demo modu se dodaje ?demo=1 pa Worker vraća izmišljene podatke.
+const memo = new Map();
+let demo = false;
+export const setDemo = (v) => { demo = !!v; memo.clear(); };
+export const isDemo = () => demo;
+/** Učitaj u pozadini (greške se ignorišu, rezultat ostaje u kešu). */
+/** Zaboravi keširani odgovor (npr. uživo bodovi), pa sljedeći get ide na mrežu. */
+export const forget = (path) => { memo.delete('/api' + path + (demo ? '?demo=1' : '')); };
+export const warm = (...paths) => { for (const p of paths) get(p).catch(() => {}); };
 
-let fakeNow = null;
-try {
-  // Development only: ?now=2026-10-17T12:00:00Z simulates time (the server ignores it in production).
-  const q = new URLSearchParams(location.search).get('now');
-  if (q) sessionStorage.setItem('sj-now', q);
-  fakeNow = sessionStorage.getItem('sj-now');
-} catch {}
-
-export class ApiError extends Error {
-  constructor(status, data) {
-    super(data?.error || `http_${status}`);
-    this.status = status;
-    this.code = data?.error || `http_${status}`;
-    this.data = data;
+export async function get(path) {
+  const url = '/api' + path + (demo ? '?demo=1' : '');
+  if (!memo.has(url)) {
+    const pre = window.__pre?.[url];
+    if (pre) delete window.__pre[url];
+    memo.set(url, (pre || fetch(url)).then(async (r) => {
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { const e = new Error(d.greska || 'Greška ' + r.status); e.status = r.status; throw e; }
+      return d;
+    }).catch((e) => { memo.delete(url); throw e; }));
   }
+  return memo.get(url);
 }
-
-export async function api(path, { method = 'GET', body, form, signal } = {}) {
-  const headers = {};
-  if (fakeNow) headers['x-sj-now'] = fakeNow;
-  let payload;
-  if (form) payload = form;
-  else if (body !== undefined) {
-    headers['content-type'] = 'application/json';
-    payload = JSON.stringify(body);
-  }
-  let res;
-  try {
-    res = await fetch(path, { method, headers, body: payload, credentials: 'same-origin', signal });
-  } catch (e) {
-    if (e.name === 'AbortError') throw e;
-    throw new ApiError(0, { error: 'offline' });
-  }
-  const data = await res.json().catch(() => null);
-  if (!res.ok) throw new ApiError(res.status, data);
-  return data;
-}
-
-/** Retries a write a few times with backoff (for optimistic verdicts). */
-export async function withRetry(fn, tries = 4) {
-  let wait = 600;
-  for (let i = 0; ; i++) {
-    try {
-      return await fn();
-    } catch (e) {
-      const retryable = e.status === 0 || e.status >= 500 || e.status === 429;
-      if (!retryable || i >= tries - 1) throw e;
-      await new Promise((r) => setTimeout(r, wait));
-      wait *= 2;
-    }
-  }
-}
-
-export const nowMs = () => (fakeNow ? Date.parse(fakeNow) : Date.now());

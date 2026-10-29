@@ -1,8 +1,9 @@
 node_modules/
 .wrangler/
 .dev.vars
+scripts/.stadion.png
+public/jury/vendor/
+*.traineddata
 .scratch/
 test-results/
-*.traineddata
-public/vendor/
 __pycache__/

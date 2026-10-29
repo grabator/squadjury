@@ -5,11 +5,15 @@
 //   cmd:         set ADMIN_TOKEN=... && npm run points -- --gw 7
 //
 // ADMIN_TOKEN is the same secret you set once with: npx wrangler secret put ADMIN_TOKEN
-// BASE defaults to https://squadjury.com (use BASE=http://127.0.0.1:8787 for local testing).
+// BASE is the address of the app, for example https://your-domain (or http://127.0.0.1:8790 locally).
 
 const args = process.argv.slice(2);
 const gw = +args[args.indexOf('--gw') + 1];
-const BASE = process.env.BASE || 'https://squadjury.com';
+const BASE = process.env.BASE;
+if (!BASE) {
+  console.error('Set BASE to the address of the app, for example BASE=https://your-domain');
+  process.exit(1);
+}
 const token = process.env.ADMIN_TOKEN;
 if (!(gw >= 1 && gw <= 38)) {
   console.error('Usage: npm run points -- --gw 7');
