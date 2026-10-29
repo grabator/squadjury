@@ -159,3 +159,19 @@ test('demo historija je usklađena sa bodovima igrača', () => {
   const isak = ix.players.get(379);
   assert.equal(isak.total_points, demo.element(379).history.reduce((s, x) => s + x.total_points, 0));
 });
+
+test('bonus po BPS-u: izjednačeni dijele mjesto, sljedeći preskače', async () => {
+  const { bonusFromBps, liveBonus, defCon } = await import('../public/js/model.js');
+  const b = bonusFromBps([{ id: 1, bps: 40, mins: 90 }, { id: 2, bps: 40, mins: 90 }, { id: 3, bps: 30, mins: 90 }, { id: 4, bps: 20, mins: 90 }, { id: 5, bps: 50, mins: 0 }]);
+  assert.deepEqual([b.get(1), b.get(2), b.get(3), b.get(4), b.get(5)], [3, 3, 1, 0, undefined]);
+  const t = bonusFromBps([{ id: 1, bps: 40, mins: 90 }, { id: 2, bps: 30, mins: 90 }, { id: 3, bps: 30, mins: 90 }, { id: 4, bps: 10, mins: 90 }]);
+  assert.deepEqual([t.get(1), t.get(2), t.get(3), t.get(4)], [3, 2, 2, 0]);
+  // privremeni bonus dok FPL ne potvrdi, poslije pravi
+  const lv = new Map([[1, { bonus: 0, bps: 40, fx: [[9, 40, 90]] }], [2, { bonus: 0, bps: 20, fx: [[9, 20, 90]] }]]);
+  assert.deepEqual(liveBonus(lv).get(1), { bps: 40, bonus: 3, provisional: 3 });
+  const done = new Map([[1, { bonus: 2, bps: 40, fx: [[9, 40, 90]] }], [2, { bonus: 3, bps: 20, fx: [[9, 20, 90]] }]]);
+  assert.deepEqual(liveBonus(done).get(1), { bps: 40, bonus: 2, provisional: 0 });
+  assert.deepEqual(defCon({ element_type: 2 }, { defensive_contribution: 10 }), { v: 10, need: 10, hit: true });
+  assert.deepEqual(defCon({ element_type: 3 }, { clearances_blocks_interceptions: 4, tackles: 3, recoveries: 4 }), { v: 11, need: 12, hit: false });
+  assert.equal(defCon({ element_type: 1 }, {}), null);
+});

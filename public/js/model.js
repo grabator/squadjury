@@ -432,3 +432,49 @@ export const dateLong = (d) => DAYS[d.getDay()] + ', ' + dateShort(d) + tr(' u '
 export const pct = (p) => Math.round(p * 100) + '%';
 
 export { plural } from './i18n.js';
+
+// ---------------- uživo: bonus po BPS-u i odbrambeni doprinos ----------------
+/**
+ * Bonus u jednoj utakmici po BPS-u: 3, 2 i 1 za prva tri mjesta. Izjednačeni dijele mjesto,
+ * a sljedeći igrač preskače (dva prva po 3, treći dobije 1), kao u FPL pravilima.
+ * rows: [{ id, bps, mins }]; računaju se samo igrači koji su igrali.
+ */
+export function bonusFromBps(rows) {
+  const played = rows.filter((r) => r.mins > 0);
+  const out = new Map();
+  for (const r of played) { const rank = 1 + played.filter((x) => x.bps > r.bps).length; out.set(r.id, rank <= 3 ? 4 - rank : 0); }
+  return out;
+}
+
+/**
+ * Bonus i BPS za sve igrače kola. lv: Map id -> stats (sa fx: [[utakmica, bps, minute]]).
+ * Kad FPL potvrdi bonus u utakmici (neko ima bonus > 0), koristi se pravi bonus; inače procjena iz BPS-a.
+ * Vraća Map id -> { bps, bonus, provisional } gdje je provisional bonus koji još nije u total_points.
+ */
+export function liveBonus(lv) {
+  const byFix = new Map();
+  for (const [id, s] of lv) for (const [f, bps, mins] of s.fx || []) { if (!byFix.has(f)) byFix.set(f, []); byFix.get(f).push({ id, bps, mins }); }
+  const res = new Map();
+  for (const [, rows] of byFix) {
+    const confirmed = rows.some((r) => (lv.get(r.id)?.bonus || 0) > 0);
+    const proj = bonusFromBps(rows);
+    for (const r of rows) {
+      const cur = res.get(r.id) || { bps: 0, bonus: 0, provisional: 0 };
+      cur.bps += r.bps;
+      if (confirmed) cur.bonus = lv.get(r.id)?.bonus || 0;
+      else { const b = proj.get(r.id) || 0; cur.bonus += b; cur.provisional += b; }
+      res.set(r.id, cur);
+    }
+  }
+  for (const [id, s] of lv) if (!res.has(id)) res.set(id, { bps: s.bps || 0, bonus: s.bonus || 0, provisional: 0 });
+  return res;
+}
+
+/** Odbrambeni doprinos (DefCon): odbrana treba 10 (otklanjanja, blokade, presjeci, startovi), vezni i napadači 12 (plus povrati lopte). Golmani ne dobijaju. */
+export const DEFCON_NEED = { 2: 10, 3: 12, 4: 12 };
+export function defCon(e, s = {}) {
+  const need = DEFCON_NEED[e.element_type];
+  if (!need) return null;
+  const v = s.defensive_contribution ?? ((s.clearances_blocks_interceptions || 0) + (s.tackles || 0) + (e.element_type >= 3 ? s.recoveries || 0 : 0));
+  return { v, need, hit: v >= need };
+}

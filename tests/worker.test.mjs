@@ -30,11 +30,17 @@ test('team: menadžer, historija i tim zadnjeg kola u jednom', async () => {
   assert.equal(t.gw, t.history.current.at(-1).event);
   assert.equal(t.picks.picks.length, 15);
   assert.equal(route('/api/team/1').kind, 'team');
+  // demo tim je za sljedeće kolo već prodao povrijeđenog Isaka
+  assert.equal(t.transfers.length, 1);
+  assert.equal(t.transfers[0].element_out, 379);
+  assert.equal(route('/api/entry/1/transfers').up, '/entry/1/transfers/');
 });
 
 test('slimLive zadržava samo statistike', () => {
-  const d = slimLive({ elements: [{ id: 7, stats: { minutes: 90, total_points: 9, influence: '30.2' }, explain: [{ fixture: 1 }] }] });
-  assert.deepEqual(Object.keys(d.elements[0]), ['id', 'stats']);
+  const d = slimLive({ elements: [{ id: 7, stats: { minutes: 90, total_points: 9, influence: '30.2', bps: 31 }, explain: [{ fixture: 1, stats: [{ identifier: 'minutes', value: 90 }, { identifier: 'bps', value: 31 }] }] }] });
+  assert.deepEqual(Object.keys(d.elements[0]), ['id', 'stats', 'fx']);
+  assert.deepEqual(d.elements[0].fx, [[1, 31, 90]]);
+  assert.equal(d.elements[0].stats.bps, 31);
   assert.equal(d.elements[0].stats.total_points, 9);
   assert.equal(d.elements[0].stats.influence, undefined);
   assert.equal(d.elements[0].stats.bonus, 0);

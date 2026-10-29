@@ -114,7 +114,32 @@ export const fixtures = () => build().fixtures;
 
 export function live(gw) {
   const b = build();
-  return { elements: b.elements.map((e) => { const s = (b.gwStats.get(e.id) || [])[gw - 1]; return { id: e.id, stats: s ? { minutes: s.minutes, goals_scored: s.goals_scored, assists: s.assists, clean_sheets: s.clean_sheets, bonus: s.bonus, total_points: s.total_points } : { minutes: 0, goals_scored: 0, assists: 0, clean_sheets: 0, bonus: 0, total_points: 0 } }; }) };
+  const rows = b.elements.map((e) => {
+    const s = (b.gwStats.get(e.id) || [])[gw - 1], fx = b.fixtures.find((f) => f.event === gw && (f.team_h === e.team || f.team_a === e.team));
+    if (!s || !s.minutes) return { id: e.id, stats: { minutes: 0, goals_scored: 0, assists: 0, clean_sheets: 0, bonus: 0, bps: 0, defensive_contribution: 0, total_points: 0 }, fx: fx ? [[fx.id, 0, 0]] : [] };
+    // BPS i odbrambeni doprinos (DefCon) su izmišljeni, ali prate golove, asistencije i čiste mreže
+    const r = rng(e.id * 613 + gw * 29), pos = e.element_type;
+    const bps = (s.minutes >= 60 ? 6 : 3) + s.goals_scored * [0, 12, 12, 18, 24][pos] + s.assists * 9 + s.clean_sheets * (pos <= 2 ? 12 : 0) + Math.floor(r() * 14);
+    const dc = pos === 1 ? 0 : Math.round(r() * [0, 14, 15, 8][pos - 1] * (s.minutes / 90));
+    return { id: e.id, stats: { minutes: s.minutes, goals_scored: s.goals_scored, assists: s.assists, clean_sheets: s.clean_sheets, bonus: 0, bps, defensive_contribution: dc, total_points: s.total_points - s.bonus }, fx: fx ? [[fx.id, bps, s.minutes]] : [] };
+  });
+  // bonus po BPS-u u svakoj utakmici (3, 2, 1), kao što ga FPL dodijeli na kraju utakmice
+  const byFix = new Map();
+  for (const x of rows) for (const [f, bps, mins] of x.fx) if (mins > 0) { if (!byFix.has(f)) byFix.set(f, []); byFix.get(f).push(x); }
+  for (const list of byFix.values()) for (const x of list) { const rank = 1 + list.filter((y) => y.stats.bps > x.stats.bps).length; const bonus = rank <= 3 ? 4 - rank : 0; x.stats.bonus = bonus; x.stats.total_points += bonus; }
+  return { elements: rows };
+}
+
+/** Transferi: demo tim (ID 1) je za sljedeće kolo već prodao povrijeđenog Isaka, kao da je to urađeno na FPL-u. */
+export function transfers(id) {
+  if (id !== 1) return [];
+  const b = build(), s = grabaSquad(), ids = [...s.xi, ...s.bench], out = b.elements.find((e) => e.id === INJURED);
+  if (!out || !ids.includes(out.id)) return [];
+  const bank = historyFor(1).current.at(-1).bank, clubs = {};
+  for (const id2 of ids) if (id2 !== out.id) { const t = b.elements.find((e) => e.id === id2).team; clubs[t] = (clubs[t] || 0) + 1; }
+  const inn = b.elements.filter((e) => e.element_type === out.element_type && !ids.includes(e.id) && e.now_cost <= out.now_cost + bank && (clubs[e.team] || 0) < 3 && e.status === 'a').sort((x, y) => y.total_points - x.total_points)[0];
+  if (!inn) return [];
+  return [{ element_in: inn.id, element_in_cost: inn.now_cost, element_out: out.id, element_out_cost: out.now_cost, entry: 1, event: DEMO_CURRENT + 1, time: '2026-10-29T18:00:00Z' }];
 }
 
 export function element(id) {

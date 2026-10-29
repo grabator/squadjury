@@ -5,6 +5,7 @@
 //   GET /api/entry/:id              menadžer
 //   GET /api/entry/:id/history      bodovi i rang po kolima
 //   GET /api/entry/:id/picks/:gw    tim u kolu
+//   GET /api/entry/:id/transfers    svi transferi, i oni već napravljeni za sljedeće kolo
 //   GET /api/live/:gw               bodovi igrača u kolu
 //   GET /api/league/:id             tabela klasične lige
 //   GET /api/element/:id            igrač: bodovi po kolima i sljedeće utakmice
@@ -18,7 +19,7 @@ const FPL = 'https://fantasy.premierleague.com/api';
 const UA = { 'user-agent': 'FPL-Manager/0.1', accept: 'application/json' };
 
 // koliko dugo čuvati odgovor (sekunde)
-const TTL = { bootstrap: 900, fixtures: 900, entry: 300, history: 300, picks: 300, live: 60, league: 300, element: 900, team: 300 };
+const TTL = { bootstrap: 900, fixtures: 900, entry: 300, history: 300, picks: 300, transfers: 120, live: 60, league: 300, element: 900, team: 300 };
 
 const SEC = { 'x-content-type-options': 'nosniff', 'referrer-policy': 'strict-origin-when-cross-origin' };
 const json = (data, status = 200, ttl = 0) => new Response(JSON.stringify(data), {
@@ -31,6 +32,7 @@ export function route(path) {
   if (path === '/api/fixtures') return { kind: 'fixtures', up: '/fixtures/' };
   if ((m = path.match(/^\/api\/entry\/(\d{1,9})$/))) return { kind: 'entry', id: +m[1], up: `/entry/${m[1]}/` };
   if ((m = path.match(/^\/api\/entry\/(\d{1,9})\/history$/))) return { kind: 'history', id: +m[1], up: `/entry/${m[1]}/history/` };
+  if ((m = path.match(/^\/api\/entry\/(\d{1,9})\/transfers$/))) return { kind: 'transfers', id: +m[1], up: `/entry/${m[1]}/transfers/` };
   if ((m = path.match(/^\/api\/entry\/(\d{1,9})\/picks\/(\d{1,2})$/))) return { kind: 'picks', id: +m[1], gw: +m[2], up: `/entry/${m[1]}/event/${m[2]}/picks/` };
   if ((m = path.match(/^\/api\/live\/(\d{1,2})$/))) return { kind: 'live', gw: +m[1], up: `/event/${m[1]}/live/` };
   if ((m = path.match(/^\/api\/league\/(\d{1,9})$/))) return { kind: 'league', id: +m[1], up: `/leagues-classic/${m[1]}/standings/` };
@@ -46,6 +48,7 @@ export function fromDemo(r) {
     case 'entry': return demo.entry(r.id);
     case 'history': return demo.history(r.id);
     case 'picks': return demo.picks(r.id, r.gw);
+    case 'transfers': return demo.transfers(r.id);
     case 'live': return demo.live(r.gw);
     case 'league': return demo.league(r.id);
     case 'element': { const e = demo.element(r.id); if (!e) { const x = new Error('nema'); x.status = 404; throw x; } return e; }
@@ -64,8 +67,10 @@ export function slimBootstrap(b) {
 }
 
 // event/live ima i detaljna objašnjenja bodova (velik odgovor): šaljemo samo statistike koje aplikacija koristi
-const LF = ['minutes', 'goals_scored', 'assists', 'clean_sheets', 'goals_conceded', 'own_goals', 'penalties_saved', 'penalties_missed', 'yellow_cards', 'red_cards', 'saves', 'bonus', 'total_points'];
-export const slimLive = (d) => ({ elements: d.elements.map((e) => ({ id: e.id, stats: Object.fromEntries(LF.map((k) => [k, e.stats?.[k] ?? 0])) })) });
+const LF = ['minutes', 'goals_scored', 'assists', 'clean_sheets', 'goals_conceded', 'own_goals', 'penalties_saved', 'penalties_missed', 'yellow_cards', 'red_cards', 'saves', 'bonus', 'bps', 'defensive_contribution', 'clearances_blocks_interceptions', 'recoveries', 'tackles', 'total_points'];
+// fx: po utakmici [id utakmice, BPS, minute] iz objašnjenja bodova (u duplom kolu svaka utakmica posebno)
+const val = (x, id) => (x.stats || []).find((s) => s.identifier === id)?.value ?? 0;
+export const slimLive = (d) => ({ elements: d.elements.map((e) => ({ id: e.id, stats: Object.fromEntries(LF.map((k) => [k, e.stats?.[k] ?? 0])), fx: (e.explain || []).map((x) => [x.fixture, val(x, 'bps'), val(x, 'minutes')]) })) });
 
 async function fromFpl(r, ctx) {
   const cache = caches.default, key = new Request('https://fpl-cache.local' + r.up);
@@ -85,8 +90,8 @@ async function fromFpl(r, ctx) {
 export async function team(id, get) {
   const [entry, history] = await Promise.all([get(route('/api/entry/' + id)), get(route('/api/entry/' + id + '/history'))]);
   const gw = history.current.length ? history.current[history.current.length - 1].event : entry.current_event;
-  const picks = gw ? await get(route('/api/entry/' + id + '/picks/' + gw)) : null;
-  return { entry, history, picks, gw };
+  const [picks, transfers] = await Promise.all([gw ? get(route('/api/entry/' + id + '/picks/' + gw)) : null, Promise.resolve().then(() => get(route('/api/entry/' + id + '/transfers'))).catch(() => [])]);
+  return { entry, history, picks, gw, transfers };
 }
 
 const OLD = /^\/(leaderboard|post|squad|me|how|rules|privacy|admin|login)(\/.*)?$/;

@@ -60,6 +60,14 @@ Predviđeni bodovi su procjena (forma, prosjek bodova, minutaža, težina protiv
 
 Na ekranu Moj tim planiraš 3 kola unaprijed: za svako kolo transferi (izaberi igrača, Prodaj, pa izaberi zamjenu u budžetu), besplatni transferi i minus 4 za svaki preko njih, Wildcard ili Free Hit, postava i kapiten. Tabela "Plan za 3 kola" pokazuje bodove po kolu (minus već oduzet) i poređenje sa timom bez promjena. Plan se čuva u pregledniku.
 
+## Transferi već napravljeni na FPL-u
+
+FPL javno pokazuje transfere čim ih napraviš, i prije roka (`/entry/:id/transfers/`). Aplikacija ih čita i oduzima od besplatnih transfera, a u planeru su zaključani u prvom kolu (oznaka FPL), sa pravim cijenama. Ako je za sljedeće kolo već aktiviran Wildcard ili Free Hit, to se javno ne vidi do roka, pa ga u planeru izaberi sam.
+
+## Uživo: BPS, bonus i DefCon
+
+Ispod svakog igrača na terenu stoji bonus (B0 do B3) i odbrambeni doprinos (DC). Bonus se računa iz BPS-a po utakmici (prva tri: 3, 2, 1, izjednačeni dijele mjesto) dok ga FPL ne potvrdi; tada se koristi pravi. DefCon: odbrana 10, vezni i napadači 12 za +2 boda. Kartice "Bonus uživo (BPS)" i "Odbrambeni doprinos (DefCon)" su na ekranu Uživo.
+
 ## Jezik
 
 Aplikacija je na engleskom (zadano) i bosanskom. Izbor (EN/BS) je na početnom ekranu, u bočnom meniju, u meniju "Više" na mobitelu i u SquadJury postavkama (Ja). Pamti se u pregledniku (`sj-lang`) i važi za oba dijela. Tekstovi FPL dijela su u kodu kao `tr(bosanski, engleski)` (public/js/i18n.js), a SquadJury tekstovi u public/jury/js/i18n.js i i18n-bs.js.

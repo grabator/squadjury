@@ -1,13 +1,13 @@
 // Stanje aplikacije i učitavanje podataka (sve preko /api, keš u api.js).
 import { get, forget } from './api.js';
-import { index } from './model.js';
+import { index, freeTransfers } from './model.js';
 import { tr } from './i18n.js';
 
 export const S = { ready: false };
 
 export async function load(id) {
   const [boot, fixtures, team] = await Promise.all([get('/bootstrap'), get('/fixtures'), get('/team/' + id)]);
-  const { entry, history, picks } = team;
+  const { entry, history, picks, transfers = [] } = team;
   if (!picks) { const e = new Error(tr('Ovaj tim još nema odigrano kolo.', 'This team has not played a gameweek yet.')); e.status = 404; throw e; }
   const ix = index(boot, fixtures);
   const lastGw = team.gw;
@@ -18,10 +18,17 @@ export async function load(id) {
   try { saved = +localStorage.getItem('fm-league-' + id) || null; } catch { /* bez spremnika */ }
   const ids = picks.picks.map((p) => p.element);
   const last = history.current[history.current.length - 1] || {};
+  const pending = transfers.filter((t) => t.event === ix.nextGw && t.element_in && t.element_out);
+  // tim i banka za sljedeće kolo, poslije transfera koji su već napravljeni na FPL-u
+  const nextIds = [...ids];
+  let nextBank = last.bank ?? entry.last_deadline_bank ?? 0;
+  for (const t of pending) { const k = nextIds.indexOf(t.element_out); if (k >= 0 && !nextIds.includes(t.element_in)) { nextIds[k] = t.element_in; nextBank += t.element_out_cost - t.element_in_cost; } }
   Object.assign(S, {
     ready: true, id, ix, entry, history, picks, ids, xi: ids.slice(0, 11), bench: ids.slice(11), lastGw,
     captain: picks.picks.find((p) => p.is_captain)?.element, vice: picks.picks.find((p) => p.is_vice_captain)?.element,
-    bank: last.bank ?? entry.last_deadline_bank ?? 0, league: null, leagues, leagueId: leagues.some((l) => l.id === saved) ? saved : leagues[0]?.id || null
+    bank: last.bank ?? entry.last_deadline_bank ?? 0, league: null,
+    // transferi koje je menadžer već napravio na FPL-u za sljedeće kolo (FPL ih javno pokazuje odmah)
+    pending, nextIds, nextBank, leagues, leagueId: leagues.some((l) => l.id === saved) ? saved : leagues[0]?.id || null
   });
 }
 export function setLeague(lid) {
@@ -37,7 +44,7 @@ export async function league() {
 }
 const lives = new Map();
 export const refreshLive = (gw) => forget('/live/' + gw);
-export const live = (gw) => { const k = get('/live/' + gw); if (!lives.has(gw) || lives.get(gw).src !== k) { const m = k.then((d) => new Map(d.elements.map((e) => [e.id, e.stats]))); m.src = k; lives.set(gw, m); } return lives.get(gw); };
+export const live = (gw) => { const k = get('/live/' + gw); if (!lives.has(gw) || lives.get(gw).src !== k) { const m = k.then((d) => new Map(d.elements.map((e) => [e.id, { ...e.stats, fx: e.fx || [] }]))); m.src = k; lives.set(gw, m); } return lives.get(gw); };
 export const picksOf = (entryId, gw) => get('/entry/' + entryId + '/picks/' + gw);
 export const historyOf = (entryId) => get('/entry/' + entryId + '/history');
 export const element = (id) => get('/element/' + id);
@@ -58,3 +65,6 @@ export async function captainHistory(n = 8) {
   }));
   return rows;
 }
+
+/** Besplatni transferi koji su još ostali za sljedeće kolo: iz historije, minus transferi već napravljeni na FPL-u. */
+export const ftLeft = () => Math.max(0, freeTransfers(S.history) - (S.pending?.length || 0));
