@@ -85,5 +85,5 @@ const out = {
   events: eventsOut,
   fixtures,
 };
-writeFileSync(new URL('../src/data/fpl-snapshot.json', import.meta.url), JSON.stringify(out));
+writeFileSync(new URL('../src/jury/data/fpl-snapshot.json', import.meta.url), JSON.stringify(out));
 console.log(`teams ${teams.length}, players ${players.length}, events ${eventsOut.length}, fixtures ${fixtures.length}`);

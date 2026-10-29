@@ -1,7 +1,8 @@
-// Cloudflare Worker config for SquadJury.
-// Before the first production deploy, replace the D1 database_id (see README, "Deploy").
+// FPL Manager sa SquadJury dodatkom: jedan Worker, statične stranice iz public/.
+// SquadJury koristi D1 bazu, R2 za slike i cron (zaključavanje kola, bodovi, značke, kopije baze).
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
+	// Ime je "squadjury": ide na postojeći Worker (ista baza, tajne i domena), Manager je na /, SquadJury na /jury.
 	"name": "squadjury",
 	"main": "src/worker.js",
 	"compatibility_date": "2026-10-06",
@@ -9,14 +10,7 @@
 		"directory": "./public",
 		"binding": "ASSETS",
 		"not_found_handling": "single-page-application",
-		"run_worker_first": [
-			"/api/*",
-			"/t/*",
-			"/u/*",
-			"/r/*",
-			"/l/*",
-			"/embed/*"
-		]
+		"run_worker_first": ["/api/*", "/jury", "/jury/*", "/t/*", "/u/*", "/r/*", "/l/*", "/embed/*", "/leaderboard*", "/post*", "/squad*", "/me", "/me/*", "/how", "/rules", "/privacy", "/admin", "/login"]
 	},
 	"d1_databases": [
 		{
@@ -33,22 +27,14 @@
 		}
 	],
 	"triggers": {
-		"crons": [
-			"*/5 * * * *",
-			"0 * * * *",
-			"17 4 * * 1"
-		]
+		"crons": ["*/5 * * * *", "0 * * * *", "17 4 * * 1"]
 	},
-	// ADMIN_EMAILS (Google emails that can open /admin) is a secret, so no email ends up in the repo:
-	//   npx wrangler secret put ADMIN_EMAILS
+	// ADMIN_EMAILS, ADMIN_TOKEN i RESEND_API_KEY su tajne (npx wrangler secret put ...), nisu u repou.
 	"vars": {
-		// Public OAuth client id from Google Cloud (not a secret).
+		// "live" čita pravi FPL API (Manager i SquadJury); lokalno se koristi snapshot (vidi npm run dev)
+		"FPL_SOURCE": "live",
+		// javni Google OAuth client id (nije tajna)
 		"GOOGLE_CLIENT_ID": "897611394397-qvujljt62q2coact1p0rdtua0egtv3p4.apps.googleusercontent.com"
 	},
-	"observability": {
-		"enabled": true,
-		"traces": {
-			"enabled": true
-		}
-	}
+	"observability": { "enabled": true }
 }

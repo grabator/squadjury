@@ -4,7 +4,7 @@ import { mkdirSync, copyFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const nm = fileURLToPath(new URL('../node_modules/', import.meta.url));
-const out = fileURLToPath(new URL('../public/vendor/tesseract/', import.meta.url));
+const out = fileURLToPath(new URL('../public/jury/vendor/tesseract/', import.meta.url));
 mkdirSync(out + 'core', { recursive: true });
 mkdirSync(out + 'lang', { recursive: true });
 
@@ -20,5 +20,5 @@ for (const [from, to] of files) {
   copyFileSync(nm + from, out + to);
 }
 // QR codes for the YouTube image (MIT, Kazuhiko Arase).
-copyFileSync(nm + 'qrcode-generator/dist/qrcode.mjs', fileURLToPath(new URL('../public/vendor/qrcode.mjs', import.meta.url)));
+copyFileSync(nm + 'qrcode-generator/dist/qrcode.mjs', fileURLToPath(new URL('../public/jury/vendor/qrcode.mjs', import.meta.url)));
 console.log('vendor: tesseract and qrcode copied to public/vendor');

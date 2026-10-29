@@ -1,191 +1,88 @@
-// Small DOM helpers: escaping, sheets, toasts and haptics.
+// Zajednički dijelovi prikaza: ikone, dresovi, oznake težine, formatiranje.
+import { fixturesFor, xp, fmt, price } from './model.js';
 
-import { t } from './i18n.js';
+export const $ = (s, el = document) => el.querySelector(s);
+export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-export const $ = (sel, root = document) => root.querySelector(sel);
-export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const ICON = {
+  home: '<path d="M4 11l8-7 8 7v9H4z"/>', team: '<path d="M8 4l-4 2 1.5 4L8 9v11h8V9l2.5 1L20 6l-4-2c-.5 1.5-2 2.5-4 2.5S8.5 5.5 8 4z"/>',
+  cap: '<circle cx="12" cy="12" r="8"/><path d="M14.5 9.5a3.5 3.5 0 1 0 0 5"/>', swap: '<path d="M7 7h11l-3-3M17 17H6l3 3"/>',
+  cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', live: '<circle cx="12" cy="12" r="2.5"/><path d="M7 7a7 7 0 0 0 0 10M17 7a7 7 0 0 1 0 10M4.5 4.5a10.5 10.5 0 0 0 0 15M19.5 4.5a10.5 10.5 0 0 1 0 15"/>',
+  vs: '<path d="M5 5l6 14M11 5L5 19M14 9.5c0-1.5 1.2-2.5 3-2.5s3 1 3 2.2c0 3-6 2-6 5.3 0 1.4 1.3 2.5 3 2.5s3-1 3-2.5"/>',
+  cup: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/>', star: '<path d="M12 4l2.4 5 5.4.7-4 3.8 1 5.4L12 16.3 7.2 18.9l1-5.4-4-3.8 5.4-.7z"/>',
+  book: '<path d="M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h9"/>', out: '<path d="M10 6H6v12h4M14 8l4 4-4 4M18 12H9"/>',
+  more: '<circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>', close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  jury: '<rect x="6" y="3.5" width="12" height="17" rx="2"/><path d="M9.5 8.5h5M9.5 12h5M9.5 15.5h3"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
+  share: '<path d="M12 4v11M8 8l4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>', link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
+};
+export const ic = (k) => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + ICON[k] + '</svg>';
 
-export const esc = (s) =>
-  String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+// meni: [ruta, naziv, ikona, grupa]
+export const ROUTES = [
+  ['pregled', 'Pregled', 'home', 'Tim'], ['tim', 'Moj tim', 'team', 'Tim'], ['kapiten', 'Kapiten', 'cap', 'Tim'], ['transferi', 'Transferi', 'swap', 'Tim'], ['raspored', 'Raspored', 'cal', 'Tim'],
+  ['uzivo', 'Uživo', 'live', 'Kolo'], ['rival', 'Rival', 'vs', 'Kolo'], ['liga', 'Liga', 'cup', 'Kolo'],
+  ['karijera', 'Karijera', 'star', 'Ti'], ['vodic', 'Vodič', 'book', 'Ti']
+];
+export const TABS = ['pregled', 'tim', 'uzivo', 'transferi'];
 
-/** Tagged template that escapes interpolations unless they are raw(...) values. */
-const RAW = Symbol('raw');
-export const raw = (s) => ({ [RAW]: true, s: String(s) });
-export function html(strings, ...vals) {
-  let out = '';
-  for (let i = 0; i < strings.length; i++) {
-    out += strings[i];
-    if (i >= vals.length) continue;
-    const v = vals[i];
-    if (v == null || v === false) continue;
-    if (Array.isArray(v)) out += v.map((x) => (x && x[RAW] ? x.s : esc(x))).join('');
-    else out += v[RAW] ? v.s : esc(v);
-  }
-  return raw(out);
-}
-
-export const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-export function haptic(ms = 18) {
-  try {
-    if (navigator.vibrate && !reduceMotion()) navigator.vibrate(ms);
-  } catch {}
-}
-
-export function toast(msg, { bad = false, ms = 2800 } = {}) {
-  let box = $('.toasts');
-  if (!box) {
-    box = document.createElement('div');
-    box.className = 'toasts';
-    box.setAttribute('role', 'status');
-    box.setAttribute('aria-live', 'polite');
-    document.body.append(box);
-  }
-  const el = document.createElement('div');
-  el.className = 'toast' + (bad ? ' bad' : '');
-  el.textContent = msg;
-  box.append(el);
-  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 260); }, ms);
-}
-
-/** Bottom sheet (a centred dialog on wide screens). Returns { el, close }. */
-export function sheet(content, { label, onClose } = {}) {
-  const prev = document.activeElement;
-  const scrim = document.createElement('div');
-  scrim.className = 'scrim';
-  const el = document.createElement('div');
-  el.className = 'sheet';
-  el.setAttribute('role', 'dialog');
-  el.setAttribute('aria-modal', 'true');
-  if (label) el.setAttribute('aria-label', label);
-  el.innerHTML = `<div class="grab" aria-hidden="true"></div>${content.s ?? content}`;
-  document.body.append(scrim, el);
-  document.body.style.overflow = 'hidden';
-  let closed = false;
-  const close = () => {
-    if (closed) return;
-    closed = true;
-    el.classList.add('closing');
-    scrim.style.opacity = '0';
-    setTimeout(() => { el.remove(); scrim.remove(); }, reduceMotion() ? 0 : 200);
-    document.body.style.overflow = '';
-    document.removeEventListener('keydown', onKey);
-    prev?.focus?.();
-    onClose?.();
-  };
-  const onKey = (e) => {
-    if (e.key === 'Escape') close();
-    if (e.key === 'Tab') {
-      const f = $$('button, a[href], input, [tabindex]:not([tabindex="-1"])', el).filter((x) => !x.disabled && x.offsetParent);
-      if (!f.length) return;
-      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
-      else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
-    }
-  };
-  scrim.addEventListener('click', close);
-  document.addEventListener('keydown', onKey);
-  // Focus the first field, unless the user already moved into the sheet.
-  setTimeout(() => { if (!el.contains(document.activeElement)) ($('input, button', el) || el).focus(); }, 30);
-  return { el, close };
-}
-
-export function fmtCountdown(ms) {
-  if (ms <= 0) return '0m';
-  const s = Math.floor(ms / 1000);
-  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  if (d) return `${d}d ${h}h ${m}m`;
-  if (h) return `${h}h ${m}m`;
-  return `${m}m ${String(sec).padStart(2, '0')}s`;
-}
-
-export const errText = (e) => {
-  if (e?.code === 'offline') return t('err.offline');
-  const k = `err.${e?.code}`;
-  const s = t(k);
-  return s === k ? t('err.generic') : s;
+// dresovi po klubu (samo boje i šare, bez grbova): b tijelo, s rukavi, st pruge, t kragna
+const KIT = {
+  ARS: { b: '#e2263e', s: '#fff' }, AVL: { b: '#7a003c', s: '#95bfe5' }, BOU: { b: '#da291c', st: '#111' }, BRE: { b: '#e30613', st: '#fff', t: '#111' }, BHA: { b: '#0057b8', st: '#fff' },
+  CHE: { b: '#1f4cc7', t: '#fff' }, COV: { b: '#6bb8e6', t: '#fff' }, CRY: { b: '#1b458f', st: '#c4122e' }, EVE: { b: '#274488', t: '#fff' }, FUL: { b: '#f5f5f5', t: '#111' },
+  HUL: { b: '#f5a12d', st: '#111' }, IPS: { b: '#3a64a3', s: '#fff' }, LEE: { b: '#f5f5f5', t: '#1d428a' }, LIV: { b: '#c8102e', t: '#f6eb61' }, MCI: { b: '#8cc5f0', t: '#fff' },
+  MUN: { b: '#da291c', t: '#111' }, NEW: { b: '#222', st: '#f5f5f5' }, NFO: { b: '#dd0000', t: '#fff' }, TOT: { b: '#f5f5f5', t: '#132257' }, SUN: { b: '#eb172b', st: '#fff' },
+  WHU: { b: '#7a263a', s: '#1bb1e7' }, WOL: { b: '#fdb913', t: '#231f20' }, BUR: { b: '#6c1d45', s: '#99d6ea' }, LUT: { b: '#f78f1e', t: '#002a5c' }, SOU: { b: '#d71920', st: '#fff' },
+  LEI: { b: '#003090', t: '#fdbe11' }, SHU: { b: '#ee2737', st: '#fff' }
+};
+// golmani nose drugačiji dres, kao u FPL-u (boje su izmišljene, ne pravi golmanski dresovi)
+const GK = ['#22d39a', '#f2e600', '#ff8a1f', '#3cb4ff', '#b4ff00', '#ff5fa2', '#9b7bff'];
+export const kit = (t) => { const k = KIT[t?.short_name] || { b: '#8a8a9a' }; return [k.b, k.t || k.s || '#fff']; };
+export const shirt = (t, gk = false) => {
+  const k = KIT[t?.short_name] || { b: '#8a8a9a' };
+  const body = gk ? GK[(t?.id || 0) % GK.length] : k.b, sleeve = gk ? body : k.s || body, trim = gk ? '#111' : k.t || k.s || (k.st && k.st) || '#fff';
+  const stripes = !gk && k.st ? [18.3, 24.9, 31.5].map((x) => `<rect x="${x}" y="10.5" width="3.3" height="34.5" fill="${k.st}"/>`).join('') : '';
+  return `<svg viewBox="0 0 50 50" aria-hidden="true"><path d="M17 5l-11 6 4 10 5-2z M33 5l11 6-4 10-5-2z" fill="${sleeve}" stroke="rgba(0,0,0,.35)" stroke-width="1.1"/><path d="M15 9l2-4c1 4 4 6 8 6s7-2 8-6l2 4v36H15z" fill="${body}" stroke="rgba(0,0,0,.35)" stroke-width="1.1"/>${stripes}<path d="M6.6 12.4l2.2 5.4M43.4 12.4l-2.2 5.4" stroke="${trim}" stroke-width="1.6" opacity=".8"/><path d="M20 5.5c1.2 3.2 3 4.6 5 4.6s3.8-1.4 5-4.6" fill="none" stroke="${trim}" stroke-width="2.4"/><path d="M15 45h20" stroke="rgba(0,0,0,.25)" stroke-width="2"/></svg>`;
 };
 
-// One icon family: thin lines on a 24 grid, used only where a word alone is not enough.
-const ic = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
-export const ICONS = {
-  judge: ic('<path d="M4 20h10M9.5 4.5l5 5M7 7l6.5-3 3.5 3.5L14 14zM12.5 12.5L19 19"/>'),
-  board: ic('<path d="M5 20V11M12 20V5M19 20v-6"/>'),
-  post: ic('<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5"/>'),
-  shirt: ic('<path d="M8 3l-5 3 2 4 2-1v11h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z"/>'),
-  me: ic('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
-  x: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z"/></svg>',
-  share: ic('<path d="M12 3v12M7.5 7.5L12 3l4.5 4.5M5 13v7h14v-7"/>'),
-  link: ic('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'),
-  download: ic('<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>'),
-  upload: ic('<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>'),
-  shot: ic('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.2"/>'),
-  pitch: ic('<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M4 12h16"/><circle cx="12" cy="12" r="2.5"/>'),
-  flag: ic('<path d="M5 21V4h11l-2 4 2 4H5"/>'),
-  check: ic('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
-  alert: ic('<path d="M12 7v6M12 16.5v.5"/><circle cx="12" cy="12" r="9"/>'),
-  calendar: ic('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
-  chat: ic('<path d="M4 18.5V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8z"/>'),
-  copy: ic('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>'),
-  users: ic('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>'),
-  plus: ic('<path d="M12 5v14M5 12h14"/>'),
-  dots: ic('<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'),
-  lock: ic('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
-  duel: ic('<path d="M4 4l9 9M4 4h4M4 4v4M20 4l-9 9M20 4h-4M20 4v4M7 17l-3 3M17 17l3 3M9 15l-2 2M15 15l2 2"/>'),
+/** Boja oznake upitnog igrača kao u FPL-u: žuta 75%, narandžasta 50%, tamnije 25%, crvena ne igra. */
+export const flagColor = (e) => { const c = e.chance_of_playing_next_round; if (e.status === 'a' && c == null) return ''; if (['i', 's', 'u', 'n'].includes(e.status) || c === 0) return '#c0020d'; if (c >= 75) return '#ffe65b'; if (c >= 50) return '#ffab1b'; return '#d44401'; };
+
+/** Igrač na terenu u FPL stilu: dres, ime na bijeloj traci, ispod podaci (protivnik i bodovi). attr je data-sel ili data-pid. */
+export const pitchCard = (ix, e, { cap, vice, info, attr, pressed, bench, extra = '' }) => { const fc = flagColor(e); return `<button type="button" class="pl${bench ? ' out' : ''}" ${attr}="${e.id}"${pressed != null ? ` aria-pressed="${pressed}"` : ''}${fc && e.news ? ` title="${esc(e.news)}"` : ''}><div class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}${cap ? '<span class="badge c" aria-hidden="true">C</span>' : vice ? '<span class="badge" aria-hidden="true">V</span>' : ''}${fc ? `<span class="flag" style="background:${fc};color:${fc === '#ffe65b' || fc === '#ffab1b' ? '#37003c' : '#fff'}" aria-hidden="true">!</span>` : ''}</div><span class="nm">${esc(e.web_name)}</span>${cap ? '<span class="sr">, kapiten</span>' : vice ? '<span class="sr">, vice kapiten</span>' : ''}${bench ? '<span class="sr">, na klupi</span>' : ''}${fc ? `<span class="sr">, upitan</span>` : ''}<span class="meta">${info}</span>${extra}</button>`; };
+
+export function fdrChip(ix, e, gw, teamId) {
+  const fx = fixturesFor(ix, teamId ?? e.team, gw, 1);
+  if (!fx.length) return '<span class="fdr none">bez</span>';
+  return fx.map((f) => `<span class="fdr d${f.fdr}" title="${esc(ix.teams.get(f.opp).name)}${f.home ? ', kod kuće' : ', u gostima'}">${ix.teams.get(f.opp).short_name} (${f.home ? 'D' : 'G'})</span>`).join('');
+}
+
+/** Tekst koji se čita na boji dresa: tamni na svijetloj, bijeli na tamnoj. */
+const ink = (hex) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)); const L = 0.2126 * r + 0.7152 * g + 0.0722 * b; return (L + 0.05) / 0.058 > 1.05 / (L + 0.05) ? '#2b0030' : '#fff'; };
+/** Srednje tamne boje dresa malo potamni da bijeli tekst ima dovoljan kontrast. */
+const deep = (hex) => ink(hex) === '#fff' ? '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.85).toString(16).padStart(2, '0')).join('') : hex;
+export const chip = (ix, e) => { const [a] = kit(ix.teams.get(e.team)); return `<button type="button" class="chip" data-pid="${e.id}" style="--c:${deep(a)};--ci:${ink(a)}"><i>${esc(e.web_name.slice(0, 2).toUpperCase())}</i>${esc(e.web_name)}</button>`; };
+export const pbtn = (e, label) => `<button type="button" class="pbtn" data-pid="${e.id}">${esc(label ?? e.web_name)}</button>`;
+export const xpTag = (ix, e, from, n) => `<span class="chg vi">${fmt(xp(ix, e, from, n))}</span>`;
+export { fmt, price };
+
+export const spark = (pts, col, invert) => {
+  if (pts.length < 2) return '';
+  const w = 110, h = 40, mx = Math.max(...pts), mn = Math.min(...pts), rng = mx - mn || 1;
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + (i * w / (pts.length - 1)).toFixed(1) + ' ' + (invert ? 4 + (p - mn) / rng * (h - 8) : h - 4 - (p - mn) / rng * (h - 8)).toFixed(1)).join(' ');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${d}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 };
+export const ring = (p, col = 'url(#rg)') => { const r = 40, c = 2 * Math.PI * r; return `<svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true"><defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#963cff"/><stop offset="1" stop-color="#05f0ff"/></linearGradient><linearGradient id="rgg" x1="0" x2="1"><stop offset="0" stop-color="#00c46a"/><stop offset="1" stop-color="#05f0ff"/></linearGradient></defs><circle cx="48" cy="48" r="${r}" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="9"/><circle cx="48" cy="48" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(c * Math.max(0, Math.min(1, p))).toFixed(1)} 999" transform="rotate(-90 48 48)"/></svg>`; };
+export const greet = () => { const h = new Date().getHours(); return h < 11 ? 'Dobro jutro' : h < 18 ? 'Dobar dan' : 'Dobro veče'; };
+export const empty = (t) => `<p class="muted">${t}</p>`;
 
-// ==== pagination: 10 rows per page, a classic bar "‹ 1 2 3 … 9 ›" under the list
-
-export const PAGE_SIZE = 10;
-
-/** Page numbers to show: the first, the last and the current page, gaps as null. */
-export function pageNumbers(page, pages) {
-  // At most 5 numbers and gaps, so the bar fits a 360 px phone: 1 2 3 … 9, 1 … 5 … 9, 1 … 7 8 9.
-  const want = new Set([1, pages, page]);
-  if (page <= 3) [2, 3].forEach((p) => want.add(p));
-  if (page >= pages - 2) [pages - 1, pages - 2].forEach((p) => want.add(p));
-  const nums = [...want].filter((p) => p >= 1 && p <= pages).sort((a, b) => a - b);
-  const out = [];
-  nums.forEach((p, i) => {
-    if (i && p - nums[i - 1] > 1) out.push(null);
-    out.push(p);
+/** Brojevi sa data-n se izbroje od nule do vrijednosti (ne kad korisnik traži manje pokreta). */
+export function countUp(root) {
+  if (!root || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const f = { int: (v) => String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'), m: (v) => '£' + v.toFixed(1).replace('.', ',') + 'm' };
+  root.querySelectorAll('[data-n]').forEach((el) => {
+    const to = +el.dataset.n, fm = f[el.dataset.f] || f.int, t0 = performance.now(), dur = 900;
+    const step = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - (1 - k) ** 3; el.textContent = fm(to * e); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
   });
-  return out;
-}
-
-/** The pager bar, or nothing when everything fits on one page. */
-export function pagerHtml(page, pages, label = t('pager.label')) {
-  if (pages <= 1) return '';
-  return html`<nav class="pgr" aria-label="${label}">
-    <button type="button" class="pgr-btn" data-goto="${page - 1}" aria-label="${t('pager.prev')}" ${raw(page <= 1 ? 'disabled' : '')}>‹</button>
-    ${pageNumbers(page, pages).map((p) => (p == null
-      ? html`<span class="pgr-gap" aria-hidden="true">…</span>`
-      : html`<button type="button" class="pgr-btn" data-goto="${p}" ${raw(p === page ? 'aria-current="page"' : '')} aria-label="${t('pager.page', { n: p })}">${p}</button>`))}
-    <button type="button" class="pgr-btn" data-goto="${page + 1}" aria-label="${t('pager.next')}" ${raw(page >= pages ? 'disabled' : '')}>›</button>
-  </nav>`;
-}
-
-/**
- * A list shown 10 rows at a time. box gets the list and the pager; renderRows(slice, offset)
- * returns the rows' HTML. Returns { go(page) }. The page with `focus(item)` true opens first.
- */
-export function pagedList(box, items, renderRows, { size = PAGE_SIZE, page = 1, focus = null, label, onPage } = {}) {
-  const pages = Math.max(1, Math.ceil(items.length / size));
-  if (focus) {
-    const i = items.findIndex(focus);
-    if (i >= 0 && page === 1) page = Math.floor(i / size) + 1;
-  }
-  const go = (p, scroll = false) => {
-    page = Math.min(pages, Math.max(1, p));
-    const from = (page - 1) * size;
-    box.innerHTML = renderRows(items.slice(from, from + size), from).s + (pagerHtml(page, pages, label).s || '');
-    box.querySelectorAll('.pgr [data-goto]').forEach((b) => b.addEventListener('click', () => go(+b.dataset.goto, true)));
-    if (scroll) {
-      const top = box.getBoundingClientRect().top;
-      if (top < 0 || top > innerHeight * 0.6) box.scrollIntoView({ block: 'start', behavior: reduceMotion() ? 'auto' : 'smooth' });
-      box.querySelector('.pgr [aria-current]')?.focus({ preventScroll: true });
-    }
-    onPage?.(page);
-  };
-  go(page);
-  return { go: (p) => go(p, true), get page() { return page; }, pages };
 }

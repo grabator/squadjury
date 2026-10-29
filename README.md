@@ -1,191 +1,106 @@
-<p align="center"><img src="public/img/logo/logo.svg" alt="SquadJury" width="360"></p>
+# FPL Manager
 
-<p align="center"><strong>Post your squad. The jury decides.</strong></p>
+Dashboard za Fantasy Premier League menadžere. Upišeš svoj FPL ID (bez lozinke) i dobiješ pregled sezone, prijedlog kapitena, transfere sa procjenom bodova, raspored kola i tabelu svoje lige.
 
-SquadJury is a web app for Fantasy Premier League players. You upload a screenshot of your squad from the official FPL app, SquadJury reads all 15 players for you, and the community judges it from 1 to 10. Verdicts stay open until the FPL deadline, the best rated squads top the leaderboard, and the top 10 of every gameweek is kept for good.
+## Šta radi (verzija 0.5)
 
-Built mobile first, with no framework and no build step, on Cloudflare Workers.
+Dizajn u bojama Premier lige (ljubičasta, zelena, cijan, roza) sa staklenim panelima. Na računaru je bočni meni, a na mobitelu donja traka sa 4 glavna ekrana i dugme „Više”.
 
-<p align="center">
-  <img src="docs/screenshots/judge.jpg" alt="Judge screen" width="240">
-  <img src="docs/screenshots/verdict.jpg" alt="The verdict: a yellow card with the score" width="240">
-  <img src="docs/screenshots/leaderboard.jpg" alt="Live leaderboard" width="240">
-</p>
-<p align="center">
-  <img src="docs/screenshots/post-recognised.jpg" alt="15 of 15 players recognised from a screenshot" width="240">
-  <img src="docs/screenshots/my-squad.jpg" alt="My squad" width="240">
-</p>
+**Tim**
+- **Pregled:** odbrojavanje do roka za transfere, broj besplatnih transfera, rang, bodovi po kolima u odnosu na prosjek, utakmice kola, prijedlog kapitena, preporučeni transfer, šansa za zelenu strelicu i upozorenja.
+- **Moj tim:** teren sa prvih 11 i klupom, prekidač između tvoje i predložene postave (najbolja formacija po predviđenim bodovima) i „Kolo X unazad”: koja bi postava bila najbolja.
+- **Kapiten:** kandidati po predviđenim bodovima sa razlogom, druga opcija, igrač kojeg malo ko bira i šansa za zelenu strelicu po kapitenu.
+- **Transferi:** broj besplatnih transfera (do 5), pojedinačni transferi i kombinacije od dva, ocjena da li se minus 4 isplati, simulator „Šta ako zamijenim?” i igrači u usponu.
+- **Raspored:** težina protivnika tvojih igrača za 8 kola, svi klubovi poredani po lakoći, nagle promjene rasporeda i dupla ili prazna kola.
 
-## Features
+**Kolo**
+- **Uživo:** bodovi u kolu, šta se desilo (golovi, asistencije, bonus), dvoboj sa rivalom iz lige, osvježavanje svake minute dok traje kolo.
+- **Rival radar:** šansa da pobijediš rivala (kolo „odigrano” 2.500 puta), njegov vjerovatni kapiten, sezona jedan na jedan, savjet kako ga prestići i razlike u timovima.
+- **Liga:** tabela, dvoboj kapitena i najbolji rezultati kola.
 
-- **Sign in with Google or an email link**, then pick a nickname (and optionally add your X username). The email link works once and for 15 minutes; the same email is the same account either way. Sign in with Apple is ready in the code and switches on with one setting.
-- **Squad reader:** upload a Pick Team screenshot and the browser reads the 15 players, their positions, the bench, the captain and the vice captain. Nothing to type. Anything it misses can be fixed with a player search.
-- **Judge:** one squad at a time on a bright pitch that fills the screen. Tap 1 to 10, a yellow card shows your verdict and the next squad slides in. Swipe left (or press S) to skip; on a keyboard, keys 1 to 9 and 0 give a verdict.
-- **Leaderboard:** one clean list: live standings for the open gameweek, the final top 10 of any past gameweek (picked from a list) and a Season table. Your row is marked and stays pinned while you scroll.
-- **Fair ranking:** a squad needs 5 verdicts, and its owner must judge 5 other squads, to be ranked. The rank uses a Bayesian average so a handful of 10s cannot beat a squad with many strong verdicts.
-- **My squad:** live verdict, rank, "better than X% of squads", how the jury voted, and sharing.
-- **Share:** each squad has its own link with a link preview card (1200x630), a one tap "Post on X", and images to post: a square 1080x1080 for X and 1080x1920 for stories.
-- **Duels:** a Duel mode in Judge shows two squads, the juror taps the better one. Every squad gets a duel rating (Elo, start 1500, K 24) and a win/loss record, with a Duels view on the leaderboard and the last 10 duels on the squad page. Too quick picks (under 1 second), always the same side and more than 200 duels per gameweek do not count.
-- **League head to head:** leagues with 4+ members get round robin fixtures every gameweek (odd numbers play "Average"). Each match has a Jury result (duel votes between the two squads, before the deadline) and a Points result (real FPL points), with a Jury table and a Points table and a share image for the winner.
-- **Plan A vs Plan B:** a second version of your squad that jurors compare in Duel mode. Pick one at least 30 minutes before the deadline, or the plan with more votes is used.
-- **Scout points:** the verdict question is "How good is this squad this GW?" (1 flop, 10 haul). After the gameweek every squad gets a true score from 1 to 10 by real points; a verdict on it earns 10, 1 away 8, 2 away 6, 3 away 3, a right duel pick 5. Jurors with 10+ verdicts get a scout score per gameweek and for the season (Scouts on the leaderboard, in leagues and on the profile).
-- **Badges and streak:** 18 badges (Juror, Manager, Scout, Duels, Community), all defined in `src/lib/badges.js`, checked by the cron every 5 minutes and right away at round numbers of verdicts. A compact row on the profile opens a sheet with every badge, its progress and how many jurors have it. The streak counts gameweeks in a row with at least 5 verdicts or duels.
-- **For creators:** `squadjury.com/embed/<key>` is a small squad card (pitch, jury average, "Rate this team on SquadJury") for websites and blogs; My squad, **Embed** gives the iframe code. For YouTube there is a 1920x1080 image with a QR code that opens the Rate link. Only `/embed/*` may be shown in an iframe, every other page stays locked (`X-Frame-Options: DENY`).
-- **Real points:** after the gameweek the real FPL points of every squad are added (starting XI, captain doubled, automatic substitutions), with a Jury / Points switch on the leaderboard and a result image to share. With an FPL team ID in the profile the exact FPL score is used.
-- **Me:** your numbers, your verdicts grouped by gameweek and shown a page at a time, your squads, and settings. Light and dark theme follow the phone.
-- **Deadlines from FPL:** voting closes at the official deadline, the gameweek locks and its results are frozen automatically.
-- **Fair play:** one squad per account per gameweek, one verdict per squad, no judging your own squad, rate limits, reduced weight for accounts that only give 1 or 10, and reports that hide a squad after 3 reports until an admin reviews it.
-- **Installable** as an app (PWA), accessible (keyboard, screen readers, reduced motion) and fast on phones.
+**Ti**
+- **Karijera:** nivo i XP menadžera, najbolje kolo, brojač žaljenja (kapiten i klupa), kalendar sezone, značke i slika sezone za story.
+- **Vodič:** osnovna pravila FPL-a.
 
-<p align="center"><img src="docs/screenshots/desktop.jpg" alt="Desktop layout" width="760"></p>
-<p align="center"><img src="docs/screenshots/share-x.jpg" alt="Square share image for X" width="360"> <img src="docs/screenshots/share-story.jpg" alt="Story image" width="203"></p>
+**Novo u 0.5: SquadJury**
+- SquadJury je spojen sa Managerom kao dodatak (`/jury`), u istim bojama i fontovima, sa linkom „Manager” nazad i karticom na Pregledu.
+- Jedan Worker, jedna objava; oba dijela čitaju pravi FPL API.
 
-## How it works
+**Novo u 0.4: izgled kao FPL**
+- Igrači na terenu kao u FPL-u: dres, ime na bijeloj traci, ispod protivnik i bodovi. Golmani nose drugačiji dres, klubovi imaju svoje boje i pruge (bez grbova i pravih dresova).
+- Uživo izgleda kao FPL stranica Points: bodovi kola u sredini, prosjek, najviše, rang kola i transferi, a na terenu bodovi svakog igrača.
+- Cijene u funtama (£8,0m), protivnici kao „BHA (D)” i „LIV (G)”, oznake upitnih igrača u FPL bojama (75%, 50%, 25%, ne igra).
+- Traka sa rokom za transfere na vrhu ekrana i pregled čipova (Wildcard, Free Hit, Bench Boost, Triple Captain).
 
-| Part | Technology |
+**Novo u 0.3**
+- **Planer postave** na ekranu Moj tim: klikneš igrača pa drugog da ih zamijeniš (provjerava FPL pravila za formaciju), biraš kapitena i vice kapitena, predviđeni bodovi se odmah preračunaju. Plan se čuva u pregledniku.
+- **Pretraga** (Ctrl+K ili ⌘K): bilo koji igrač, klub ili ekran.
+- **Poređenje igrača** u kartici igrača, sa boljom vrijednošću u svakom redu označenom zeleno.
+- **Tržište igrača** na ekranu Transferi: filter po poziciji, cijeni i imenu, sortiranje, protivnici za 3 kola. Prijedlozi transfera za 1, 3 ili 5 kola.
+- **Grafikon bodova** sa detaljima kola (rang, transferi, klupa) na prelaz ili fokus.
+- **Brže učitavanje**: tim, historija i zadnje kolo u jednom zahtjevu, podaci se počnu preuzimati prije ostatka aplikacije, a ekrani se učitavaju unaprijed kad pređeš preko menija.
+
+Klik na bilo kojeg igrača otvara karticu sa statistikom, narednih 5 protivnika sa predviđenim bodovima i bodovima po kolima. Aplikacija se može instalirati na mobitel (PWA).
+
+Predviđeni bodovi su procjena (forma, prosjek bodova, minutaža, težina protivnika, domaći teren i FPL-ova `ep_next` kad postoji), a ne sigurna brojka.
+
+## SquadJury (dodatak)
+
+SquadJury je dio aplikacije, na adresi `/jury` i u meniju pod „Zajednica”. Korisnik učita sliku svog tima iz FPL aplikacije (preglednik sam pročita svih 15 igrača), a zajednica ga ocjenjuje od 1 do 10 do roka. Ima tabelu najboljih timova, duele, privatne lige sa H2H, Plan B, scout bodove, značke, slike za dijeljenje i widget za ugradnju. Prijava je preko Googlea ili linka na email. SquadJury je na engleskom i u istim bojama kao Manager.
+
+## Kako radi
+
+| Dio | Gdje |
 | :-- | :-- |
-| App | Vanilla JavaScript (ES modules), no framework, no build step |
-| Hosting and API | One Cloudflare Worker with static assets |
-| Database | Cloudflare D1 (SQLite) |
-| Screenshots and share cards | Cloudflare R2 |
-| Deadlines and FPL data | Cloudflare Cron Triggers and the public FPL API |
-| Squad reader | Tesseract.js running in the browser, self hosted |
-| Sign in | Google Identity Services, with our own HttpOnly session cookie |
+| Manager (ekrani, model predviđanja) | `public/` (`#/pregled`, `#/tim`, ...), `public/js/model.js` |
+| Manager API (prosljeđuje FPL) | `src/worker.js`: `/api/bootstrap`, `/api/fixtures`, `/api/team/:id`, `/api/entry/...`, `/api/live/:gw`, `/api/league/:id`, `/api/element/:id` |
+| SquadJury stranice | `public/jury/` (`/jury`, `/jury/leaderboard`, `/jury/post`, `/jury/squad`, `/jury/me`) |
+| SquadJury API, baza i cron | `src/jury/` (ostale `/api/*` rute), D1 baza (`migrations/`), R2 za slike, linkovi `/t/`, `/r/`, `/l/`, `/embed/` |
 
-The squad reader finds the white name cards on the screenshot, reads each card on its own, then double checks the whole image at several contrast levels. The words it reads are matched against all FPL players (with fuzzy matching for misreads), players with the same surname are told apart by the fixture under their name, and the squad is checked against FPL rules.
+Jedan Cloudflare Worker služi sve. Worker prosljeđuje javni FPL API (koji ne dozvoljava pozive iz preglednika), kešira odgovore i smanjuje velike odgovore na polja koja aplikacija koristi.
 
-## Run it locally
+**Podaci uživo:** u `wrangler.jsonc` je `FPL_SOURCE = "live"`, pa objavljena verzija i Manager i SquadJury čitaju pravi FPL API (fantasy.premierleague.com). Lokalno (`npm run dev`) se koristi `FPL_SOURCE=snapshot`: pravi igrači, klubovi i raspored sezone 2026/27, a bodovi i timovi Managera su izmišljeni (`src/lib/demo.js`). FPL ponekad blokira zahtjeve sa Cloudflarea; tada SquadJury bodove može poslati sa tvog računara (`npm run points`, vidi niže).
 
-Requirements: Node.js 20 or newer.
+## Lokalno
 
 ```bash
 npm install
-npm run db:migrate      # create the local database
-npm run seed            # optional: example jurors and squads, marked "example data"
-npm run dev             # http://localhost:8787
+npm run db:migrate   # lokalna baza za SquadJury
+npm run seed         # primjer: 30 izmišljenih ocjenjivača i timova (označeni kao primjer)
+npm run dev          # http://localhost:8790 (Manager), http://localhost:8790/jury (SquadJury)
+npm test             # Manager i SquadJury unit testovi
+npm run test:api     # SquadJury API testovi na privremenoj bazi
 ```
 
-Local development uses a bundled snapshot of FPL 2026/27 data and a developer sign in (no Google account needed). Add `?now=2026-10-17T12:00:00Z` to the URL to simulate a different time, for example to test a deadline.
+Lokalno je uključena prijava za razvoj (bez Google računa).
 
-## Tests
+## Objava
+
+Aplikacija ide na postojeći SquadJury Worker (`"name": "squadjury"` u `wrangler.jsonc`): ista D1 baza, R2 spremište, tajne i domena. Manager je na `/`, SquadJury na `/jury`, a stare adrese (`/leaderboard`, `/post`, `/me`, `/login`, ...) se same preusmjere na `/jury/...`. Linkovi za dijeljenje (`/t/`, `/r/`, `/l/`, `/embed/`) ostaju isti.
 
 ```bash
-npm test                # unit tests: ranking, squad rules, name matching, X post length
-npm run test:ocr        # reads two real Pick Team screenshots end to end (15 of 15)
-npm run test:api        # API tests on a throwaway database
-node tests/e2e/run.mjs      # full flow in a real browser (needs npm run dev)
-node tests/e2e/audit.mjs    # accessibility and layout on every page at 360 to 1280 px
-node tests/e2e/perf.mjs     # load time on a simulated phone over 4G
-node tests/e2e/fit.mjs      # Judge and Post fit one phone screen on 5 sizes, 360x640 to 430x932
-node tests/e2e/qa.mjs       # walks through every screen like a user and lists anything broken
+npx wrangler login
+npm install
+npm run db:migrate:remote   # nema novih migracija, ali ne smeta
+npm run deploy
 ```
 
-The browser tests look for Chromium in the usual places; set `CHROME_PATH` to point at a different browser.
+Tajne (`ADMIN_EMAILS`, `ADMIN_TOKEN`, `RESEND_API_KEY`) i Google prijava ostaju kako su postavljene za SquadJury. Ako aplikaciju staviš na novu domenu, u Google Cloudu kod OAuth klijenta dodaj tu domenu pod **Authorised JavaScript origins** i `https://NOVA-DOMENA/api/auth/google/redirect` pod **Authorised redirect URIs**.
 
-## Deploy
-
-1. Create the database and the bucket:
-   ```bash
-   npx wrangler d1 create squadjury
-   npx wrangler r2 bucket create squadjury-images
-   ```
-   Put the `database_id` printed by the first command into `wrangler.jsonc`.
-2. In Google Cloud, create an OAuth client id of type **Web application** with `https://squadjury.com` as an authorised JavaScript origin, and put the client id in `GOOGLE_CLIENT_ID` in `wrangler.jsonc`. Under **Authorised redirect URIs** add `https://squadjury.com/api/auth/google/redirect`: on phones the sign in goes to Google and back instead of using a popup, because popups break in browsers inside apps (Viber, WhatsApp, Instagram) with "Cookies are disabled".
-3. Store the Google email(s) that may open `/admin` as a secret (comma separated), so they never end up in the repo:
-   ```bash
-   npx wrangler secret put ADMIN_EMAILS
-   npx wrangler secret put ADMIN_TOKEN
-   npx wrangler secret put RESEND_API_KEY
-   ```
-   `ADMIN_TOKEN` is any long random text; `npm run points` uses it when FPL blocks the Worker.
-4. Apply the schema and deploy:
-   ```bash
-   npx wrangler d1 migrations apply squadjury --remote
-   npm run deploy
-   ```
-5. In the Cloudflare dashboard, add `squadjury.com` as a custom domain of the `squadjury` Worker.
-
-## Email sign in (Resend)
-
-The sign in link is sent with [Resend](https://resend.com) (free up to 3,000 emails a month).
-
-1. Make an account at resend.com and open **Domains**, **Add Domain**, `squadjury.com`.
-2. Resend shows DNS records (an MX and a TXT for SPF on a `send` subdomain, and a TXT for DKIM). In the Cloudflare dashboard open `squadjury.com`, **DNS**, **Records**, and add each one exactly as shown (Proxy status: DNS only). Back in Resend press **Verify**; it usually takes a few minutes.
-3. In Resend open **API Keys**, **Create API Key** (permission: Sending access, domain: squadjury.com) and copy it.
-4. Store it as a secret:
-   ```bash
-   npx wrangler secret put RESEND_API_KEY
-   ```
-5. Optional: the sender is `SquadJury <login@squadjury.com>`. To change it, add `MAIL_FROM` under `vars` in `wrangler.jsonc`.
-
-Limits: 3 links per hour per email and 10 per IP address. Without the key (local development) the link is shown in the sign in sheet instead of being emailed.
-
-## Sign in with Apple (ready, switched off)
-
-The code is in place (`/api/auth/apple`, the button in the sign in sheet). It needs an Apple Developer account (99 USD a year):
-
-1. In Apple Developer, **Certificates, IDs & Profiles**: make an **App ID** with Sign in with Apple, then a **Services ID** (for example `com.squadjury.web`) with Sign in with Apple, domain `squadjury.com` and return URL `https://squadjury.com/login`.
-2. Add `"APPLE_CLIENT_ID": "com.squadjury.web"` (the Services ID) under `vars` in `wrangler.jsonc` and deploy. The "Continue with Apple" button appears by itself.
-
-## Seasons
-
-Gameweek numbers repeat every season, so the database stores a gameweek as a season key: 2026/27 GW7 is `202607`, and every table with a gameweek also has a `season` label (`2026-27`). The season comes from the FPL data (the year of the first deadline), the API and the app keep using plain gameweek numbers, and the Season tab only counts the current season. When FPL publishes the next season in summer, nothing needs to change.
-
-## Real points
-
-Every hour a cron job looks for finished gameweeks (FPL `finished` and `data_checked`), reads the live points from FPL and scores each squad: the starting XI, the captain doubled (the vice when the captain did not play) and automatic substitutions from the bench, keeping a valid formation. Squads whose owner added an FPL team ID get their exact FPL score instead (40 per run). If FPL cannot be reached, the job tries again every hour for 48 hours.
-
-FPL sometimes blocks requests from Cloudflare. Then run the job from your own computer, which sends the live points to the Worker:
-
-```bash
-npx wrangler secret put ADMIN_TOKEN
-```
-
-PowerShell:
+**Bodovi kad FPL blokira Worker** (PowerShell):
 
 ```powershell
-$env:BASE="https://squadjury.com"; $env:ADMIN_TOKEN="the same token"; npm run points -- --gw 7
+$env:BASE="https://TVOJA-DOMENA"; $env:ADMIN_TOKEN="isti token"; npm run points -- --gw 9
 ```
 
-`/admin` also shows the state of each finished gameweek and has a **Fetch points** button.
+## Sljedeće
 
-## Backups
+- Provjera sa pravim FPL API-jem poslije objave (iz razvojnog okruženja FPL nije dostupan, pa je sve testirano na snimku sezone)
+- SquadJury na bosanskom (tekstovi su u `public/jury/js/i18n.js`, dodaje se jedan objekat)
+- Slike za dijeljenje iz SquadJuryja u bojama Managera
+- „Pitaj ekipu” glasanje preko WhatsAppa i Vibera
+- Poređenje sa timovima iz top 10.000
+- Planer čipova za više kola
+- Obavijesti za golove i rok za transfere
 
-- **Weekly backup:** every Monday at 04:17 UTC a cron job writes all tables (without sessions and caches) as gzipped JSON to R2, `squadjury-images/backups/YYYY-MM-DD.json.gz`. The last 8 are kept. `/admin` shows the latest backups and has a **Backup now** button.
-- **D1 Time Travel** (built in, last 30 days): the quickest fix for a recent mistake, for example a wrong delete. It restores the whole database to a minute in the past:
-  ```bash
-  npx wrangler d1 time-travel info squadjury
-  npx wrangler d1 time-travel restore squadjury --timestamp=2026-10-19T10:00:00Z
-  ```
-- **Use a weekly backup** when the problem is older than 30 days, or to copy data somewhere else. Check it locally first:
-  ```bash
-  npx wrangler r2 object get squadjury-images/backups/2026-10-19.json.gz --file backup.json.gz --remote
-  node scripts/restore-backup.mjs backup.json.gz
-  ```
-  Restoring to production replaces the live data, so it needs an explicit flag (PowerShell: `$env:RESTORE_REMOTE=1`, cmd: `set RESTORE_REMOTE=1`), then `node scripts/restore-backup.mjs backup.json.gz --remote`.
-
-## Project structure
-
-```
-public/            the app (HTML, CSS, JS, fonts, logo, icons)
-  js/views/        screens: judge, leaderboard, post, squad, me, team, pages, admin
-  js/ocr/          the squad reader (shared by the browser and the tests)
-src/               the Worker: API, sessions, FPL data, gameweek locking
-migrations/        D1 schema
-scripts/           logo, icons, share card, FPL snapshot, example data, vendor files
-tests/             unit, OCR, API and browser tests with real screenshot fixtures
-```
-
-The logo is generated by `scripts/logo.py`; five variants live in `public/img/logo/variants`. To switch, change `CHOSEN` in that script and run `npm run logo`.
-
-## Credits
-
-- Font: Archivo, under the SIL Open Font License.
-- Squad reader: Tesseract.js (Apache 2.0).
-- FPL snapshot for local development built from the public FPL data collected in [vaastav/Fantasy-Premier-League](https://github.com/vaastav/Fantasy-Premier-League).
-
-SquadJury is a fan project and is not affiliated with the Premier League or Fantasy Premier League. Shirts on the pitch are generic shapes in club colours; no club badges or official kits are used.
-
-## Author
-
-Ahmed Grabus ([grabator](https://github.com/grabator))
+Nezvanična aplikacija. Nije povezana sa Premier League ni Fantasy Premier League.
