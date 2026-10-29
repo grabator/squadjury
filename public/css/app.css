@@ -17,7 +17,7 @@
   --cond: 'Barlow Condensed', 'Arial Narrow', sans-serif;
 }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; background: #14061f; }
 body { margin: 0; min-height: 100vh; color: var(--t); font: 500 15px/1.5 'Manrope', system-ui, sans-serif; background: var(--night); -webkit-font-smoothing: antialiased; }
 body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: radial-gradient(900px 600px at 0% 0%, rgba(150, 60, 255, .38), transparent 70%), radial-gradient(800px 500px at 100% 100%, rgba(255, 40, 130, .18), transparent 70%), linear-gradient(180deg, #37003c, #14061f 70%); }
 h1, h2, h3, p { margin: 0; }
@@ -272,19 +272,37 @@ input[type='range'] { width: 100%; min-height: 44px; accent-color: var(--violet2
 .prose p, .prose li { color: var(--m); }
 .prose ul { padding-left: 20px; margin: 6px 0; }
 
-/* kartica igrača (dijalog) */
-dialog.pd { width: min(760px, calc(100vw - 24px)); max-height: calc(100vh - 40px); padding: 0; border: 1px solid var(--line); border-radius: 24px; color: var(--t); background: linear-gradient(160deg, rgba(70, 20, 100, .96), rgba(25, 8, 40, .97)); box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .9); overflow: auto; }
-dialog.pd::backdrop { background: rgba(10, 2, 18, .6); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-.pd-in { padding: 24px; }
-.pd-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; }
-.pd-top .shirt { width: 70px; height: 70px; }
-.pd-top h2 { font: 800 36px/1 var(--cond); }
-.pd-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 18px; }
-.pd-stats div { padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .07); }
-.pd-stats b { display: block; font: 800 24px var(--cond); }
-.mini-bars { display: flex; align-items: flex-end; gap: 4px; height: 90px; margin-top: 10px; }
-.mini-bars i { flex: 1; border-radius: 4px 4px 2px 2px; background: linear-gradient(180deg, var(--cyan), var(--violet)); min-height: 3px; }
-.mini-bars i.z { background: rgba(255, 255, 255, .14); }
+/* kartica igrača (dijalog): na računaru prozor na sredini, na mobitelu panel odozdo; zaglavlje uvijek vidljivo */
+dialog.pd { width: min(720px, calc(100vw - 24px)); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); padding: 0; border: 1px solid var(--line); border-radius: 24px; color: var(--t); background: linear-gradient(160deg, #3d1260, #1c0830 60%); box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .9); overflow: auto; overscroll-behavior: contain; }
+dialog.pd[open] { animation: pdIn .28s var(--ease); }
+@keyframes pdIn { from { opacity: 0; transform: translateY(16px) scale(.98); } }
+dialog.pd::backdrop { background: rgba(10, 2, 18, .65); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.pd-top { position: sticky; top: 0; z-index: 3; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 18px 20px 14px; background: linear-gradient(180deg, #44146a, rgba(61, 18, 96, .96)); border-bottom: 1px solid var(--line); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.pd-top .shirt { width: 62px; height: 62px; }
+.pd-name { min-width: 0; }
+.pd-top h2 { font: 800 32px/1 var(--cond); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pd-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.pd-in { padding: 16px 20px 24px; }
+.pd-in > .alert { margin-bottom: 12px; }
+.pd-h3 { margin-top: 20px; }
+.pd-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.pd-stats div { padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .07); }
+.pd-stats b { display: block; font: 800 24px/1.1 var(--cond); }
+.pfxs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.pfx { display: grid; justify-items: center; gap: 1px; padding: 8px 4px 9px; border-radius: 12px; text-align: center; }
+.pfx.d1, .pfx.d2 { background: #01fc7a; color: #2b0030; } .pfx.d3 { background: #e7e7e7; color: #2b0030; } .pfx.d4 { background: #ff1751; color: #2b0030; } .pfx.d5 { background: #80072d; color: #fff; }
+.pfx-gw { font-size: 11px; font-weight: 700; opacity: .75; }
+.pfx b { font: 800 18px/1.1 var(--cond); }
+.pfx-ha { font-size: 10.5px; font-weight: 700; }
+.pfx-xp { margin-top: 3px; padding: 1px 7px; border-radius: 99px; background: #37003c; color: #fff; font-size: 12px; font-weight: 800; }
+.pfx.d5 .pfx-xp { background: #2b0030; }
+.pbars { display: flex; align-items: flex-end; gap: 4px; height: 120px; margin-top: 10px; }
+.pbar { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; }
+.pbar i { display: block; width: 100%; max-width: 30px; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg, var(--violet2), var(--violet)); }
+.pbar.hi i { background: linear-gradient(180deg, var(--green), #00b86a); }
+.pbar.z i { background: rgba(255, 255, 255, .14); }
+.pbar b { font-size: 11px; font-weight: 800; color: var(--m); } .pbar.hi b { color: var(--green); }
+.pbar span { font-size: 10px; color: var(--d); }
 
 /* traka sa rokom */
 .dl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-bottom: 16px; padding: 9px 14px; border-radius: 12px; background: linear-gradient(90deg, rgba(0, 255, 135, .16), rgba(5, 240, 255, .1) 60%, transparent); border: 1px solid rgba(0, 255, 135, .22); font-size: 13.5px; color: var(--m); }
@@ -330,7 +348,7 @@ dialog.pd::backdrop { background: rgba(10, 2, 18, .6); -webkit-backdrop-filter: 
 .caps4 b { font: 800 34px/1 var(--cond); } .caps4 b small { font-size: 16px; color: var(--d); }
 .caps4 .meter { margin-top: 4px; }
 .caprow { display: flex; gap: 8px; margin-top: 14px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
-.capc { position: relative; flex: 0 0 96px; display: grid; justify-items: center; gap: 3px; padding: 10px 6px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--row); color: inherit; font: inherit; cursor: pointer; scroll-snap-align: start; transition: transform .2s var(--ease); }
+.capc { position: relative; flex: 0 0 96px; background-color: #241033; display: grid; justify-items: center; gap: 3px; padding: 10px 6px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--row); color: inherit; font: inherit; cursor: pointer; scroll-snap-align: start; transition: transform .2s var(--ease); }
 .capc:hover { transform: translateY(-2px); }
 .capc .shirt { width: 34px; height: 34px; }
 .capc b { max-width: 100%; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -351,7 +369,7 @@ dialog.pd::backdrop { background: rgba(10, 2, 18, .6); -webkit-backdrop-filter: 
 /* padajući meniji (js/dd.js) */
 .dd { position: relative; min-width: 0; }
 .dd-up:not(main):not(dialog) { position: relative; z-index: 35; }
-.dd-native { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
+.dd-native { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); opacity: 0; pointer-events: none; }
 .dd-btn { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 44px; padding: 0 12px 0 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(20, 6, 31, .55); color: var(--t); font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; transition: border-color .2s, background .2s; }
 .dd-btn:hover { border-color: rgba(255, 255, 255, .24); background: rgba(40, 12, 60, .7); }
 .dd.on .dd-btn { border-color: var(--violet2); box-shadow: 0 0 0 3px rgba(150, 60, 255, .3); }
@@ -475,9 +493,19 @@ main.in > :nth-child(2) { animation-delay: 50ms; } main.in > :nth-child(3) { ani
   .pitch .field { padding: 18px 4px 12px; }
   .plan-top { grid-template-columns: repeat(3, auto); gap: 12px 18px; } .plan-top .acts { grid-column: 1 / -1; justify-content: flex-start; } .plan-top .big { font-size: 32px; }
   .planbar { bottom: 92px; }
-  .pd-stats { grid-template-columns: repeat(2, 1fr); }
-  .pd-top { grid-template-columns: auto minmax(0, 1fr); }
-  .pd-top > :last-child { grid-column: 1 / -1; }
+  dialog.pd { width: 100vw; max-width: 100vw; margin: auto 0 0; max-height: 92vh; max-height: 92dvh; border-radius: 22px 22px 0 0; border-bottom: 0; }
+  dialog.pd[open] { animation: pdUp .3s var(--ease); }
+  @keyframes pdUp { from { transform: translateY(40px); opacity: .4; } }
+  .pd-top { padding: 14px 14px 12px; gap: 10px; }
+  .pd-top::before { content: ''; position: absolute; top: 6px; left: 50%; width: 38px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, .25); transform: translateX(-50%); }
+  .pd-top .shirt { width: 46px; height: 46px; }
+  .pd-top h2 { font-size: 26px; }
+  .pd-in { padding: 14px 14px calc(22px + env(safe-area-inset-bottom)); }
+  .pd-stats { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .pd-stats div { padding: 8px; }
+  .pd-stats .sub { font-size: 11px; }
+  .pd-stats b { font-size: 20px; }
+  .pfx b { font-size: 16px; } .pfx-ha { font-size: 9.5px; }
   .tabs { position: fixed; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px; border-radius: 22px; background: rgba(30, 8, 45, .82); }
   .tabs a, .tabs button { display: grid; justify-items: center; gap: 2px; padding: 7px 0 6px; border-radius: 16px; color: var(--m); font-size: 11px; font-weight: 700; text-decoration: none; border: 0; background: none; cursor: pointer; }
   .tabs [aria-current='page'] { background: linear-gradient(135deg, #7b2cf5, #b44dff); color: #fff; }
