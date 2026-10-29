@@ -175,3 +175,12 @@ test('bonus po BPS-u: izjednačeni dijele mjesto, sljedeći preskače', async ()
   assert.deepEqual(defCon({ element_type: 3 }, { clearances_blocks_interceptions: 4, tackles: 3, recoveries: 4 }), { v: 11, need: 12, hit: false });
   assert.equal(defCon({ element_type: 1 }, {}), null);
 });
+
+test('uzvičnik samo za upitne igrače, ne za dostupne sa 100% šanse', async () => {
+  const { flagColor } = await import('../public/js/ui.js');
+  assert.equal(flagColor({ status: 'a', chance_of_playing_next_round: null }), '');
+  assert.equal(flagColor({ status: 'a', chance_of_playing_next_round: 100 }), '');
+  assert.equal(flagColor({ status: 'd', chance_of_playing_next_round: 75 }), '#ffe65b');
+  assert.equal(flagColor({ status: 'd', chance_of_playing_next_round: 50 }), '#ffab1b');
+  assert.equal(flagColor({ status: 'i', chance_of_playing_next_round: 0 }), '#c0020d');
+});
