@@ -1,6 +1,6 @@
 // Pregled: rok, stanje sezone, bodovi po kolima, sljedeće kolo i brzi savjeti.
-import { S, league } from '../state.js';
-import { captainOptions, transferIdeas, alerts, freeTransfers, greenArrowOdds, fixturesFor, num, fmt, price, int, time, dayShort, dateShort, dateLong, pct } from '../model.js';
+import { S, league, ftLeft } from '../state.js';
+import { captainOptions, transferIdeas, alerts, greenArrowOdds, fixturesFor, num, fmt, price, int, time, dayShort, dateShort, dateLong, pct } from '../model.js';
 import { esc, ic, chip, spark, greet, kit, pbtn, ring, countUp } from '../ui.js';
 import { tr } from '../i18n.js';
 
@@ -21,7 +21,7 @@ export async function render() {
   const avgOf = (gw) => num(ix.events.find((e) => e.id === gw)?.average_entry_score);
   const avg = avgOf(last.event);
   const rankChg = prev ? prev.overall_rank - last.overall_rank : 0;
-  const ft = freeTransfers(history);
+  const ft = ftLeft(), made = S.pending.length;
   const cd = countdown(ix);
   const L = await league().catch(() => null);
   const rows = L?.standings?.results || [], lead = rows[0], meta = S.leagues.find((l) => l.id === S.leagueId);
@@ -46,14 +46,14 @@ export async function render() {
   }).join('') || `<p class="muted">${tr('Nijedan tvoj igrač nema utakmicu u ovom kolu.', 'None of your players has a match this gameweek.')}</p>`;
 
   const cap = captainOptions(ix, S.xi)[0];
-  const idea = transferIdeas(ix, S.ids, S.bank, { limit: 1 })[0];
+  const idea = transferIdeas(ix, S.nextIds, S.nextBank, { limit: 1 })[0];
   const al = alerts(ix, S.ids).slice(0, 4);
   const recentAvg = avgs.slice(-4).reduce((a, b) => a + b, 0) / Math.max(1, avgs.slice(-4).length);
   const odds = greenArrowOdds(ix, { xi: S.xi, captain: cap?.e.id || S.captain }, recentAvg || 50, 2000);
 
   return `<section class="g hero" aria-labelledby="h-hero">
       <div><p class="sub">${esc(entry.name)}, ${tr('kolo', 'gameweek')} ${gw}</p><h1 id="h-hero" class="cond">${greet()}, ${esc(entry.player_first_name)}</h1>
-        <p>${cd.ev ? (cd.parts ? tr('Rok za transfere je ', 'The transfer deadline is ') + dateLong(new Date(cd.ev.deadline_time)) + '.' : tr('Rok za kolo ' + cd.ev.id + ' je prošao.', 'The gameweek ' + cd.ev.id + ' deadline has passed.')) : ''} ${tr('Imaš', 'You have')} ${ft} ${ft === 1 ? tr('besplatan transfer', 'free transfer') : tr('besplatna transfera', 'free transfers')}${ft >= 5 ? tr(' (najviše što se može sačuvati)', ' (the most you can bank)') : ''}.</p>
+        <p>${cd.ev ? (cd.parts ? tr('Rok za transfere je ', 'The transfer deadline is ') + dateLong(new Date(cd.ev.deadline_time)) + '.' : tr('Rok za kolo ' + cd.ev.id + ' je prošao.', 'The gameweek ' + cd.ev.id + ' deadline has passed.')) : ''} ${tr('Imaš', 'You have')} ${ft} ${ft === 1 ? tr('besplatan transfer', 'free transfer') : tr('besplatna transfera', 'free transfers')}${ft >= 5 ? tr(' (najviše što se može sačuvati)', ' (the most you can bank)') : ''}${made ? tr(`, a ${made} ${made === 1 ? 'transfer si' : 'transfera si'} već napravio na FPL-u`, `, after the ${made} ${made === 1 ? 'transfer' : 'transfers'} you already made on FPL`) : ''}.</p>
         <p style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="#/transferi">${ic('swap')}${tr('Planiraj transfere', 'Plan transfers')}</a><a class="btn ghost" href="#/kapiten">${ic('cap')}${tr('Izaberi kapitena', 'Pick a captain')}</a></p></div>
       ${cd.parts ? `<div class="count" id="countdown" aria-label="${tr('Vrijeme do roka', 'Time to deadline')}">${cd.parts.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('')}</div>` : ''}
     </section>

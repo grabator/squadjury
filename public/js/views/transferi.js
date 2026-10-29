@@ -1,6 +1,6 @@
 // Transferi: besplatni transferi, pojedinačni i dvostruki prijedlozi, minus 4, šta ako, cijene.
-import { S } from '../state.js';
-import { transferIdeas, transferPairs, hitWorth, whatIf, alerts, freeTransfers, risers, xp, num, fmt, price, int, POS_BS } from '../model.js';
+import { S, ftLeft } from '../state.js';
+import { transferIdeas, transferPairs, hitWorth, whatIf, alerts, risers, xp, num, fmt, price, int, POS_BS } from '../model.js';
 import { esc, ic, pbtn, $, fdrChip, shirt } from '../ui.js';
 import { tr } from '../i18n.js';
 
@@ -14,20 +14,20 @@ const mk = { pos: 0, max: 0, sort: 'xp', q: '' };
 
 export async function render() {
   const { ix } = S;
-  const ft = freeTransfers(S.history);
-  const ideas = transferIdeas(ix, S.ids, S.bank, { limit: 6, horizon: hz });
-  const pairs = transferPairs(ix, S.ids, S.bank, { limit: 3, horizon: hz });
-  const al = alerts(ix, S.ids);
+  const ft = ftLeft(), made = S.pending.length;
+  const ideas = transferIdeas(ix, S.nextIds, S.nextBank, { limit: 6, horizon: hz });
+  const pairs = transferPairs(ix, S.nextIds, S.nextBank, { limit: 3, horizon: hz });
+  const al = alerts(ix, S.nextIds);
   const rise = risers(ix, 6);
-  const squad = S.ids.map((id) => ix.players.get(id)).sort((a, b) => a.element_type - b.element_type);
+  const squad = S.nextIds.map((id) => ix.players.get(id)).sort((a, b) => a.element_type - b.element_type);
   const verdict = (gain, cost) => {
     if (!cost) return `<span class="chg up">+${fmt(gain)}</span>`;
     const h = hitWorth(gain);
     return `<span class="chg ${h.worth ? 'up' : h.close ? 'nt' : 'dn'}" title="${tr('Sa minus', 'With a hit of')} ${cost}">${h.net >= 0 ? '+' : '−'}${fmt(Math.abs(h.net))} ${tr('poslije', 'after')} −${cost}</span>`;
   };
   const pairCost = Math.max(0, 2 - ft) * 4;
-  return `<div class="head"><div><h1>${tr('Transferi', 'Transfers')}</h1><p class="sub">${tr(`Prijedlozi za ${hz === 1 ? 'sljedeće kolo' : 'narednih ' + hz + ' kola'}, u okviru budžeta (banka £${fmt(S.bank / 10)}m) i najviše 3 igrača iz kluba`, `Ideas for ${hz === 1 ? 'the next gameweek' : 'the next ' + hz + ' gameweeks'}, within budget (bank £${fmt(S.bank / 10)}m) and at most 3 players per club`)}</p></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chg up" style="font-size:14px">${ft} ${ft === 1 ? tr('besplatan transfer', 'free transfer') : tr('besplatna transfera', 'free transfers')}</span><span class="chg nt" style="font-size:14px">${tr('svaki dodatni −4', 'each extra −4')}</span></div></div>
+  return `<div class="head"><div><h1>${tr('Transferi', 'Transfers')}</h1><p class="sub">${tr(`Prijedlozi za ${hz === 1 ? 'sljedeće kolo' : 'narednih ' + hz + ' kola'}, u okviru budžeta (banka £${fmt(S.nextBank / 10)}m) i najviše 3 igrača iz kluba`, `Ideas for ${hz === 1 ? 'the next gameweek' : 'the next ' + hz + ' gameweeks'}, within budget (bank £${fmt(S.nextBank / 10)}m) and at most 3 players per club`)}</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chg up" style="font-size:14px">${ft} ${ft === 1 ? tr('besplatan transfer', 'free transfer') : tr('besplatna transfera', 'free transfers')}</span>${made ? `<span class="chg vi" style="font-size:14px">${tr(`već napravljeno na FPL-u: ${made}`, `already made on FPL: ${made}`)}</span>` : ''}<span class="chg nt" style="font-size:14px">${tr('svaki dodatni −4', 'each extra −4')}</span></div></div>
     <div class="grid2">
       <div class="stack">
         <section class="g card" aria-labelledby="h-ideas"><div class="ch" style="margin:0"><h2 id="h-ideas" class="ct">${tr('Najbolji pojedinačni transferi', 'Best single transfers')}</h2><div class="seg" role="group" aria-label="${tr('Za koliko kola', 'How many gameweeks')}">${[1, 3, 5].map((n) => `<button type="button" data-hz="${n}" aria-pressed="${hz === n}">${n} ${n === 1 ? tr('kolo', 'GW') : tr('kola', 'GWs')}</button>`).join('')}</div></div><div class="list" style="margin-top:12px">${ideas.length ? ideas.map((t) => `<div class="trx"><span class="trx-pos">${POS_SHORT[t.out.element_type]}</span>${swapCells(ix, t.out, t.inn)}${verdict(t.gain, ft >= 1 ? 0 : 4)}</div>`).join('') : `<p class="muted">${tr('Nema transfera koji se jasno isplati.', 'No transfer clearly pays off.')}</p>`}</div></section>
@@ -63,7 +63,7 @@ export function bind(rerender) {
   if (!outSel) return;
   $("#sim").onsubmit = (e) => e.preventDefault();
   const label = (e) => `${e.web_name} (${ix.teams.get(e.team).short_name}, £${price(e)}m)`;
-  const pool = () => { const out = ix.players.get(+outSel.value); return [...ix.players.values()].filter((e) => e.element_type === out.element_type && !S.ids.includes(e.id) && e.minutes > 0).sort((a, b) => b.now_cost - a.now_cost); };
+  const pool = () => { const out = ix.players.get(+outSel.value); return [...ix.players.values()].filter((e) => e.element_type === out.element_type && !S.nextIds.includes(e.id) && e.minutes > 0).sort((a, b) => b.now_cost - a.now_cost); };
   const fill = () => { list.innerHTML = pool().map((e) => `<option value="${esc(label(e))}"></option>`).join(''); };
   const show = () => {
     const out = ix.players.get(+outSel.value), v = inp.value.trim().toLowerCase();
@@ -72,7 +72,7 @@ export function bind(rerender) {
     const w = whatIf(ix, out, m), money = m.now_cost - out.now_cost;
     box.innerHTML = `<div class="gw-table">${w.rows.map((r) => `<div><p class="sub">${tr('Kolo', 'GW')} ${r.gw}</p><p class="num" style="color:${r.inn >= r.out ? 'var(--green)' : '#ff6aa6'}">${r.inn >= r.out ? '+' : '−'}${fmt(Math.abs(r.inn - r.out))}</p></div>`).join('')}</div>
       <p class="cond" style="margin-top:14px;font-size:26px">${w.gain >= 0 ? tr('Dobijaš', 'You gain') : tr('Gubiš', 'You lose')} ${tr('oko', 'about')} ${fmt(Math.abs(w.gain))} ${tr('bodova kroz 5 kola', 'points over 5 gameweeks')}</p>
-      <p class="sub">${money > S.bank ? tr(`Fali ti £${fmt((money - S.bank) / 10)}m u banci.`, `You are £${fmt((money - S.bank) / 10)}m short.`) : tr(`U banci ostaje £${fmt((S.bank - money) / 10)}m.`, `£${fmt((S.bank - money) / 10)}m left in the bank.`)}</p>`;
+      <p class="sub">${money > S.nextBank ? tr(`Fali ti £${fmt((money - S.nextBank) / 10)}m u banci.`, `You are £${fmt((money - S.nextBank) / 10)}m short.`) : tr(`U banci ostaje £${fmt((S.nextBank - money) / 10)}m.`, `£${fmt((S.nextBank - money) / 10)}m left in the bank.`)}</p>`;
   };
   outSel.onchange = () => { fill(); inp.value = ''; show(); };
   inp.oninput = show;
@@ -90,7 +90,7 @@ function market() {
     const q = mk.q.trim().toLowerCase();
     const rows = all.filter((e) => (!mk.pos || e.element_type === mk.pos) && (!mk.max || e.now_cost <= mk.max) && (!q || e.web_name.toLowerCase().includes(q) || ix.teams.get(e.team).name.toLowerCase().includes(q) || ix.teams.get(e.team).short_name.toLowerCase() === q))
       .sort((a, b) => key[mk.sort](b) - key[mk.sort](a)).slice(0, 15);
-    body.innerHTML = rows.length ? rows.map((e) => `<tr${S.ids.includes(e.id) ? ' class="me"' : ''}><td>${pbtn(e)} <span class="sub">${esc(ix.teams.get(e.team).short_name)}, ${POS_BS[e.element_type]}</span>${S.ids.includes(e.id) ? ` <span class="chg vi">${tr('tvoj', 'yours')}</span>` : ''}</td><td class="num">${price(e)}</td><td class="num">${fmt(num(e.form))}</td><td class="num">${fmt(num(e.selected_by_percent))}%</td><td><span class="fx3">${[0, 1, 2].map((k) => fdrChip(ix, e, ix.nextGw + k)).join('')}</span></td><td><span class="chg vi">${fmt(xs.get(e.id))}</span></td></tr>`).join('') : `<tr><td colspan="6" class="muted">${tr('Nema igrača za ovaj filter.', 'No players match this filter.')}</td></tr>`;
+    body.innerHTML = rows.length ? rows.map((e) => `<tr${S.nextIds.includes(e.id) ? ' class="me"' : ''}><td>${pbtn(e)} <span class="sub">${esc(ix.teams.get(e.team).short_name)}, ${POS_BS[e.element_type]}</span>${S.nextIds.includes(e.id) ? ` <span class="chg vi">${tr('tvoj', 'yours')}</span>` : ''}</td><td class="num">${price(e)}</td><td class="num">${fmt(num(e.form))}</td><td class="num">${fmt(num(e.selected_by_percent))}%</td><td><span class="fx3">${[0, 1, 2].map((k) => fdrChip(ix, e, ix.nextGw + k)).join('')}</span></td><td><span class="chg vi">${fmt(xs.get(e.id))}</span></td></tr>`).join('') : `<tr><td colspan="6" class="muted">${tr('Nema igrača za ovaj filter.', 'No players match this filter.')}</td></tr>`;
   };
   document.querySelectorAll('[data-pos]').forEach((b) => { b.onclick = () => { mk.pos = +b.dataset.pos; document.querySelectorAll('[data-pos]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }; });
   const r = $('#mk-max'), out = $('#mk-maxv'), sel = $('#mk-sort'), q = $('#mk-q');
