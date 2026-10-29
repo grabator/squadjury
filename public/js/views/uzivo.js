@@ -1,6 +1,6 @@
 // Uživo: bodovi tvog tima u kolu, događaji (golovi, asistencije, bonus) i dvoboj sa rivalom iz lige.
 import { S, live, league, picksOf, teamOf, refreshLive, setLeague } from '../state.js';
-import { POS_BS, plural, int, liveBonus, defCon, fixturesFor } from '../model.js';
+import { POS_BS, plural, int, liveBonus, defCon, fixturesFor, dayShort, time } from '../model.js';
 import { esc, pbtn, pitchCard, leaguePick, kit } from '../ui.js';
 import { tr } from '../i18n.js';
 
@@ -11,8 +11,31 @@ let rivalId = null, timer = null;
 // bodovi igrača uživo: FPL bodovi plus privremeni bonus iz BPS-a dok ga FPL ne potvrdi
 const ptsOf = (lv, lb, id) => (lv.get(id)?.total_points || 0) + (lb.get(id)?.provisional || 0);
 const teamPoints = (t, lv, lb) => t.xi.reduce((s, id) => s + ptsOf(lv, lb, id) * (id === t.captain ? 2 : 1), 0);
-/** Mala oznaka ispod igrača: bonus (B0 do B3) i odbrambeni doprinos (DC trenutno/potrebno). */
-const liveTag = (e, s = {}, b = {}) => { const dc = defCon(e, s); return `<span class="lx" aria-hidden="true"><i class="lx-b${b.bonus ? ' on' : ''}${b.provisional ? ' prov' : ''}">B${b.bonus || 0}</i>${dc ? `<i class="lx-d${dc.hit ? ' on' : ''}">DC ${dc.v}</i>` : ''}</span><span class="sr">, BPS ${b.bps || 0}, bonus ${b.bonus || 0}${dc ? `, ${tr('odbrambeni doprinos', 'defensive contribution')} ${dc.v} ${tr('od', 'of')} ${dc.need}` : ''}</span>`; };
+/**
+ * TV pločica ispod igrača: ime, minute i bodovi; ispod BPS i DefCon (golman: odbrane);
+ * dole u jednom redu DefCon i Bonus, a prije utakmice dan i vrijeme početka.
+ */
+const lbl = (full, short) => `<span class="lf">${full}</span><span class="ls">${short}</span>`;
+function tvPlate(ix, e, s = {}, b = {}, pts, gw) {
+  const fx = fixturesFor(ix, e.team, gw, 1), mins = s.minutes || 0, now = Date.now();
+  const ko = fx.map((f) => f.kickoff && new Date(f.kickoff)).filter(Boolean).sort((x, y) => x - y);
+  const upcoming = !mins && ko.length && ko.some((d) => d > now) && !fx.some((f) => f.finished || (f.kickoff && new Date(f.kickoff) <= now));
+  const live = mins > 0 && fx.some((f) => !f.finished && f.kickoff && new Date(f.kickoff) <= now);
+  const dc = defCon(e, s), gk = e.element_type === 1, sv = s.saves || 0;
+  const head = `<span class="tv-h"><b class="tv-n">${esc(e.web_name)}</b>${upcoming || !fx.length ? '' : `<span class="tv-m${live ? ' live' : ''}">${mins}'</span>`}<span class="tv-p">${upcoming || !fx.length ? '–' : pts}</span></span>`;
+  const mid = `<span class="tv-s"><span>BPS <b>${upcoming ? '–' : b.bps || 0}</b></span>${gk ? `<span>${tr('OD', 'SV')} <b>${upcoming ? '–' : sv}</b></span>` : dc ? `<span>DC <b>${upcoming ? '–' : dc.v}</b>/${dc.need}</span>` : ''}</span>`;
+  let ft;
+  if (!fx.length) ft = `<span class="tg ko">${tr('ne igra', 'no game')}</span>`;
+  else if (upcoming) { const d = ko.find((x) => x > now); ft = `<span class="tg ko">${dayShort(d)} ${time(d)}</span>`; }
+  else {
+    const dcTag = gk ? (Math.floor(sv / 3) ? `<span class="tg grn">+${Math.floor(sv / 3)} ${lbl(tr('Odbrane', 'Saves'), tr('OD', 'SV'))}</span>` : `<span class="tg zero">0 ${lbl(tr('Odbrane', 'Saves'), tr('OD', 'SV'))}</span>`)
+      : dc?.hit ? `<span class="tg grn">+2 ${lbl('DefCon', 'DC')}</span>` : `<span class="tg zero">0 ${lbl('DefCon', 'DC')}</span>`;
+    const bTag = b.bonus ? `<span class="tg gold${b.provisional ? ' pr' : ''}">+${b.bonus} ${lbl('Bonus', 'B')}</span>` : `<span class="tg zero">0 ${lbl('Bonus', 'B')}</span>`;
+    ft = dcTag + bTag;
+  }
+  const sr = `<span class="sr">, ${upcoming ? tr('utakmica još nije počela', 'match not started') : `${mins} ${tr('minuta', 'minutes')}, ${pts} ${tr('bodova', 'points')}, BPS ${b.bps || 0}, bonus ${b.bonus || 0}${b.provisional ? tr(' (nije konačan)', ' (not final)') : ''}${dc ? `, DefCon ${dc.v} ${tr('od', 'of')} ${dc.need}` : ''}`}</span>`;
+  return `${head}<span aria-hidden="true" class="tv-b">${mid}<span class="tv-f">${ft}</span></span>${sr}`;
+}
 
 export async function render() {
   const { ix } = S, gw = S.lastGw;
@@ -78,8 +101,8 @@ export async function render() {
           <div class="main-s"><span class="sub">${tr('Bodovi u kolu', 'Points in GW')} ${gw}</span><b data-n="${mine}">${mine}</b><span class="chg ${ev.finished ? 'nt' : 'up'}">${ev.finished ? tr('završeno', 'finished') : tr('uživo', 'live')}</span>${prov ? `<span class="sub">${tr('uklj. privremeni bonus', 'incl. provisional bonus')} +${prov}</span>` : ''}</div>
           <div class="side-s"><div><span class="sub">${tr('Rang kola', 'GW rank')}</span><b>${hist?.rank ? int(hist.rank) : '–'}</b></div><div><span class="sub">${tr('Transferi', 'Transfers')}</span><b>${hist ? hist.event_transfers + (hist.event_transfers_cost ? ' (−' + hist.event_transfers_cost + ')' : '') : '–'}</b></div></div>
         </section>
-        <section class="pitch" aria-label="${tr('Bodovi igrača', 'Player points')}"><div class="field">${[1, 2, 3, 4].map((pos) => `<div class="line-row">${S.xi.map((id) => ix.players.get(id)).filter((e) => e.element_type === pos).map((e) => pitchCard(ix, e, { cap: e.id === S.captain, vice: e.id === S.vice, attr: 'data-pid', info: `<span class="pts">${ptsOf(lv, lb, e.id) * (e.id === S.captain ? 2 : 1)}</span>`, extra: liveTag(e, lv.get(e.id), lb.get(e.id)) })).join('')}</div>`).join('')}</div>
-          <div class="bench" aria-label="${tr('Klupa', 'Bench')}">${S.bench.map((id, i) => { const e = ix.players.get(id); return `<div class="bslot"><span class="sub">${i ? i + '.' : tr('GOL', 'GK')}</span>${pitchCard(ix, e, { bench: true, attr: 'data-pid', info: `<span class="pts">${ptsOf(lv, lb, id)}</span>`, extra: liveTag(e, lv.get(id), lb.get(id)) })}</div>`; }).join('')}</div></section>
+        <section class="pitch" aria-label="${tr('Bodovi igrača', 'Player points')}"><div class="field">${[1, 2, 3, 4].map((pos) => `<div class="line-row">${S.xi.map((id) => ix.players.get(id)).filter((e) => e.element_type === pos).map((e) => pitchCard(ix, e, { cap: e.id === S.captain, vice: e.id === S.vice, attr: 'data-pid', tv: tvPlate(ix, e, lv.get(e.id), lb.get(e.id), ptsOf(lv, lb, e.id) * (e.id === S.captain ? 2 : 1), gw) })).join('')}</div>`).join('')}</div>
+          <div class="bench" aria-label="${tr('Klupa', 'Bench')}">${S.bench.map((id, i) => { const e = ix.players.get(id); return `<div class="bslot"><span class="sub">${i ? i + '.' : tr('GOL', 'GK')}</span>${pitchCard(ix, e, { bench: true, attr: 'data-pid', tv: tvPlate(ix, e, lv.get(id), lb.get(id), ptsOf(lv, lb, id), gw) })}</div>`; }).join('')}</div></section>
         <p class="sub lx-legend">${tr('B je bonus po BPS-u (0 do 3, privremeno dok FPL ne potvrdi), DC je odbrambeni doprinos: odbrana treba 10, vezni i napadači 12 za +2 boda.', 'B is the bonus from BPS (0 to 3, provisional until FPL confirms), DC is the defensive contribution: defenders need 10, midfielders and forwards 12 for +2 points.')}</p>
         <section class="g card"><h2 class="ct">${tr('Šta se desilo', 'What happened')}</h2><div class="feed" style="margin-top:12px">${feed.length ? feed.map(([k, t, e, txt, p]) => `<p><span class="ev ${k}">${t}</span><span>${esc(txt)} <span class="sub">${esc(ix.teams.get(e.team).short_name)}</span></span><b class="num" style="color:${p ? 'var(--green)' : 'var(--d)'}">${p ? '+' + p : tr('klupa', 'bench')}</b></p>`).join('') : `<p class="muted">${tr('Još nema golova ni asistencija tvojih igrača.', 'No goals or assists from your players yet.')}</p>`}</div></section>
       </div>

@@ -106,7 +106,7 @@ function build() {
   return cache;
 }
 
-// brojevi slika (code iz FPL podataka) samo za igrače iz probe slika
+// brojevi slika (code iz FPL podataka) za nekoliko poznatih igrača, da se slike vide i u primjeru
 const PHOTO_CODE = { Haaland: 223094, Eze: 232413 };
 
 export function bootstrap() {
