@@ -6,6 +6,7 @@ import { tr, lang } from './i18n.js';
 export const POS = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
 export const POS_BS = tr({ 1: 'Golman', 2: 'Odbrana', 3: 'Vezni', 4: 'Napad' }, { 1: 'Goalkeeper', 2: 'Defender', 3: 'Midfielder', 4: 'Forward' });
 const dec = (s) => (lang === 'bs' ? s.replace('.', ',') : s);
+export const EP_W_OURS = 0.1;
 const FDR_FACTOR = { 1: 1.25, 2: 1.15, 3: 1, 4: 0.85, 5: 0.72 };
 const GOAL_PTS = { 1: 10, 2: 6, 3: 5, 4: 4 };
 
@@ -76,7 +77,9 @@ export function xp(ix, e, fromGw = ix.nextGw, n = 1) {
     let v = rate * (FDR_FACTOR[f.fdr] || 1) * (f.home ? 1.05 : 0.97);
     if (f.gw === ix.nextGw) {
       v *= availability(e);
-      if (e.ep_next != null && e.ep_next !== '') v = 0.5 * v + 0.5 * num(e.ep_next);
+      // za sljedeće kolo FPL daje svoju procjenu (ep_next) koja zna i za povrede i rotaciju; provjera na prošlim
+      // kolima (scripts/backtest.mjs) pokazala je da je tačnija od naše, pa ona nosi 90%
+      if (e.ep_next != null && e.ep_next !== '') v = EP_W_OURS * v + (1 - EP_W_OURS) * num(e.ep_next);
     } else if (e.status === 'i' || e.status === 's') v *= f.gw <= ix.nextGw + 1 ? 0.5 : 0.9;
     sum += v;
   }

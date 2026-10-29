@@ -68,6 +68,10 @@ FPL javno pokazuje transfere čim ih napraviš, i prije roka (`/entry/:id/transf
 
 Ispod svakog igrača na terenu stoji bonus (B0 do B3) i odbrambeni doprinos (DC). Bonus se računa iz BPS-a po utakmici (prva tri: 3, 2, 1, izjednačeni dijele mjesto) dok ga FPL ne potvrdi; tada se koristi pravi. DefCon: odbrana 10, vezni i napadači 12 za +2 boda. Kartice "Bonus uživo (BPS)" i "Odbrambeni doprinos (DefCon)" su na ekranu Uživo.
 
+## Tačnost predviđenih bodova
+
+`npm run backtest -- 2026-27 4 6` provjerava model na odigranim kolima: za svako kolo vidi samo ranija kola, pa se procjena poredi sa stvarnim bodovima (javni podaci sa github.com/vaastav/Fantasy-Premier-League). Na osnovu te provjere, za sljedeće kolo aplikacija uzima 90% zvanične FPL procjene (ep_next) i 10% našeg modela; za kola poslije toga FPL procjene nema, pa radi naš model.
+
 ## Jezik
 
 Aplikacija je na engleskom (zadano) i bosanskom. Izbor (EN/BS) je na početnom ekranu, u bočnom meniju, u meniju "Više" na mobitelu i u SquadJury postavkama (Ja). Pamti se u pregledniku (`sj-lang`) i važi za oba dijela. Tekstovi FPL dijela su u kodu kao `tr(bosanski, engleski)` (public/js/i18n.js), a SquadJury tekstovi u public/jury/js/i18n.js i i18n-bs.js.
