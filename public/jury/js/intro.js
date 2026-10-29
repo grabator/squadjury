@@ -64,7 +64,7 @@ export function showIntro({ force = false } = {}) {
   root.setAttribute('aria-modal', 'true');
   root.setAttribute('aria-label', t('intro.label'));
   root.innerHTML = html`
-    <div class="in-top"><picture><img src="/jury/img/logo/logo-white.svg" alt="SquadJury" width="100" height="28"></picture>
+    <div class="in-top"><picture><img src="/jury/img/logo/logo-white.svg" alt="SquadJury" width="120" height="28"></picture>
       <button class="in-skip" data-skip>${t('intro.skip')}</button></div>
     <div class="in-slide" aria-live="polite"></div>
     <div class="in-bottom">

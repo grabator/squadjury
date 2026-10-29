@@ -1,3 +1,12 @@
+// Uvodna animacija logotipa: jednom po posjeti, bez nje ako korisnik ne želi pokrete.
+(function () {
+  var show = false;
+  try {
+    show = !sessionStorage.getItem('sj-splash') && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (show) sessionStorage.setItem('sj-splash', '1');
+  } catch (e) { /* bez spremnika */ }
+  if (show) document.documentElement.classList.add('splashing');
+})();
 // Pokreće preuzimanje podataka odmah, dok se ostatak aplikacije još učitava. api.js ih preuzima iz window.__pre.
 (function () {
   var q = new URLSearchParams(location.search), id = q.get('id'), demo = q.get('demo') === '1';

@@ -1,4 +1,4 @@
-# FPL Manager
+# SquadJury (FPL dio i ocjenjivanje timova)
 
 Dashboard za Fantasy Premier League menadžere. Upišeš svoj FPL ID (bez lozinke) i dobiješ pregled sezone, prijedlog kapitena, transfere sa procjenom bodova, raspored kola i tabelu svoje lige.
 

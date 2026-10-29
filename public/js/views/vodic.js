@@ -15,7 +15,7 @@ export async function render() {
       <ul><li>Svako kolo dobiješ 1 besplatan transfer. Neiskorištene čuvaš, ali najviše 5.</li><li>Svaki transfer preko besplatnih košta 4 boda.</li><li>Kad prodaješ igrača koji je poskupio, dobiješ samo pola rasta cijene. Zato je prodajna cijena često malo niža od trenutne.</li><li>Rok za transfere je prije prve utakmice kola.</li></ul>
       <h2>Čipovi</h2>
       <ul><li><b>Wildcard</b>: neograničeni besplatni transferi to kolo, promjene ostaju.</li><li><b>Free Hit</b>: neograničeni transferi samo za jedno kolo, zatim se tim vraća.</li><li><b>Bench Boost</b>: bodovi igrača sa klupe se računaju.</li><li><b>Triple Captain</b>: kapiten donosi trostruke bodove.</li></ul>
-      <h2>Kako čitati FPL Manager</h2>
+      <h2>Kako čitati SquadJury</h2>
       <ul><li><b>Predviđeni bodovi</b> su procjena iz forme, prosjeka, minutaže, očekivanih golova i asistencija, protivnika i domaćeg terena. Nisu sigurni, ali pomažu da uporediš igrače.</li><li><b>Boje protivnika</b>: zeleno lako, sivo srednje, crveno teško, tamnocrveno vrlo teško.</li><li><b>Šanse</b> (zelena strelica, dvoboj sa rivalom) dobijamo tako što kolo „odigramo” hiljadama puta oko predviđenih bodova.</li><li><b>Besplatni transferi</b> se računaju iz tvoje historije kola, pa provjeri broj i na FPL-u prije potvrde.</li></ul>
     </section>`;
 }
