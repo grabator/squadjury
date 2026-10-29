@@ -185,6 +185,9 @@ function openCmd() {
 }
 document.addEventListener('keydown', (ev) => { if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') { ev.preventDefault(); if ($('#cmd').open) $('#cmd').close(); else { $('#pd').open && $('#pd').close(); openCmd(); } } });
 document.addEventListener('click', (ev) => { if (ev.target.closest('[data-cmd]')) openCmd(); });
+// slike igrača: učitana slika zamijeni dres, neuspjela se makne pa ostaje dres
+document.addEventListener('load', (ev) => { if (ev.target.matches?.('img.ph')) ev.target.parentNode.classList.add('has-ph'); }, true);
+document.addEventListener('error', (ev) => { if (ev.target.matches?.('img.ph')) ev.target.remove(); }, true);
 document.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Escape') return;
   if (!$('#acct').hidden) { $('#acct').hidden = true; $('#acct-btn')?.setAttribute('aria-expanded', 'false'); $('#acct-btn')?.focus(); }
