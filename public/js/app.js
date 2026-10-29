@@ -16,8 +16,9 @@ import * as liga from './views/liga.js';
 import * as karijera from './views/karijera.js';
 import * as vodic from './views/vodic.js';
 import * as kutak from './views/kutak.js';
+import * as trofeji from './views/trofeji.js';
 
-const VIEWS = { pregled, tim, kapiten, transferi, raspored, uzivo, kutak, rival, liga, karijera, vodic };
+const VIEWS = { pregled, tim, kapiten, transferi, raspored, uzivo, kutak, rival, liga, karijera, trofeji, vodic };
 const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* */ } }, del: (k) => { try { localStorage.removeItem(k); } catch { /* */ } } };
@@ -35,16 +36,51 @@ function chrome() {
     const head = g !== grp ? `<p class="grp">${g}</p>` : ''; grp = g;
     return head + `<a class="nv" href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}${t}</a>`;
   }).join('') + `<p class="grp">${tr('Zajednica', 'Community')}</p><a class="nv jury" href="/jury/">${ic('jury')}SquadJury<span class="new">${tr('ocijeni timove', 'rate squads')}</span></a><div class="me"><span class="av" aria-hidden="true">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span><div style="min-width:0;flex:1"><b>${esc(S.entry.name)}</b><span class="sub">${esc(S.entry.player_first_name)} ${esc(S.entry.player_last_name)}</span>${isDemo() ? `<br><span class="demo-badge">${tr('Primjer', 'Demo')}</span>` : ''}</div><div class="acts"><button class="btn ghost sm" type="button" data-share>${ic('link')}Link</button><button class="btn ghost sm" type="button" data-logout>${ic('out')}${tr('Promijeni', 'Switch')}</button></div></div><div class="side-lang"><span class="sub">${tr('Jezik', 'Language')}</span>${langSwitch()}</div>`;
-  mtop.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a><span style="display:flex;gap:8px;align-items:center"><button type="button" class="icon-btn" data-cmd aria-label="${tr('Traži igrača ili ekran', 'Find a player or screen')}">${ic('search')}</button><span class="av" title="${esc(S.entry.name)}" aria-label="${esc(S.entry.name)}">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span></span>`;
+  mtop.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a><span style="display:flex;gap:8px;align-items:center"><button type="button" class="icon-btn" data-cmd aria-label="${tr('Traži igrača ili ekran', 'Find a player or screen')}">${ic('search')}</button><button type="button" class="av av-btn" id="acct-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="acct" aria-label="${initials()}, ${tr('tvoj tim i promjena tima', 'your team and switching team')}: ${esc(S.entry.name)}">${initials()}</button></span>`;
+  acct();
   const inMore = !TABS.includes(r);
   tabs.innerHTML = TABS.map((k) => { const [, t, i] = ROUTES.find((x) => x[0] === k); return `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}<span>${t}</span></a>`; }).join('') + `<button type="button" id="more-btn" aria-expanded="${!more.hidden}" aria-controls="more"${inMore ? ' aria-current="page"' : ''}>${ic('more')}<span>${tr('Više', 'More')}</span></button>`;
-  more.innerHTML = ROUTES.filter(([k]) => !TABS.includes(k)).map(([k, t, i]) => `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}${t}</a>`).join('') + `<a href="/jury/">${ic('jury')}SquadJury</a><a href="#/" data-logout>${ic('out')}${tr('Promijeni tim', 'Switch team')}</a><div class="more-lang">${langSwitch()}</div>`;
+  // Više: jasne grupe kao u bočnom meniju, neprozirna podloga
+  const rest = ROUTES.filter(([k]) => !TABS.includes(k)), groups = [...new Set(rest.map((x) => x[3]))];
+  more.innerHTML = `<div class="ms-h"><b>${tr('Više', 'More')}</b><button type="button" class="icon-btn" data-close-more aria-label="${tr('Zatvori', 'Close')}">${ic('close')}</button></div>` + groups.map((g) => `<p class="ms-g">${g}</p><div class="ms-row">${rest.filter((x) => x[3] === g).map(([k, t, i]) => `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}<span>${t}</span></a>`).join('')}</div>`).join('') + `<p class="ms-g">${tr('Zajednica', 'Community')}</p><div class="ms-row"><a href="/jury/">${ic('jury')}<span>SquadJury</span></a><a href="#/" data-logout>${ic('out')}<span>${tr('Promijeni tim', 'Switch team')}</span></a></div><div class="more-lang"><span class="sub">${tr('Jezik', 'Language')}</span>${langSwitch()}</div>`;
   bindLang();
-  $('#more-btn').onclick = () => { more.hidden = !more.hidden; $('#more-btn').setAttribute('aria-expanded', String(!more.hidden)); };
-  document.querySelectorAll('[data-logout]').forEach((b) => { b.onclick = (e) => { e.preventDefault(); store.del('fm-id'); store.del('fm-demo'); reset(); setDemo(false); more.hidden = true; history.replaceState(null, '', location.pathname + '#/pregled'); render(); }; });
-  document.querySelectorAll('[data-share]').forEach((b) => { b.onclick = async () => { const url = location.origin + '/?id=' + S.id + (isDemo() ? '&demo=1' : ''); try { await navigator.clipboard.writeText(url); status(tr('Link tima je kopiran.', 'Team link copied.')); } catch { prompt(tr('Link tvog tima', 'Your team link'), url); } }; });
+  $('#more-btn').onclick = () => { more.hidden = !more.hidden; $('#acct').hidden = true; $('#more-btn').setAttribute('aria-expanded', String(!more.hidden)); };
+  more.querySelector('[data-close-more]').onclick = () => { more.hidden = true; $('#more-btn').setAttribute('aria-expanded', 'false'); };
+  bindAcctActions(document);
 }
 const status = (t) => { $('#status').textContent = t; };
+const initials = () => esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''));
+
+// ---------- tim: nedavni timovi, promjena tima, meni računa ----------
+const recent = () => { try { return JSON.parse(store.get('fm-recent') || '[]').filter((x) => x && /^\d{1,9}$/.test(String(x.id))); } catch { return []; } };
+function remember() {
+  const me = { id: S.id, n: S.entry.name, m: `${S.entry.player_first_name} ${S.entry.player_last_name}`, d: isDemo() ? 1 : 0 };
+  store.set('fm-recent', JSON.stringify([me, ...recent().filter((x) => !(x.id === me.id && x.d === me.d))].slice(0, 6)));
+}
+function openTeam(id, demo) {
+  store.set('fm-id', String(id)); store.set('fm-demo', demo ? '1' : '0');
+  reset(); setDemo(!!demo); $('#more').hidden = true; $('#acct').hidden = true;
+  history.replaceState(null, '', location.pathname + '#/pregled'); render();
+}
+function logout() { store.del('fm-id'); store.del('fm-demo'); reset(); setDemo(false); $('#more').hidden = true; $('#acct').hidden = true; history.replaceState(null, '', location.pathname + '#/pregled'); render(); }
+async function share() { const url = location.origin + '/?id=' + S.id + (isDemo() ? '&demo=1' : ''); try { await navigator.clipboard.writeText(url); status(tr('Link tima je kopiran.', 'Team link copied.')); } catch { prompt(tr('Link tvog tima', 'Your team link'), url); } }
+function bindAcctActions(root) {
+  root.querySelectorAll('[data-logout]').forEach((b) => { b.onclick = (e) => { e.preventDefault(); logout(); }; });
+  root.querySelectorAll('[data-share]').forEach((b) => { b.onclick = share; });
+  root.querySelectorAll('[data-team]').forEach((b) => { b.onclick = () => openTeam(+b.dataset.team, b.dataset.demo === '1'); });
+}
+const teamRow = (x) => `<button type="button" class="tm-row" data-team="${x.id}" data-demo="${x.d ? 1 : 0}"><span class="av" aria-hidden="true">${esc(String(x.m || x.n || '?').split(' ').map((w) => w[0] || '').join('').slice(0, 2))}</span><span><b>${esc(x.n)}</b><span class="sub">${esc(x.m || '')}${x.d ? ' · ' + tr('primjer', 'demo') : ''}</span></span>${ic('chev')}</button>`;
+// meni računa (dodir na inicijale gore desno)
+function acct() {
+  const box = $('#acct'), btn = $('#acct-btn');
+  const others = recent().filter((x) => !(x.id === S.id && !!x.d === isDemo()));
+  box.innerHTML = `<div class="ac-me"><span class="av" aria-hidden="true">${initials()}</span><div><b>${esc(S.entry.name)}</b><span class="sub">${esc(S.entry.player_first_name)} ${esc(S.entry.player_last_name)} · ID ${S.id}${isDemo() ? ' · ' + tr('primjer', 'demo') : ''}</span></div></div>
+    <div class="ac-acts"><button type="button" class="btn sm" data-logout>${ic('swap')}${tr('Promijeni tim', 'Switch team')}</button><button type="button" class="btn ghost sm" data-share>${ic('link')}${tr('Kopiraj link', 'Copy link')}</button></div>
+    ${others.length ? `<p class="ms-g">${tr('Nedavni timovi', 'Recent teams')}</p><div class="tm-list">${others.map(teamRow).join('')}</div>` : ''}
+    <div class="more-lang"><span class="sub">${tr('Jezik', 'Language')}</span>${langSwitch()}</div>`;
+  bindAcctActions(box); bindLang();
+  btn.onclick = () => { box.hidden = !box.hidden; $('#more').hidden = true; btn.setAttribute('aria-expanded', String(!box.hidden)); if (!box.hidden) box.querySelector('button')?.focus(); };
+}
 
 // traka sa rokom za transfere, kao na vrhu FPL stranica
 function deadline() {
@@ -106,6 +142,8 @@ document.addEventListener('click', (ev) => {
   if (p && S.ready) { ev.preventDefault(); openPlayer(+p.dataset.pid); }
   const more = $('#more');
   if (!more.hidden && !ev.target.closest('#more, #more-btn')) { more.hidden = true; $('#more-btn')?.setAttribute('aria-expanded', 'false'); }
+  const ac = $('#acct');
+  if (ac && !ac.hidden && !ev.target.closest('#acct, #acct-btn')) { ac.hidden = true; $('#acct-btn')?.setAttribute('aria-expanded', 'false'); }
 });
 $('#pd').addEventListener('click', (ev) => { if (ev.target === $('#pd')) $('#pd').close(); });
 
@@ -114,17 +152,22 @@ const norm = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,
 function openCmd() {
   if (!S.ready) return;
   const dlg = $('#cmd'), ix = S.ix;
-  dlg.innerHTML = `<div class="cmd-in"><label class="cmd-q">${ic('search')}<span class="sr">${tr('Traži', 'Search')}</span><input id="cmd-q" role="combobox" aria-controls="cmd-list" aria-expanded="true" aria-autocomplete="list" placeholder="${tr('Igrač, klub ili ekran', 'Player, club or screen')}" autocomplete="off"><kbd>Esc</kbd></label><ul id="cmd-list" role="listbox" aria-label="${tr('Rezultati', 'Results')}"></ul></div>`;
+  dlg.innerHTML = `<div class="cmd-in"><label class="cmd-q">${ic('search')}<span class="sr">${tr('Traži', 'Search')}</span><input id="cmd-q" role="combobox" aria-controls="cmd-list" aria-expanded="true" aria-autocomplete="list" type="search" enterkeyhint="search" placeholder="${tr('Igrač, klub ili ekran', 'Player, club or screen')}" autocomplete="off" spellcheck="false"><kbd>Esc</kbd><button type="button" class="cmd-x" aria-label="${tr('Zatvori pretragu', 'Close search')}">${tr('Zatvori', 'Close')}</button></label><p class="cmd-hint sub" id="cmd-hint"></p><ul id="cmd-list" role="listbox" aria-label="${tr('Rezultati', 'Results')}"></ul></div>`;
   const q = $('#cmd-q'), list = $('#cmd-list');
+  dlg.querySelector('.cmd-x').onclick = () => dlg.close();
   let items = [], act = 0;
   const draw = () => {
     const v = norm(q.value.trim());
     const routes = ROUTES.filter(([k, t]) => !v || norm(t).includes(v)).map(([k, t, i]) => ({ kind: 'r', k, t, i }));
-    const players = v.length < 2 ? (v ? [] : S.ids.map((id) => ix.players.get(id))) : [...ix.players.values()].filter((e) => norm(e.web_name).includes(v) || norm(e.second_name).includes(v) || norm(ix.teams.get(e.team).name).includes(v)).sort((a, b) => num(b.selected_by_percent) - num(a.selected_by_percent));
-    items = [...(v ? routes.slice(0, 4) : []), ...players.slice(0, 8).map((e) => ({ kind: 'p', e })), ...(v ? [] : routes.slice(0, 4))];
+    // već od prvog slova: jedno slovo traži početak imena, više slova bilo gdje u imenu, prezimenu ili klubu
+    const hit = (e) => { const a = norm(e.web_name), b = norm(e.second_name), f = norm(e.first_name), c = norm(ix.teams.get(e.team).name), cs = norm(ix.teams.get(e.team).short_name); return v.length < 2 ? a.startsWith(v) || b.startsWith(v) : a.includes(v) || b.includes(v) || (f + ' ' + b).includes(v) || c.includes(v) || cs === v; };
+    const rank = (e) => (norm(e.web_name).startsWith(v) ? 2 : 0) + (S.ids.includes(e.id) ? 1 : 0);
+    const players = !v ? S.ids.map((id) => ix.players.get(id)) : [...ix.players.values()].filter(hit).sort((a, b) => rank(b) - rank(a) || num(b.selected_by_percent) - num(a.selected_by_percent));
+    items = [...players.slice(0, v ? 12 : 15).map((e) => ({ kind: 'p', e })), ...routes.slice(0, v ? 3 : 5)];
     act = Math.min(act, Math.max(0, items.length - 1));
-    list.innerHTML = items.length ? items.map((it, i) => `<li role="option" id="cmd-${i}" aria-selected="${i === act}" data-i="${i}">${it.kind === 'r' ? `<span class="ci">${ic(it.i)}</span><span>${it.t}</span><span class="sub">${tr('ekran', 'screen')}</span>` : `<span class="ci shirt">${shirt(ix.teams.get(it.e.team), it.e.element_type === 1)}</span><span><b>${esc(it.e.web_name)}</b> <span class="sub">${esc(ix.teams.get(it.e.team).short_name)}, ${POS_BS[it.e.element_type]}</span></span><span class="sub">£${price(it.e)}m</span>`}</li>`).join('') : `<li class="muted" style="padding:14px">${tr('Nema rezultata.', 'No results.')}</li>`;
+    list.innerHTML = items.length ? items.map((it, i) => `<li role="option" id="cmd-${i}" aria-selected="${i === act}" data-i="${i}">${it.kind === 'r' ? `<span class="ci">${ic(it.i)}</span><span>${it.t}</span><span class="sub">${tr('ekran', 'screen')}</span>` : `<span class="ci shirt">${shirt(ix.teams.get(it.e.team), it.e.element_type === 1)}</span><span class="cmd-n"><b>${esc(it.e.web_name)}</b>${S.ids.includes(it.e.id) ? `<em class="cmd-mine">${tr('tvoj', 'yours')}</em>` : ''}<span class="sub">${esc(ix.teams.get(it.e.team).short_name)} · ${POS_BS[it.e.element_type]} · ${it.e.total_points} ${tr('bod.', 'pts')}</span></span><span class="cmd-p">£${price(it.e)}m<span class="sub">${it.e.selected_by_percent}%</span></span>`}</li>`).join('') : `<li class="muted" style="padding:14px">${tr('Nema rezultata.', 'No results.')}</li>`;
     q.setAttribute('aria-activedescendant', items.length ? 'cmd-' + act : '');
+    $('#cmd-hint').textContent = v ? `${players.length} ${tr('igrača', 'players')}${players.length > 12 ? tr(', prikazano 12 najpopularnijih', ', showing the 12 most picked') : ''}` : tr('Tvoj tim i ekrani. Kucaj ime igrača ili kluba.', 'Your team and screens. Type a player or club name.');
     list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
   };
   const go = (i) => { const it = items[i]; if (!it) return; dlg.close(); if (it.kind === 'r') location.hash = '#/' + it.k; else openPlayer(it.e.id); };
@@ -142,6 +185,11 @@ function openCmd() {
 }
 document.addEventListener('keydown', (ev) => { if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') { ev.preventDefault(); if ($('#cmd').open) $('#cmd').close(); else { $('#pd').open && $('#pd').close(); openCmd(); } } });
 document.addEventListener('click', (ev) => { if (ev.target.closest('[data-cmd]')) openCmd(); });
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape') return;
+  if (!$('#acct').hidden) { $('#acct').hidden = true; $('#acct-btn')?.setAttribute('aria-expanded', 'false'); $('#acct-btn')?.focus(); }
+  if (!$('#more').hidden) { $('#more').hidden = true; $('#more-btn')?.setAttribute('aria-expanded', 'false'); $('#more-btn')?.focus(); }
+});
 $('#cmd').addEventListener('click', (ev) => { if (ev.target === $('#cmd')) $('#cmd').close(); });
 
 // ---------- početni ekran ----------
@@ -187,6 +235,15 @@ function start(msg = '') {
         <div class="st-row field"><input id="fid" inputmode="text" autocomplete="off" placeholder="${tr('npr. 1234567 ili zalijepi link', 'e.g. 1234567 or paste a link')}" aria-describedby="fhint lerr" required><button class="btn" type="submit">${tr('Otvori moj tim', 'Open my team')}</button></div>
         <p class="st-hint" id="fhint" aria-live="polite">${innerWidth > 980 ? tr('Ne znaš svoj ID? Uputstvo je desno, traje pola minute.', 'Don\'t know your ID? The steps are on the right, it takes half a minute.') : tr('Ne znaš svoj ID? Uputstvo je ispod, traje pola minute.', 'Don\'t know your ID? The steps are below, it takes half a minute.')}</p>
         <p class="err" id="lerr" role="alert">${esc(msg)}</p></form>
+      <details class="st-find" id="st-find"><summary>${ic('search')}<span>${tr('Ne znaš ID? Nađi tim po imenu', 'No ID? Find your team by name')}</span></summary>
+        <form id="find" novalidate>
+          <p class="sub">${tr('FPL ne nudi pretragu svih timova, pa tražimo unutar lige u kojoj si: liga sa prijateljima, liga tvog kluba ili države. Broj lige je u adresi kad je otvoriš na FPL-u (/leagues/<b>broj</b>/).', 'FPL has no search across all teams, so we search inside a league you are in: your friends\' league, your club\'s or your country\'s league. The league number is in the address when you open it on FPL (/leagues/<b>number</b>/).')}</p>
+          <div class="st-find-f"><label class="field">${tr('Ime tima ili menadžera', 'Team or manager name')}<input id="fq" autocomplete="off" placeholder="${tr('npr. Graba FC ili Ahmed', 'e.g. Graba FC or Ahmed')}"></label>
+          <label class="field">${tr('Liga (broj ili link)', 'League (number or link)')}<input id="fl" inputmode="text" autocomplete="off" placeholder="${tr('npr. 123456', 'e.g. 123456')}"></label></div>
+          <button class="btn" type="submit">${ic('search')}${tr('Traži', 'Search')}</button>
+          <div id="fres" aria-live="polite"></div>
+        </form></details>
+      ${recent().length ? `<div class="st-recent"><p class="ms-g">${tr('Nedavni timovi', 'Recent teams')}</p><div class="tm-list">${recent().map(teamRow).join('')}</div></div>` : ''}
       <p class="st-or"><span>${tr('ili', 'or')}</span></p>
       <button class="btn ghost st-demo" type="button" id="demo">${tr('Pogledaj primjer bez prijave', 'Try a demo team first')}</button>
       <p class="sub st-note">${tr('Ne tražimo lozinku ni email. Koriste se samo javni podaci tvog tima. Nezvanična aplikacija, nije povezana sa Premier League.', 'We never ask for a password or email. Only your team\'s public data is used. Unofficial app, not affiliated with the Premier League.')}</p>
@@ -218,6 +275,26 @@ function bindStart() {
     store.set('fm-id', id); store.set('fm-demo', '0'); setDemo(false); render();
   };
   $('#demo').onclick = () => { store.set('fm-id', '1'); store.set('fm-demo', '1'); setDemo(true); render(); };
+  bindAcctActions($('#main'));
+  // traženje tima po imenu unutar lige
+  const ff = $('#find'), res = $('#fres');
+  ff.onsubmit = async (e) => {
+    e.preventDefault();
+    const q = $('#fq').value.trim(), l = $('#fl').value.trim();
+    if (q.length < 2) { res.innerHTML = `<p class="err">${tr('Upiši bar 2 slova imena.', 'Type at least 2 letters of the name.')}</p>`; $('#fq').focus(); return; }
+    if (!/\d/.test(l)) { res.innerHTML = `<p class="err">${tr('Upiši broj lige ili zalijepi njen link.', 'Type the league number or paste its link.')}</p>`; $('#fl').focus(); return; }
+    res.innerHTML = `<div class="sk" style="height:56px;margin-top:10px"></div>`;
+    try {
+      const r = await fetch('/api/find?league=' + encodeURIComponent(l) + '&q=' + encodeURIComponent(q));
+      const d = await r.json();
+      if (!r.ok) { const x = new Error('find'); x.status = r.status; throw x; }
+      const rows = d.results.map((x) => ({ id: x.entry, n: x.entry_name, m: x.player_name + (x.rank ? ` · ${x.rank}.` : ''), d: 0 }));
+      res.innerHTML = rows.length ? `<p class="sub" style="margin:10px 0 6px">${esc(d.league?.name || '')}: ${tr('dodirni svoj tim', 'tap your team')}</p><div class="tm-list">${rows.map(teamRow).join('')}</div>` : `<p class="muted" style="margin-top:10px">${tr(`Nema tima sa tim imenom među prvih ${d.scanned} u ovoj ligi.`, `No team with that name among the first ${d.scanned} in this league.`)}${d.more ? tr(' Liga je velika, probaj manju ligu.', ' The league is big, try a smaller one.') : ''}</p>`;
+      bindAcctActions(res);
+    } catch (err) {
+      res.innerHTML = `<p class="err">${esc(err.status === 404 ? tr('Ne postoji liga sa tim brojem.', 'There is no league with that number.') : err.status === 400 ? tr('Upiši broj lige ili zalijepi njen link.', 'Type the league number or paste its link.') : tr('Pretraga trenutno ne radi. Pokušaj za minut.', 'Search is not working right now. Try again in a minute.'))}</p>`;
+    }
+  };
   document.querySelectorAll('[data-how]').forEach((b) => { b.onclick = () => { document.querySelectorAll('[data-how]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); $('#how').innerHTML = steps(b.dataset.how); }; });
 }
 
@@ -244,6 +321,7 @@ async function render(quiet) {
     await busy;
     if (!S.ready || my !== seq) return;
   }
+  if (S.id && S.remembered !== S.id) { S.remembered = S.id; remember(); }
   chrome();
   const r = route(), v = VIEWS[r];
   // kostur samo ako ekran kasni, da brzi ekrani ne trepnu
@@ -272,7 +350,7 @@ let warmed = false;
 const pre = (ev) => { const a = ev.target.closest?.('a[href^="#/"]'); const k = a?.getAttribute('href').slice(2); if (S.ready && VIEWS[k]?.prefetch) VIEWS[k].prefetch(); };
 addEventListener('pointerover', pre, { passive: true });
 addEventListener('focusin', pre);
-addEventListener('hashchange', () => { $('#more').hidden = true; render(); if (!calm) scrollTo(0, 0); $('#main').focus({ preventScroll: true }); });
+addEventListener('hashchange', () => { $('#more').hidden = true; $('#acct').hidden = true; render(); if (!calm) scrollTo(0, 0); $('#main').focus({ preventScroll: true }); });
 const q = new URLSearchParams(location.search);
 if (q.get('id') && /^\d{1,9}$/.test(q.get('id'))) { store.set('fm-id', q.get('id')); store.set('fm-demo', q.get('demo') === '1' ? '1' : '0'); history.replaceState(null, '', location.pathname + location.hash); }
 else if (q.get('demo') === '1') { store.set('fm-id', '1'); store.set('fm-demo', '1'); history.replaceState(null, '', location.pathname + location.hash); }

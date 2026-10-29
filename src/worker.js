@@ -10,6 +10,7 @@
 //   GET /api/league/:id             tabela klasične lige
 //   GET /api/element/:id            igrač: bodovi po kolima i sljedeće utakmice
 //   GET /api/team/:id               menadžer, historija i tim zadnjeg kola u jednom odgovoru (brži početak)
+//   GET /api/find?league=:id&q=ime  traži tim po imenu tima ili menadžera unutar lige (FPL nema pretragu svih timova)
 // FPL_SOURCE=demo (ili snapshot u lokalnom razvoju) vraća izmišljene, ali stalne podatke (src/lib/demo.js).
 // SquadJury (ocjenjivanje timova) je dio aplikacije: stranice pod /jury, svoj API pod /api, kod u src/jury.
 import * as demo from './lib/demo.js';
@@ -19,7 +20,7 @@ const FPL = 'https://fantasy.premierleague.com/api';
 const UA = { 'user-agent': 'FPL-Manager/0.1', accept: 'application/json' };
 
 // koliko dugo čuvati odgovor (sekunde)
-const TTL = { bootstrap: 900, fixtures: 900, entry: 300, history: 300, picks: 300, transfers: 120, live: 60, league: 300, element: 900, team: 300 };
+const TTL = { bootstrap: 900, fixtures: 900, entry: 300, history: 300, picks: 300, transfers: 120, live: 60, league: 300, lpage: 300, element: 900, team: 300, find: 60 };
 
 const SEC = { 'x-content-type-options': 'nosniff', 'referrer-policy': 'strict-origin-when-cross-origin' };
 const json = (data, status = 200, ttl = 0) => new Response(JSON.stringify(data), {
@@ -38,6 +39,7 @@ export function route(path) {
   if ((m = path.match(/^\/api\/league\/(\d{1,9})$/))) return { kind: 'league', id: +m[1], up: `/leagues-classic/${m[1]}/standings/` };
   if ((m = path.match(/^\/api\/element\/(\d{1,5})$/))) return { kind: 'element', id: +m[1], up: `/element-summary/${m[1]}/` };
   if ((m = path.match(/^\/api\/team\/(\d{1,9})$/))) return { kind: 'team', id: +m[1] };
+  if (path === '/api/find') return { kind: 'find' };
   return null;
 }
 
@@ -51,6 +53,7 @@ export function fromDemo(r) {
     case 'transfers': return demo.transfers(r.id);
     case 'live': return demo.live(r.gw);
     case 'league': return demo.league(r.id);
+    case 'lpage': { const d = demo.league(r.id); return r.page === 1 ? { ...d, standings: { ...d.standings, has_next: false } } : { league: d.league, standings: { has_next: false, results: [] } }; }
     case 'element': { const e = demo.element(r.id); if (!e) { const x = new Error('nema'); x.status = 404; throw x; } return e; }
   }
 }
@@ -101,6 +104,7 @@ export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url), p = url.pathname;
     const r = p.startsWith('/api/') ? route(p) : null;
+    if (r?.kind === 'find') { const lid = (url.searchParams.get('league') || '').match(/(?:leagues\/)?(\d{1,9})/); if (!lid) return json({ greska: 'Upiši broj ili link lige.' }, 400); r.id = +lid[1]; }
     if (r) return fpl(req, env, ctx, url, r);
     // stare SquadJury adrese (prije spajanja bile su u korijenu) vode na /jury
     if (OLD.test(p)) return Response.redirect(new URL('/jury' + p + url.search, url), 301);
@@ -114,12 +118,31 @@ export default {
   scheduled: (event, env, ctx) => jury.scheduled(event, env, ctx)
 };
 
+// pretraga unutar lige: stranice tabele (po 50 timova) dok se ne nađe dovoljno ili dok ne prođe FIND_PAGES stranica
+const FIND_PAGES = 20, FIND_MAX = 30;
+export const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ø/g, 'o').replace(/đ/g, 'dj').trim();
+export async function find(lid, q, one) {
+  const v = norm(q);
+  if (v.length < 2) return { league: null, results: [], scanned: 0, more: false };
+  const out = [];
+  let name = null, page = 1, more = true, scanned = 0;
+  while (more && page <= FIND_PAGES && out.length < FIND_MAX) {
+    const d = await one({ kind: 'lpage', id: lid, page, up: `/leagues-classic/${lid}/standings/?page_standings=${page}` });
+    name = name || d.league?.name;
+    const rows = d.standings?.results || [];
+    scanned += rows.length;
+    for (const x of rows) if (norm(x.entry_name).includes(v) || norm(x.player_name).includes(v)) out.push({ entry: x.entry, entry_name: x.entry_name, player_name: x.player_name, rank: x.rank, total: x.total });
+    more = !!d.standings?.has_next; page++;
+  }
+  return { league: { id: lid, name }, results: out.slice(0, FIND_MAX), scanned, more };
+}
+
 async function fpl(req, env, ctx, url, r) {
   if (req.method !== 'GET') return json({ greska: 'Samo GET.' }, 405);
   try {
     const useDemo = env.FPL_SOURCE === 'demo' || env.FPL_SOURCE === 'snapshot' || url.searchParams.get('demo') === '1';
     const one = useDemo ? fromDemo : (x) => fromFpl(x, ctx);
-    const data = r.kind === 'team' ? await team(r.id, one) : await one(r);
+    const data = r.kind === 'team' ? await team(r.id, one) : r.kind === 'find' ? await find(r.id, url.searchParams.get('q'), one) : await one(r);
     return json(data, 200, TTL[r.kind]);
   } catch (e) {
     if (e.status === 404) return json({ greska: 'Ne postoji tim ili liga sa tim brojem.' }, 404);

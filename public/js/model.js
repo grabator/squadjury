@@ -481,3 +481,30 @@ export function defCon(e, s = {}) {
   const v = s.defensive_contribution ?? ((s.clearances_blocks_interceptions || 0) + (s.tackles || 0) + (e.element_type >= 3 ? s.recoveries || 0 : 0));
   return { v, need, hit: v >= need };
 }
+
+/**
+ * Trofeji u ligi. members: [{ entry, hist: history.current }], caps: Map(kolo -> Map(entry -> bodovi kapitena)).
+ * mgr: najviše bodova u kolu, cap: najbolji kapiten kola, jump: najveći skok na tabeli, top: prvo mjesto poslije kola.
+ * Neriješeno se računa kao pobjeda svih sa istim rezultatom.
+ */
+export function leagueAwards(members, me, caps = new Map()) {
+  const out = [], mine = members.find((m) => m.entry === me);
+  if (!mine || members.length < 2) return out;
+  const at = (m, gw) => m.hist.find((h) => h.event === gw);
+  const rankAt = (gw) => { const rows = members.map((m) => ({ e: m.entry, t: at(m, gw)?.total_points })).filter((r) => r.t != null).sort((a, b) => b.t - a.t); const r = new Map(); rows.forEach((x, i) => r.set(x.e, i && x.t === rows[i - 1].t ? r.get(rows[i - 1].e) : i + 1)); return r; };
+  let prev = null;
+  for (const h of mine.hist) {
+    const gw = h.event, pts = members.map((m) => at(m, gw)?.points).filter((p) => p != null);
+    if (pts.length > 1 && h.points === Math.max(...pts)) out.push({ type: 'mgr', gw, val: h.points });
+    const rk = rankAt(gw);
+    if (rk.get(me) === 1) out.push({ type: 'top', gw, val: h.total_points });
+    if (prev) {
+      const jump = (e) => (prev.has(e) && rk.has(e) ? prev.get(e) - rk.get(e) : 0), best = Math.max(...members.map((m) => jump(m.entry)));
+      if (best > 0 && jump(me) === best) out.push({ type: 'jump', gw, val: best });
+    }
+    prev = rk;
+    const c = caps.get(gw);
+    if (c && c.size > 1 && c.has(me)) { const mx = Math.max(...c.values()); if (mx > 0 && c.get(me) === mx) out.push({ type: 'cap', gw, val: mx }); }
+  }
+  return out;
+}

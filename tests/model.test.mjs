@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import * as demo from '../src/lib/demo.js';
-import { index, xp, captainOptions, transferIdeas, whatIf, alerts, fixturesFor, availability } from '../public/js/model.js';
+import { index, xp, captainOptions, transferIdeas, whatIf, alerts, fixturesFor, availability, leagueAwards } from '../public/js/model.js';
 
 const ix = index(demo.bootstrap(), demo.fixtures());
 const p = demo.picks(1, 9).picks.map((x) => x.element);
@@ -183,4 +183,18 @@ test('uzvičnik samo za upitne igrače, ne za dostupne sa 100% šanse', async ()
   assert.equal(flagColor({ status: 'd', chance_of_playing_next_round: 75 }), '#ffe65b');
   assert.equal(flagColor({ status: 'd', chance_of_playing_next_round: 50 }), '#ffab1b');
   assert.equal(flagColor({ status: 'i', chance_of_playing_next_round: 0 }), '#c0020d');
+});
+
+test('trofeji u ligi: najviše bodova, skok, prvo mjesto, kapiten i neriješeno', () => {
+  const H = (rows) => rows.map(([event, points, total_points]) => ({ event, points, total_points }));
+  const members = [
+    { entry: 1, hist: H([[1, 50, 50], [2, 80, 130], [3, 40, 170]]) },
+    { entry: 2, hist: H([[1, 70, 70], [2, 40, 110], [3, 60, 170]]) },
+    { entry: 3, hist: H([[1, 60, 60], [2, 30, 90], [3, 60, 150]]) }
+  ];
+  const caps = new Map([[3, new Map([[1, 16], [2, 16], [3, 4]])]]);
+  const a = leagueAwards(members, 1, caps).map((x) => `${x.type}${x.gw}`).sort();
+  assert.deepEqual(a, ['cap3', 'jump2', 'mgr2', 'top2', 'top3']);
+  assert.deepEqual(leagueAwards(members.slice(0, 1), 1), []);
+  assert.deepEqual(leagueAwards(members, 99), []);
 });
