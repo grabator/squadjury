@@ -10,8 +10,9 @@ export async function load(id) {
   if (!picks) { const e = new Error('Ovaj tim još nema odigrano kolo.'); e.status = 404; throw e; }
   const ix = index(boot, fixtures);
   const lastGw = team.gw;
-  // samo privatne klasične lige (league_type "x"); javne (Overall, klub, država) imaju stotine hiljada menadžera
-  const leagues = (entry.leagues?.classic || []).filter((l) => l.id > 0 && (l.league_type ?? 'x') === 'x');
+  // sve klasične lige: privatne (league_type "x") prvo, pa javne (Overall, klub, država, kolo početka)
+  const all = (entry.leagues?.classic || []).filter((l) => l.id > 0).map((l) => ({ ...l, mine: (l.league_type ?? 'x') === 'x' }));
+  const leagues = [...all.filter((l) => l.mine), ...all.filter((l) => !l.mine)];
   let saved = null;
   try { saved = +localStorage.getItem('fm-league-' + id) || null; } catch { /* bez spremnika */ }
   const ids = picks.picks.map((p) => p.element);
@@ -48,9 +49,11 @@ export async function captainHistory(n = 8) {
   const gws = lastGws(n);
   const rows = await Promise.all(gws.map(async (gw) => {
     const [p, lv] = await Promise.all([picksOf(S.id, gw), live(gw)]);
-    const t = teamOf(p), pts = (id) => lv.get(id)?.total_points || 0;
-    const cap = pts(t.captain), best = Math.max(...t.xi.map(pts));
-    return { gw, cap, best, chip: p.active_chip };
+    const t = teamOf(p), pts = (id) => lv.get(id)?.total_points || 0, mins = (id) => lv.get(id)?.minutes || 0;
+    // ako kapiten nije igrao, traku nosi vice kapiten
+    const capId = mins(t.captain) || !t.vice || !mins(t.vice) ? t.captain : t.vice;
+    const bestId = t.xi.reduce((b, id) => (pts(id) > pts(b) ? id : b), t.xi[0]);
+    return { gw, cap: pts(capId), best: pts(bestId), capId, bestId, mult: p.active_chip === '3xc' ? 3 : 2, chip: p.active_chip, played: mins(capId) > 0 };
   }));
   return rows;
 }

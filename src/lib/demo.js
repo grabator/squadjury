@@ -184,7 +184,9 @@ function squadFor(id) {
   return s;
 }
 
-const NAMES = { 1: ['Graba FC', 'Ahmed', 'Grabus'], 2: ['Kerim United', 'Kerim', 'H.'], 3: ['Hamza 11', 'Hamza', 'K.'], 4: ['Dino Kickers', 'Dino', 'M.'], 5: ['Ćevap Rovers', 'Emir', 'S.'], 6: ['Bosna Bez Granica', 'Adnan', 'B.'] };
+const NAMES = { 1: ['Graba FC', 'Ahmed', 'Grabus'], 2: ['Kerim United', 'Kerim', 'H.'], 3: ['Hamza 11', 'Hamza', 'K.'], 4: ['Dino Kickers', 'Dino', 'M.'], 5: ['Ćevap Rovers', 'Emir', 'S.'], 6: ['Bosna Bez Granica', 'Adnan', 'B.'], 7: ['Mahala FC', 'Tarik', 'D.'], 8: ['Baščaršija Boys', 'Amar', 'P.'], 9: ['Pita od Sira', 'Lejla', 'K.'], 10: ['Zmajevi', 'Haris', 'O.'], 11: ['Sarajevski Derbi', 'Mirza', 'T.'] };
+// demo lige: id -> [ime, članovi]; 314 je javna liga sa top menadžerima (bez tebe na prvoj strani)
+const LEAGUES = { 1: ['Liga iz kancelarije', [1, 2, 3, 4, 5, 6]], 2: ['Jarani iz mahale', [1, 7, 8, 9, 10, 11]], 314: ['Overall', Array.from({ length: 30 }, (_, i) => i + 2)] };
 // transferi u demu (samo broj po kolu, tim ostaje isti): kolo -> [broj, minus bodova]
 const MOVES = { 1: { 3: [1, 0], 4: [2, 0], 6: [2, 4], 8: [1, 0] } };
 
@@ -217,7 +219,7 @@ function historyFor(id) {
 export function entry(id) {
   const n = NAMES[id] || ['Tim ' + id, 'Menadžer', String(id)];
   const h = historyFor(id).current, last = h[h.length - 1];
-  return { id, name: n[0], player_first_name: n[1], player_last_name: n[2], summary_overall_points: last.total_points, summary_overall_rank: last.overall_rank, summary_event_points: last.points, current_event: DEMO_CURRENT, last_deadline_bank: last.bank, last_deadline_value: last.value, leagues: { classic: [{ id: 1, name: 'Liga iz kancelarije', league_type: 'x', entry_rank: 0, entry_last_rank: 0 }, { id: 314, name: 'Overall', league_type: 's', entry_rank: last.overall_rank, entry_last_rank: 0 }] } };
+  return { id, name: n[0], player_first_name: n[1], player_last_name: n[2], summary_overall_points: last.total_points, summary_overall_rank: last.overall_rank, summary_event_points: last.points, current_event: DEMO_CURRENT, last_deadline_bank: last.bank, last_deadline_value: last.value, leagues: { classic: [{ id: 1, name: 'Liga iz kancelarije', league_type: 'x', entry_rank: 0, entry_last_rank: 0 }, { id: 2, name: 'Jarani iz mahale', league_type: 'x', entry_rank: 0, entry_last_rank: 0 }, { id: 314, name: 'Overall', league_type: 's', entry_rank: last.overall_rank, entry_last_rank: 0 }] } };
 }
 export const history = (id) => historyFor(id);
 
@@ -232,8 +234,9 @@ export function picks(id, gw) {
 }
 
 export function league(id) {
-  const rows = [1, 2, 3, 4, 5, 6].map((e) => { const h = historyFor(e).current; return { entry: e, entry_name: NAMES[e][0], player_name: NAMES[e][1] + ' ' + NAMES[e][2], total: h[h.length - 1].total_points, event_total: h[h.length - 1].points, prev: h[h.length - 2].total_points }; });
+  const [name, members] = LEAGUES[id] || LEAGUES[1];
+  const rows = members.map((e) => { const h = historyFor(e).current, n = NAMES[e] || ['Tim ' + e, 'Menadžer', String(e)]; return { entry: e, entry_name: n[0], player_name: n[1] + ' ' + n[2], total: h[h.length - 1].total_points, event_total: h[h.length - 1].points, prev: h[h.length - 2].total_points }; });
   const prevRank = rows.slice().sort((a, b) => b.prev - a.prev).map((r) => r.entry);
   rows.sort((a, b) => b.total - a.total).forEach((r, i) => { r.rank = i + 1; r.last_rank = prevRank.indexOf(r.entry) + 1; delete r.prev; });
-  return { league: { id, name: 'Liga iz kancelarije' }, standings: { results: rows } };
+  return { league: { id, name }, standings: { has_next: id === 314, results: rows } };
 }
