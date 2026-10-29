@@ -59,7 +59,7 @@ export function fromDemo(r) {
 }
 
 // bootstrap-static je velik (oko 1,5 MB): šaljemo samo polja koja aplikacija koristi
-const PF = ['id', 'web_name', 'first_name', 'second_name', 'team', 'element_type', 'now_cost', 'form', 'points_per_game', 'total_points', 'minutes', 'selected_by_percent', 'status', 'chance_of_playing_next_round', 'news', 'cost_change_event', 'ep_next', 'starts', 'event_points', 'goals_scored', 'assists', 'clean_sheets', 'bonus', 'expected_goals_per_90', 'expected_assists_per_90', 'ict_index', 'transfers_in_event', 'transfers_out_event'];
+const PF = ['id', 'code', 'web_name', 'first_name', 'second_name', 'team', 'element_type', 'now_cost', 'form', 'points_per_game', 'total_points', 'minutes', 'selected_by_percent', 'status', 'chance_of_playing_next_round', 'news', 'cost_change_event', 'ep_next', 'starts', 'event_points', 'goals_scored', 'assists', 'clean_sheets', 'bonus', 'expected_goals_per_90', 'expected_assists_per_90', 'ict_index', 'transfers_in_event', 'transfers_out_event'];
 export function slimBootstrap(b) {
   return {
     teams: b.teams.map((t) => ({ id: t.id, name: t.name, short_name: t.short_name, strength: t.strength })),

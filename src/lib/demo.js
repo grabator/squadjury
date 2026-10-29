@@ -77,7 +77,7 @@ function build() {
     const xg90 = mins ? list.reduce((s, x) => s + x.xg, 0) / mins * 90 : 0, xa90 = mins ? list.reduce((s, x) => s + x.xa, 0) / mins * 90 : 0;
     const sel = r1(Math.min(65, Math.pow(q, 3) * 55 + star * 6 + r() * 3));
     return {
-      id: p.id, web_name: p.web_name, first_name: p.first_name, second_name: p.second_name, team: p.team, element_type: pos,
+      id: p.id, code: PHOTO_CODE[p.web_name] || null, web_name: p.web_name, first_name: p.first_name, second_name: p.second_name, team: p.team, element_type: pos,
       now_cost, total_points: total, minutes: mins, starts: list.filter((x) => x.minutes >= 60).length,
       // forma i prosjek: pola stvarni demo bodovi, pola očekivanje po kvalitetu (manje slučajnosti iz samo 8 kola)
       form: String(r1(0.45 * last4.reduce((s, x) => s + x.total_points, 0) / last4.length + 0.55 * expPts * (injured ? 0 : 1))),
@@ -105,6 +105,9 @@ function build() {
   for (const ev of events) if (ev.id <= DEMO_CURRENT) { let t = 0; for (let m = 2; m <= 31; m++) t += historyFor(m).current[ev.id - 1].points; ev.average_entry_score = Math.round(t / 30); }
   return cache;
 }
+
+// brojevi slika (code iz FPL podataka) samo za igrače iz probe slika
+const PHOTO_CODE = { Haaland: 223094, Eze: 232413 };
 
 export function bootstrap() {
   const b = build();

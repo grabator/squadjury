@@ -938,3 +938,9 @@ main.in .tro { animation: rise .6s var(--ease) both; } main.in .tro:nth-child(2)
   #cmd-list { max-height: calc(100dvh - 130px); padding: 6px 8px 12px; }
   #cmd-list li[role='option'] { padding: 10px 8px; }
 }
+
+/* slika igrača (proba): portret do ramena preko dresa; dres se sakrije tek kad se slika učita */
+.shirt { position: relative; }
+.shirt .ph { position: absolute; left: 50%; bottom: -2px; height: 118%; width: auto; transform: translateX(-50%); opacity: 0; transition: opacity .25s; pointer-events: none; }
+.shirt.has-ph .ph { opacity: 1; }
+.shirt.has-ph > svg { visibility: hidden; }
