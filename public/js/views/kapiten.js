@@ -1,7 +1,7 @@
 // Kapiten: kandidati iz prvih 11, sigurna i rizična opcija, šansa za zelenu strelicu po kapitenu.
 import { S, captainHistory, warmCaptainHistory } from '../state.js';
 import { captainOptions, greenArrowOdds, captainStats, CAP_HIT, CAP_MISS, fmt, num, pct, plural, POS_BS } from '../model.js';
-import { esc, pbtn, shirt } from '../ui.js';
+import { esc, pbtn, shirt, photo } from '../ui.js';
 import { tr } from '../i18n.js';
 
 export const title = tr('Kapiten', 'Captain');
@@ -14,7 +14,7 @@ async function hitsCard(ix) {
   if (!rows.length) return '';
   const st = captainStats(rows);
   const cls = (r) => (r.cap >= CAP_HIT ? 'hit' : r.cap <= CAP_MISS ? 'miss' : 'ok');
-  const chips = rows.map((r) => { const e = ix.players.get(r.capId), b = ix.players.get(r.bestId); return `<button type="button" class="capc ${cls(r)}" data-pid="${r.capId}" title="${tr('Kolo', 'Gameweek')} ${r.gw}: ${esc(e?.web_name || '')} ${r.cap * r.mult} ${tr('bod.', 'pts')}${r.cap < r.best && b ? tr(', najbolji bi bio ', ', best would have been ') + esc(b.web_name) + ' (' + r.best * r.mult + ')' : ''}"><span class="sub">${tr('K', 'GW')}${r.gw}</span><span class="shirt">${e ? shirt(ix.teams.get(e.team), e.element_type === 1) : ''}</span><b>${esc(e?.web_name || '–')}</b><span class="capp">${r.cap * r.mult}${r.mult === 3 ? ' <small>×3</small>' : ''}</span>${r.cap >= r.best ? `<span class="capbest" title="${tr('Najbolji izbor u timu', 'Best pick in the team')}">★</span>` : ''}</button>`; }).join('');
+  const chips = rows.map((r) => { const e = ix.players.get(r.capId), b = ix.players.get(r.bestId); return `<button type="button" class="capc ${cls(r)}" data-pid="${r.capId}" title="${tr('Kolo', 'Gameweek')} ${r.gw}: ${esc(e?.web_name || '')} ${r.cap * r.mult} ${tr('bod.', 'pts')}${r.cap < r.best && b ? tr(', najbolji bi bio ', ', best would have been ') + esc(b.web_name) + ' (' + r.best * r.mult + ')' : ''}"><span class="sub">${tr('K', 'GW')}${r.gw}</span><span class="shirt">${e ? shirt(ix.teams.get(e.team), e.element_type === 1) + photo(e) : ''}</span><b>${esc(e?.web_name || '–')}</b><span class="capp">${r.cap * r.mult}${r.mult === 3 ? ' <small>×3</small>' : ''}</span>${r.cap >= r.best ? `<span class="capbest" title="${tr('Najbolji izbor u timu', 'Best pick in the team')}">★</span>` : ''}</button>`; }).join('');
   return `<section class="g card mt" aria-labelledby="h-hits"><div class="ch"><div><h2 id="h-hits" class="ct">${tr('Tvoji kapiteni ove sezone', 'Your captains this season')}</h2><p class="sub">${tr(`Pogodak je kapiten sa ${CAP_HIT} ili više bodova (${CAP_HIT * 2}+ sa duplim). Promašaj je ${CAP_MISS} ili manje. Zvjezdica znači da niko iz prvih 11 nije donio više.`, `A hit is a captain with ${CAP_HIT} or more points (${CAP_HIT * 2}+ doubled). A miss is ${CAP_MISS} or fewer. The star means nobody in your starting 11 scored more.`)}</p></div></div>
     <div class="caps4">
       <div><span class="sub">${tr('Pogoci', 'Hits')}</span><b style="color:var(--green)">${st.hits}<small> ${tr('od', 'of')} ${st.n}</small></b><div class="meter green"><i style="width:${pct(st.rate)}"></i></div><span class="sub">${pct(st.rate)} ${tr('kola', 'of gameweeks')}</span></div>
