@@ -547,6 +547,29 @@ main.in > :nth-child(2) { animation-delay: 50ms; } main.in > :nth-child(3) { ani
 .mtop .brand { margin: 0; }
 .side .brand { margin-bottom: 14px; }
 @media (max-width: 520px) { .grid4 { gap: 10px; } .stat { padding: 14px; } .stat .v { font-size: 26px; } .card { padding: 16px; } }
+/* planer kroz kola (Moj tim) */
+.gw-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.gw-tabs button { display: grid; gap: 2px; justify-items: start; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); color: var(--t); font: inherit; text-align: left; cursor: pointer; transition: background .2s, border-color .2s; }
+.gw-tabs button b { font: 800 20px/1 var(--cond); text-transform: uppercase; }
+.gw-tabs button:hover { background: rgba(255, 255, 255, .09); }
+.gw-tabs button[aria-selected='true'] { background: linear-gradient(135deg, rgba(123, 44, 245, .55), rgba(180, 77, 255, .35)); border-color: rgba(200, 140, 255, .6); }
+.gt-tr { font-size: 12px; font-weight: 700; color: var(--green); }
+.gt-tr.hit { color: #ff6aa6; }
+.chip-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.pl { position: relative; }
+.tin { position: absolute; top: -4px; left: 50%; transform: translateX(-50%); padding: 1px 6px; border-radius: 99px; background: var(--green); color: #2a0538; font: 800 10px/1.4 var(--cond); letter-spacing: .04em; }
+.trx.plan { grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr) auto; }
+.plan-sum th, .plan-sum td { padding-left: 6px; padding-right: 6px; white-space: nowrap; }
+.plan-sum abbr { text-decoration: none; }
+.li.idea { grid-template-columns: minmax(0, 1fr) auto auto; }
+.buy-list { max-height: 460px; overflow-y: auto; }
+.buy-row { width: 100%; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.buy-row:hover, .buy-row:focus-visible { background: rgba(255, 255, 255, .1); }
+.buy-row .shirt { width: 34px; }
+.buy-v { display: grid; justify-items: end; gap: 4px; }
+.buy-v b { font: 800 22px/1 var(--cond); }
+@media (max-width: 520px) { .gw-tabs button { padding: 8px 10px; } .gw-tabs button b { font-size: 17px; } }
+
 /* jezik: tekst u HTML-u za oba jezika, vidi se samo izabrani */
 .lang-bs .t-en, .lang-en .t-bs, html:not(.lang-bs):not(.lang-en) .t-bs { display: none; }
 .lang-sw { flex: none; }
@@ -579,3 +602,6 @@ main.in > :nth-child(2) { animation-delay: 50ms; } main.in > :nth-child(3) { ani
 .more-d[open] summary::after { content: '−'; }
 .kf > * { min-width: 0; }
 .kf .seg { flex-wrap: wrap; }
+.buy .ch { flex-wrap: nowrap; align-items: flex-start; }
+.gw-tabs .sub { color: rgba(246, 241, 251, .82); }
+.chip-pick .sub { color: rgba(246, 241, 251, .82); }

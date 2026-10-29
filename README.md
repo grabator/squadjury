@@ -56,6 +56,10 @@ Klik na bilo kojeg igrača otvara karticu sa statistikom, narednih 5 protivnika 
 
 Predviđeni bodovi su procjena (forma, prosjek bodova, minutaža, težina protivnika, domaći teren i FPL-ova `ep_next` kad postoji), a ne sigurna brojka.
 
+## Planer kroz kola (Moj tim)
+
+Na ekranu Moj tim planiraš 3 kola unaprijed: za svako kolo transferi (izaberi igrača, Prodaj, pa izaberi zamjenu u budžetu), besplatni transferi i minus 4 za svaki preko njih, Wildcard ili Free Hit, postava i kapiten. Tabela "Plan za 3 kola" pokazuje bodove po kolu (minus već oduzet) i poređenje sa timom bez promjena. Plan se čuva u pregledniku.
+
 ## Jezik
 
 Aplikacija je na engleskom (zadano) i bosanskom. Izbor (EN/BS) je na početnom ekranu, u bočnom meniju, u meniju "Više" na mobitelu i u SquadJury postavkama (Ja). Pamti se u pregledniku (`sj-lang`) i važi za oba dijela. Tekstovi FPL dijela su u kodu kao `tr(bosanski, engleski)` (public/js/i18n.js), a SquadJury tekstovi u public/jury/js/i18n.js i i18n-bs.js.
