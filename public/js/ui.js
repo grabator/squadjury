@@ -54,14 +54,11 @@ export const flagColor = (e) => { const c = e.chance_of_playing_next_round; if (
   if (['i', 's', 'u', 'n'].includes(e.status) || c === 0) return '#c0020d'; if (c >= 75) return '#ffe65b'; if (c >= 50) return '#ffab1b'; return '#d44401'; };
 
 /** Igrač na terenu u FPL stilu: dres, ime na bijeloj traci, ispod podaci (protivnik i bodovi). attr je data-sel ili data-pid. */
-// PROBA slika igrača, samo dva igrača: Haaland sa novim oblikom linka (PL sajt od 2025), Eze sa starim.
-// Ako se slika ne učita, ostaje dres (vidi app.js, slušač za load/error).
-const PHOTO_TEST = {
-  223094: (c) => `https://resources.premierleague.com/premierleague25/photos/players/110x140/${c}.png`,
-  232413: (c) => `https://resources.premierleague.com/premierleague/photos/players/110x140/p${c}.png`
-};
-export const photo = (e) => (PHOTO_TEST[e.code] ? `<img class="ph" src="${PHOTO_TEST[e.code](e.code)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : '');
-export const pitchCard = (ix, e, { cap, vice, info, attr, pressed, bench, extra = '' }) => { const fc = flagColor(e); return `<button type="button" class="pl${bench ? ' out' : ''}" style="--k:${kit(ix.teams.get(e.team))[0]}" ${attr}="${e.id}"${pressed != null ? ` aria-pressed="${pressed}"` : ''}${fc && e.news ? ` title="${esc(e.news)}"` : ''}><div class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}${photo(e)}${cap ? '<span class="badge c" aria-hidden="true">C</span>' : vice ? '<span class="badge" aria-hidden="true">V</span>' : ''}${fc ? `<span class="flag" style="background:${fc};color:${fc === '#ffe65b' || fc === '#ffab1b' ? '#37003c' : '#fff'}" aria-hidden="true">!</span>` : ''}</div><span class="nm">${esc(e.web_name)}</span>${cap ? `<span class="sr">, ${tr('kapiten', 'captain')}</span>` : vice ? `<span class="sr">, ${tr('vice kapiten', 'vice captain')}</span>` : ''}${bench ? `<span class="sr">, ${tr('na klupi', 'on the bench')}</span>` : ''}${fc ? `<span class="sr">, ${tr('upitan', 'doubtful')}</span>` : ''}<span class="meta">${info}</span>${extra}</button>`; };
+// Slike igrača sa servera Premier lige (oblik linka od sezone 2025/26), broj slike je code iz FPL podataka.
+// Ako se slika ne učita, ostaje dres (app.js sluša load/error).
+export const photoUrl = (e) => (e?.code ? `https://resources.premierleague.com/premierleague25/photos/players/110x140/${e.code}.png` : '');
+export const photo = (e) => (e?.code ? `<img class="ph" src="${photoUrl(e)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : '');
+export const pitchCard = (ix, e, { cap, vice, info, attr, pressed, bench, extra = '', tv }) => { const fc = flagColor(e); return `<button type="button" class="pl${bench ? ' out' : ''}" style="--k:${kit(ix.teams.get(e.team))[0]}" ${attr}="${e.id}"${pressed != null ? ` aria-pressed="${pressed}"` : ''}${fc && e.news ? ` title="${esc(e.news)}"` : ''}><div class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}${photo(e)}${cap ? '<span class="badge c" aria-hidden="true">C</span>' : vice ? '<span class="badge" aria-hidden="true">V</span>' : ''}${fc ? `<span class="flag" style="background:${fc};color:${fc === '#ffe65b' || fc === '#ffab1b' ? '#37003c' : '#fff'}" aria-hidden="true">!</span>` : ''}</div>${tv ? `<span class="tv">${tv}</span>` : `<span class="nm">${esc(e.web_name)}</span>`}${cap ? `<span class="sr">, ${tr('kapiten', 'captain')}</span>` : vice ? `<span class="sr">, ${tr('vice kapiten', 'vice captain')}</span>` : ''}${bench ? `<span class="sr">, ${tr('na klupi', 'on the bench')}</span>` : ''}${fc ? `<span class="sr">, ${tr('upitan', 'doubtful')}</span>` : ''}${tv ? '' : `<span class="meta">${info}</span>`}${extra}</button>`; };
 
 export function fdrChip(ix, e, gw, teamId) {
   const fx = fixturesFor(ix, teamId ?? e.team, gw, 1);

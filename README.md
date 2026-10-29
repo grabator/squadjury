@@ -72,6 +72,12 @@ Ispod svakog igrača na terenu stoji bonus (B0 do B3) i odbrambeni doprinos (DC)
 
 `npm run backtest -- 2026-27 4 6` provjerava model na odigranim kolima: za svako kolo vidi samo ranija kola, pa se procjena poredi sa stvarnim bodovima (javni podaci sa github.com/vaastav/Fantasy-Premier-League). Na osnovu te provjere, za sljedeće kolo aplikacija uzima 90% zvanične FPL procjene (ep_next) i 10% našeg modela; za kola poslije toga FPL procjene nema, pa radi naš model.
 
+## Uživo: TV pločica i slike igrača
+
+Ispod svakog igrača na Uživo stoji pločica: ime, minute i bodovi, pa BPS i DefCon (golman: odbrane), a dole u jednom redu "+2 DefCon" i "+3 Bonus" (ili 0). Bonus koji FPL još nije potvrdio je šrafiran. Prije utakmice dole piše dan i vrijeme početka. Na uskim ekranima (5 igrača u redu) oznake su kraće: DC i B.
+
+Slike igrača dolaze sa servera Premier lige (`premierleague25/photos/players/110x140/{code}.png`, code iz FPL podataka). Ako se slika ne učita, ostaje dres. Slike su vlasništvo Premier lige: aplikacija ih samo linkuje, ne kopira.
+
 ## Trofeji
 
 Stranica Trofeji dijeli nagrade u privatnoj ligi, kolo po kolo: Menadžer kola (najviše bodova u ligi), Kapiten kola (najbolji kapiten, zadnja 4 kola i prvih 20 timova na tabeli), Skok kola (najveći skok na tabeli) i Vrh lige (prvo mjesto poslije kola). Računa se iz javnih FPL podataka prvih 50 timova lige. Kod istog rezultata nagradu dobiju svi. Logika je u `leagueAwards` (public/js/model.js).

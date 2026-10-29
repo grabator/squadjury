@@ -944,3 +944,82 @@ main.in .tro { animation: rise .6s var(--ease) both; } main.in .tro:nth-child(2)
 .shirt .ph { position: absolute; left: 50%; bottom: -2px; height: 118%; width: auto; transform: translateX(-50%); opacity: 0; transition: opacity .25s; pointer-events: none; }
 .shirt.has-ph .ph { opacity: 1; }
 .shirt.has-ph > svg { visibility: hidden; }
+
+/* TV pločica ispod igrača (Uživo): ime, minute, bodovi; BPS i DefCon; dole DefCon i Bonus u jednom redu */
+.pl:has(.tv) { container-type: inline-size; }
+.tv { display: block; width: 100%; border-radius: 9px; overflow: hidden; background: #1c1328; text-align: left; box-shadow: 0 8px 16px -8px rgba(0, 0, 0, .8); }
+.tv-h { display: flex; align-items: center; gap: 3px; padding: 3px 5px 2px; background: #37003c; }
+.tv-n { flex: 1; min-width: 0; font-size: 11px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tv-m { font-size: 9.5px; font-weight: 800; color: rgba(255, 255, 255, .78); }
+.tv-m.live { color: var(--green); }
+.tv-p { font: 800 18px/1 var(--cond); color: var(--green); }
+.tv-b { display: block; }
+.tv-s { display: flex; justify-content: space-between; gap: 2px; padding: 2px 5px 1px; font-size: 9px; color: rgba(255, 255, 255, .66); white-space: nowrap; }
+.tv-s b { color: #fff; font-size: 10px; }
+.tv-f { display: flex; gap: 2px; padding: 2px 3px 4px; }
+.tv .tg { flex: 1 1 0; min-width: 0; padding: 0 1px; border-radius: 5px; text-align: center; font: 800 10px/1.55 var(--cond); letter-spacing: -.01em; white-space: nowrap; overflow: hidden; }
+.tv .tg.zero { background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .62); }
+.tv .tg.gold { background: #ffc400; color: #2a0538; }
+.tv .tg.gold.pr { background: repeating-linear-gradient(135deg, rgba(255, 196, 0, .42) 0 4px, rgba(255, 196, 0, .22) 4px 8px); color: #ffe39a; box-shadow: inset 0 0 0 1px #ffc400; }
+.tv .tg.grn { background: var(--green); color: #14051f; }
+.tv .tg.ko { background: rgba(5, 240, 255, .16); color: #9ff8ff; }
+.tv .ls { display: none; }
+.pl.out .tv { opacity: .85; }
+/* uska pločica (5 igrača u redu na mobitelu): ime u svom redu, ispod minute lijevo i bodovi desno; kraće oznake da stanu u jedan red */
+@container (max-width: 86px) {
+  .tv-h { flex-wrap: wrap; row-gap: 0; }
+  .tv-n { flex-basis: 100%; font-size: 10px; }
+  .tv-p { margin-left: auto; font-size: 16px; }
+  .tv-s { padding: 1px 3px; font-size: 8.5px; }
+  .tv-s b { font-size: 9.5px; }
+  .tv .lf { display: none; }
+  .tv .ls { display: inline; }
+}
+
+/* Moj tim: ista TV boja (ljubičasta traka sa imenom, tamno dno sa protivnikom i procjenom) */
+.pl .nm { background: #37003c; color: #fff; border-top: 0; }
+.pl:hover .nm, .pl:focus-visible .nm { background: #4d0a57; }
+.pl[aria-pressed='true'] .nm { background: var(--green); color: #2a0538; }
+.pl .meta { background: #1c1328; }
+.pl .xpv { background: transparent; color: var(--green); }
+
+/* slika igrača: portret do ramena preko dresa; dres se sakrije tek kad se slika učita */
+.shirt .ph { height: 120%; }
+/* Uživo: kartice se rašire na dostupnu širinu (4 u redu imaju mjesta za pune riječi "DefCon" i "Bonus") */
+.line-row:has(.tv), .bench:has(.tv) { gap: 4px; }
+.line-row .pl:has(.tv), .bench .pl:has(.tv) { flex: 1 1 0; width: auto; max-width: 104px; }
+.bench:has(.tv) .bslot { flex: 1 1 0; min-width: 0; max-width: 104px; }
+.bench:has(.tv) .bslot .pl { width: 100%; max-width: none; }
+@container (max-width: 80px) {
+  .tv .lf { display: none; }
+  .tv .ls { display: inline; }
+}
+@container (min-width: 81px) {
+  .tv .lf { display: inline; }
+  .tv .ls { display: none; }
+  .tv-h { flex-wrap: nowrap; }
+  .tv-n { flex-basis: auto; }
+  .tv .tg { font-size: 9.5px; }
+}
+/* do 100px širine ime ide u svoj red (bez skraćivanja), ispod minute lijevo i bodovi desno */
+@container (max-width: 100px) {
+  .tv-h { flex-wrap: wrap; row-gap: 0; }
+  .tv-n { flex-basis: 100%; font-size: 10.5px; }
+  .tv-p { margin-left: auto; font-size: 17px; }
+}
+@container (min-width: 81px) { .tv .tg { font-size: 10px; } }
+/* računar: veće pločice i slova na velikom terenu */
+@media (min-width: 901px) {
+  .line-row:has(.tv), .bench:has(.tv) { gap: 14px; }
+  .line-row .pl:has(.tv), .bench .pl:has(.tv), .bench:has(.tv) .bslot { max-width: 140px; }
+}
+@container (min-width: 120px) {
+  .tv-h { padding: 4px 7px 3px; }
+  .tv-n { font-size: 13px; }
+  .tv-m { font-size: 11px; }
+  .tv-p { font-size: 23px; }
+  .tv-s { padding: 3px 7px 1px; font-size: 10.5px; }
+  .tv-s b { font-size: 12px; }
+  .tv-f { gap: 3px; padding: 3px 5px 6px; }
+  .tv .tg { font-size: 12px; line-height: 1.6; }
+}
