@@ -33,7 +33,7 @@ test('kapiten: sortirano, sa razlogom', () => {
   const c = captainOptions(ix, xi);
   assert.equal(c.length, 11);
   for (let i = 1; i < c.length; i++) assert.ok(c[i - 1].xp >= c[i].xp);
-  assert.match(c[0].why, /protiv|gostima/);
+  assert.match(c[0].why, /home to|away at/);
 });
 
 test('transferi poštuju poziciju, budžet i 3 po klubu', () => {
@@ -135,7 +135,7 @@ test('XP, nivoi, značke, žaljenje', () => {
   const c = careerXp(h, ix.events, { 7: 12 });
   assert.equal(c.log.length, 8);
   assert.equal(c.total, c.log.reduce((s, x) => s + x.xp, 0));
-  assert.deepEqual(levelOf(0), { level: 1, into: 0, need: 100, title: 'Amater' });
+  assert.deepEqual(levelOf(0), { level: 1, into: 0, need: 100, title: 'Amateur' });
   assert.equal(levelOf(100).level, 2);
   assert.equal(levelOf(220).level, 3);
   assert.equal(badges(h, ix.events).length, 8);
@@ -150,7 +150,7 @@ test('raspored i cijene', () => {
   const rs = risers(ix, 5);
   assert.equal(rs.length, 5);
   assert.ok(rs[0].net >= rs[4].net);
-  assert.equal(int(1234567), '1.234.567');
+  assert.equal(int(1234567), '1,234,567');
 });
 
 test('demo historija je usklađena sa bodovima igrača', () => {

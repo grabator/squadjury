@@ -56,6 +56,14 @@ Klik na bilo kojeg igrača otvara karticu sa statistikom, narednih 5 protivnika 
 
 Predviđeni bodovi su procjena (forma, prosjek bodova, minutaža, težina protivnika, domaći teren i FPL-ova `ep_next` kad postoji), a ne sigurna brojka.
 
+## Planer kroz kola (Moj tim)
+
+Na ekranu Moj tim planiraš 3 kola unaprijed: za svako kolo transferi (izaberi igrača, Prodaj, pa izaberi zamjenu u budžetu), besplatni transferi i minus 4 za svaki preko njih, Wildcard ili Free Hit, postava i kapiten. Tabela "Plan za 3 kola" pokazuje bodove po kolu (minus već oduzet) i poređenje sa timom bez promjena. Plan se čuva u pregledniku.
+
+## Jezik
+
+Aplikacija je na engleskom (zadano) i bosanskom. Izbor (EN/BS) je na početnom ekranu, u bočnom meniju, u meniju "Više" na mobitelu i u SquadJury postavkama (Ja). Pamti se u pregledniku (`sj-lang`) i važi za oba dijela. Tekstovi FPL dijela su u kodu kao `tr(bosanski, engleski)` (public/js/i18n.js), a SquadJury tekstovi u public/jury/js/i18n.js i i18n-bs.js.
+
 ## SquadJury (dodatak)
 
 SquadJury je dio aplikacije, na adresi `/jury` i u meniju pod „Zajednica”. Korisnik učita sliku svog tima iz FPL aplikacije (preglednik sam pročita svih 15 igrača), a zajednica ga ocjenjuje od 1 do 10 do roka. Ima tabelu najboljih timova, duele, privatne lige sa H2H, Plan B, scout bodove, značke, slike za dijeljenje i widget za ugradnju. Prijava je preko Googlea ili linka na email. SquadJury je na engleskom i u istim bojama kao Manager.

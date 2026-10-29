@@ -21,7 +21,7 @@ for (const [file, size, src] of icons) {
 }
 // slika za dijeljenje linka (1200x630)
 const og = `<body style="margin:0"><div id="og" style="width:1200px;height:630px;display:grid;place-items:center;background:radial-gradient(700px 500px at 0 0,rgba(150,60,255,.45),transparent 70%),radial-gradient(600px 400px at 100% 100%,rgba(255,40,130,.22),transparent 70%),linear-gradient(160deg,#37003c,#14061f 75%);font-family:sans-serif">
-  <div style="display:grid;justify-items:center;gap:34px"><img src="${logo}" style="height:150px"><div style="display:flex;gap:16px">${['Moj tim', 'Kapiten', 'Transferi', 'Ocijeni timove'].map((t) => `<span style="padding:12px 24px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#f6f1fb;font:700 30px sans-serif">${t}</span>`).join('')}</div></div></div></body>`;
+  <div style="display:grid;justify-items:center;gap:34px"><img src="${logo}" style="height:150px"><div style="display:flex;gap:16px">${['My team', 'Captain', 'Transfers', 'Rate squads'].map((t) => `<span style="padding:12px 24px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#f6f1fb;font:700 30px sans-serif">${t}</span>`).join('')}</div></div></div></body>`;
 await page.setViewportSize({ width: 1200, height: 630 });
 await page.setContent(og);
 await page.locator('#og').screenshot({ path: pub + 'img/og.png' });

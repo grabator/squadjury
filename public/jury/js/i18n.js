@@ -1,4 +1,6 @@
 // Every piece of interface text lives here, so another language is one more object.
+// The language choice (sj-lang) is shared with the FPL part of the app; English is the default.
+import { bs } from './i18n-bs.js';
 
 const en = {
   'nav.judge': 'Judge',
@@ -203,6 +205,7 @@ const en = {
   'me.sound': 'Sound',
   'me.settings': 'Settings',
   'me.juror': 'Juror',
+  'me.language': 'Language',
 
   'pager.prev': 'Previous',
   'pager.next': 'Next',
@@ -531,12 +534,23 @@ const en = {
   'intro.p4': 'The jury\'s average is your score. At the FPL deadline the gameweek locks and the top 10 stays on the leaderboard.',
 };
 
-const dict = { en };
+const dict = { en, bs };
 let lang = 'en';
+try { if (localStorage.getItem('sj-lang') === 'bs') lang = 'bs'; } catch { /* no storage */ }
+if (typeof document !== 'undefined') document.documentElement.lang = lang;
 
+export const getLang = () => lang;
 export function setLang(l) {
   if (dict[l]) lang = l;
 }
+/** Switch language for the whole app and reload so every screen redraws. */
+export function switchLang(l) {
+  try { localStorage.setItem('sj-lang', l); } catch { /* no storage */ }
+  location.reload();
+}
+/** Badge name and description in the current language (the server sends English). */
+export const badgeText = (b) => { const x = lang === 'bs' && bs['bd.' + b.id]; return x ? { name: x[0], desc: x[1] } : { name: b.name, desc: b.desc }; };
+export const unitText = (u) => (lang === 'bs' && bs.unit[u]) || u;
 
 /** Translate a key and fill {placeholders}. */
 export function t(key, vars = {}) {

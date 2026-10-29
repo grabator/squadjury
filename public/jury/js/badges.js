@@ -1,7 +1,7 @@
 // Badges on the client: the compact row on the profile, the Badges sheet with every badge
 // (unlocked and locked, with progress), the row on public squad pages and the unlock toasts.
 
-import { t } from './i18n.js';
+import { t, badgeText, unitText } from './i18n.js';
 import { html, raw, $, sheet, toast, errText } from './ui.js';
 import { api } from './api.js';
 import { BADGE_ICONS, LOCK } from './badge-icons.js';
@@ -20,7 +20,7 @@ export function badgeRowHtml(b) {
   const hasNew = list.some((x) => x.isNew);
   return html`<button type="button" class="badge-row" id="badgerow" aria-haspopup="dialog" aria-label="${t('badge.open', { n: list.length, total: b?.total ?? 18 })}">
     ${list.length
-      ? html`<span class="badge-icons">${list.slice(0, MAX_ROW).map((x) => html`<span class="bdg on" title="${x.name}">${icon(x.id)}</span>`)}${list.length > MAX_ROW ? html`<span class="bdg more">+${list.length - MAX_ROW}</span>` : ''}</span>`
+      ? html`<span class="badge-icons">${list.slice(0, MAX_ROW).map((x) => html`<span class="bdg on" title="${badgeText(x).name}">${icon(x.id)}</span>`)}${list.length > MAX_ROW ? html`<span class="bdg more">+${list.length - MAX_ROW}</span>` : ''}</span>`
       : html`<span class="badge-none">${t('badge.none')}</span>`}
     ${hasNew ? html`<span class="new-dot">${t('badge.new')}</span>` : ''}
     ${streakHtml(b?.streak)}
@@ -28,14 +28,14 @@ export function badgeRowHtml(b) {
   </button>`;
 }
 
-const progressText = (p) => (p.unit ? `${Number.isInteger(p.value) ? p.value : p.value.toFixed(1)} / ${p.target} ${p.unit}` : '');
+const progressText = (p) => (p.unit ? `${Number.isInteger(p.value) ? p.value : p.value.toFixed(1)} / ${p.target} ${unitText(p.unit)}` : '');
 
 function tileHtml(b) {
   const on = !!b.unlocked;
   return html`<li><button type="button" class="bdg-tile ${on ? 'on' : 'off'}" data-badge="${b.id}">
     <span class="bdg ${on ? 'on' : 'off'}">${icon(b.id)}${on ? '' : html`<span class="lock">${raw(LOCK)}</span>`}${b.isNew ? html`<i class="dot" aria-label="${t('badge.new')}"></i>` : ''}</span>
-    <b>${b.name}</b>
-    <small>${on ? (b.unlocked.gw ? t('badge.unlockedGw', { gw: b.unlocked.gw }) : t('badge.unlocked')) : progressText(b.progress) || b.desc}</small>
+    <b>${badgeText(b).name}</b>
+    <small>${on ? (b.unlocked.gw ? t('badge.unlockedGw', { gw: b.unlocked.gw }) : t('badge.unlocked')) : progressText(b.progress) || badgeText(b).desc}</small>
   </button></li>`;
 }
 
@@ -60,8 +60,8 @@ export async function openBadgesSheet(onSeen) {
       <button type="button" class="link-btn" id="bdg-back">‹ ${t('badge.title')}</button>
       <div class="bdg-detail">
         <span class="bdg big ${on ? 'on' : 'off'}">${icon(b.id)}${on ? '' : html`<span class="lock">${raw(LOCK)}</span>`}</span>
-        <h2>${b.name}</h2>
-        <p>${b.desc}</p>
+        <h2>${badgeText(b).name}</h2>
+        <p>${badgeText(b).desc}</p>
         ${on
           ? html`<p class="bdg-when"><span class="ycard mini" aria-hidden="true"></span>${b.unlocked.gw ? t('badge.unlockedGw', { gw: b.unlocked.gw }) : t('badge.unlocked')}</p>`
           : html`<div class="bdg-bar"><span style="width:${Math.round((b.progress.value / b.progress.target) * 100)}%"></span></div><p class="sub">${progressText(b.progress)}</p>`}
@@ -79,7 +79,7 @@ export async function openBadgesSheet(onSeen) {
 /** Public squad page: the owner's unlocked badges, no list. */
 export function publicBadgesHtml(list) {
   if (!list?.length) return '';
-  return html`<div class="badge-public" aria-label="${t('badge.ownerBadges')}"><span class="badge-icons">${list.slice(0, 8).map((x) => html`<span class="bdg on" title="${x.name}" role="img" aria-label="${x.name}">${icon(x.id)}</span>`)}${list.length > 8 ? html`<span class="bdg more">+${list.length - 8}</span>` : ''}</span></div>`;
+  return html`<div class="badge-public" aria-label="${t('badge.ownerBadges')}"><span class="badge-icons">${list.slice(0, 8).map((x) => html`<span class="bdg on" title="${badgeText(x).name}" role="img" aria-label="${badgeText(x).name}">${icon(x.id)}</span>`)}${list.length > 8 ? html`<span class="bdg more">+${list.length - 8}</span>` : ''}</span></div>`;
 }
 
 /** "Badge unlocked: Sharp Eye", once per badge on this device. */
@@ -90,5 +90,5 @@ export function toastBadges(list) {
   const fresh = list.filter((b) => !shown.includes(b.id));
   if (!fresh.length) return;
   try { localStorage.setItem('sj-badges-toasted', JSON.stringify([...shown, ...fresh.map((b) => b.id)])); } catch {}
-  fresh.forEach((b, i) => setTimeout(() => toast(t('badge.toast', { name: b.name }), { ms: 3500 }), 400 + i * 3800));
+  fresh.forEach((b, i) => setTimeout(() => toast(t('badge.toast', { name: badgeText(b).name }), { ms: 3500 }), 400 + i * 3800));
 }

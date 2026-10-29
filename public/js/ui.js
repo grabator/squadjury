@@ -1,5 +1,6 @@
 // Zajednički dijelovi prikaza: ikone, dresovi, oznake težine, formatiranje.
 import { fixturesFor, xp, fmt, price } from './model.js';
+import { tr, lang } from './i18n.js';
 
 export const $ = (s, el = document) => el.querySelector(s);
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -20,10 +21,11 @@ const ICON = {
 export const ic = (k) => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + ICON[k] + '</svg>';
 
 // meni: [ruta, naziv, ikona, grupa]
+const G = { tim: tr('Tim', 'Team'), kolo: tr('Kolo', 'Gameweek'), ti: tr('Ti', 'You') };
 export const ROUTES = [
-  ['pregled', 'Pregled', 'home', 'Tim'], ['tim', 'Moj tim', 'team', 'Tim'], ['kapiten', 'Kapiten', 'cap', 'Tim'], ['transferi', 'Transferi', 'swap', 'Tim'], ['raspored', 'Raspored', 'cal', 'Tim'],
-  ['uzivo', 'Uživo', 'live', 'Kolo'], ['kutak', 'Zanimljivosti', 'spark', 'Kolo'], ['rival', 'Rival', 'vs', 'Kolo'], ['liga', 'Liga', 'cup', 'Kolo'],
-  ['karijera', 'Karijera', 'star', 'Ti'], ['vodic', 'Vodič', 'book', 'Ti']
+  ['pregled', tr('Pregled', 'Overview'), 'home', G.tim], ['tim', tr('Moj tim', 'My team'), 'team', G.tim], ['kapiten', tr('Kapiten', 'Captain'), 'cap', G.tim], ['transferi', tr('Transferi', 'Transfers'), 'swap', G.tim], ['raspored', tr('Raspored', 'Fixtures'), 'cal', G.tim],
+  ['uzivo', tr('Uživo', 'Live'), 'live', G.kolo], ['kutak', tr('Zanimljivosti', 'Records'), 'spark', G.kolo], ['rival', 'Rival', 'vs', G.kolo], ['liga', tr('Liga', 'League'), 'cup', G.kolo],
+  ['karijera', tr('Karijera', 'Career'), 'star', G.ti], ['vodic', tr('Vodič', 'Guide'), 'book', G.ti]
 ];
 export const TABS = ['pregled', 'tim', 'uzivo', 'transferi'];
 
@@ -50,12 +52,12 @@ export const shirt = (t, gk = false) => {
 export const flagColor = (e) => { const c = e.chance_of_playing_next_round; if (e.status === 'a' && c == null) return ''; if (['i', 's', 'u', 'n'].includes(e.status) || c === 0) return '#c0020d'; if (c >= 75) return '#ffe65b'; if (c >= 50) return '#ffab1b'; return '#d44401'; };
 
 /** Igrač na terenu u FPL stilu: dres, ime na bijeloj traci, ispod podaci (protivnik i bodovi). attr je data-sel ili data-pid. */
-export const pitchCard = (ix, e, { cap, vice, info, attr, pressed, bench, extra = '' }) => { const fc = flagColor(e); return `<button type="button" class="pl${bench ? ' out' : ''}" ${attr}="${e.id}"${pressed != null ? ` aria-pressed="${pressed}"` : ''}${fc && e.news ? ` title="${esc(e.news)}"` : ''}><div class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}${cap ? '<span class="badge c" aria-hidden="true">C</span>' : vice ? '<span class="badge" aria-hidden="true">V</span>' : ''}${fc ? `<span class="flag" style="background:${fc};color:${fc === '#ffe65b' || fc === '#ffab1b' ? '#37003c' : '#fff'}" aria-hidden="true">!</span>` : ''}</div><span class="nm">${esc(e.web_name)}</span>${cap ? '<span class="sr">, kapiten</span>' : vice ? '<span class="sr">, vice kapiten</span>' : ''}${bench ? '<span class="sr">, na klupi</span>' : ''}${fc ? `<span class="sr">, upitan</span>` : ''}<span class="meta">${info}</span>${extra}</button>`; };
+export const pitchCard = (ix, e, { cap, vice, info, attr, pressed, bench, extra = '' }) => { const fc = flagColor(e); return `<button type="button" class="pl${bench ? ' out' : ''}" ${attr}="${e.id}"${pressed != null ? ` aria-pressed="${pressed}"` : ''}${fc && e.news ? ` title="${esc(e.news)}"` : ''}><div class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}${cap ? '<span class="badge c" aria-hidden="true">C</span>' : vice ? '<span class="badge" aria-hidden="true">V</span>' : ''}${fc ? `<span class="flag" style="background:${fc};color:${fc === '#ffe65b' || fc === '#ffab1b' ? '#37003c' : '#fff'}" aria-hidden="true">!</span>` : ''}</div><span class="nm">${esc(e.web_name)}</span>${cap ? `<span class="sr">, ${tr('kapiten', 'captain')}</span>` : vice ? `<span class="sr">, ${tr('vice kapiten', 'vice captain')}</span>` : ''}${bench ? `<span class="sr">, ${tr('na klupi', 'on the bench')}</span>` : ''}${fc ? `<span class="sr">, ${tr('upitan', 'doubtful')}</span>` : ''}<span class="meta">${info}</span>${extra}</button>`; };
 
 export function fdrChip(ix, e, gw, teamId) {
   const fx = fixturesFor(ix, teamId ?? e.team, gw, 1);
-  if (!fx.length) return '<span class="fdr none">bez</span>';
-  return fx.map((f) => `<span class="fdr d${f.fdr}" title="${esc(ix.teams.get(f.opp).name)}${f.home ? ', kod kuće' : ', u gostima'}">${ix.teams.get(f.opp).short_name} (${f.home ? 'D' : 'G'})</span>`).join('');
+  if (!fx.length) return `<span class="fdr none">${tr('bez', 'none')}</span>`;
+  return fx.map((f) => `<span class="fdr d${f.fdr}" title="${esc(ix.teams.get(f.opp).name)}${f.home ? tr(', kod kuće', ', home') : tr(', u gostima', ', away')}">${ix.teams.get(f.opp).short_name} (${f.home ? tr('D', 'H') : tr('G', 'A')})</span>`).join('');
 }
 
 /** Tekst koji se čita na boji dresa: tamni na svijetloj, bijeli na tamnoj. */
@@ -74,13 +76,13 @@ export const spark = (pts, col, invert) => {
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${d}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 };
 export const ring = (p, col = 'url(#rg)') => { const r = 40, c = 2 * Math.PI * r; return `<svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true"><defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#963cff"/><stop offset="1" stop-color="#05f0ff"/></linearGradient><linearGradient id="rgg" x1="0" x2="1"><stop offset="0" stop-color="#00c46a"/><stop offset="1" stop-color="#05f0ff"/></linearGradient></defs><circle cx="48" cy="48" r="${r}" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="9"/><circle cx="48" cy="48" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(c * Math.max(0, Math.min(1, p))).toFixed(1)} 999" transform="rotate(-90 48 48)"/></svg>`; };
-export const greet = () => { const h = new Date().getHours(); return h < 11 ? 'Dobro jutro' : h < 18 ? 'Dobar dan' : 'Dobro veče'; };
+export const greet = () => { const h = new Date().getHours(); return h < 11 ? tr('Dobro jutro', 'Good morning') : h < 18 ? tr('Dobar dan', 'Good afternoon') : tr('Dobro veče', 'Good evening'); };
 export const empty = (t) => `<p class="muted">${t}</p>`;
 
 /** Brojevi sa data-n se izbroje od nule do vrijednosti (ne kad korisnik traži manje pokreta). */
 export function countUp(root) {
   if (!root || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const f = { int: (v) => String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'), m: (v) => '£' + v.toFixed(1).replace('.', ',') + 'm' };
+  const f = { int: (v) => String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, tr('.', ',')), m: (v) => '£' + (lang === 'bs' ? v.toFixed(1).replace('.', ',') : v.toFixed(1)) + 'm' };
   root.querySelectorAll('[data-n]').forEach((el) => {
     const to = +el.dataset.n, fm = f[el.dataset.f] || f.int, t0 = performance.now(), dur = 900;
     const step = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - (1 - k) ** 3; el.textContent = fm(to * e); if (k < 1) requestAnimationFrame(step); };
@@ -93,5 +95,5 @@ export function leaguePick(leagues, cur, id = 'lg-sel') {
   if (!leagues.length) return '';
   const opt = (l) => `<option value="${l.id}"${l.id === cur ? ' selected' : ''}>${esc(l.name)}</option>`;
   const mine = leagues.filter((l) => l.mine), pub = leagues.filter((l) => !l.mine);
-  return `<label class="field lg-pick">Liga<select id="${id}">${mine.length && pub.length ? `<optgroup label="Tvoje lige">${mine.map(opt).join('')}</optgroup><optgroup label="Javne lige">${pub.map(opt).join('')}</optgroup>` : leagues.map(opt).join('')}</select></label>`;
+  return `<label class="field lg-pick">${tr('Liga', 'League')}<select id="${id}">${mine.length && pub.length ? `<optgroup label="${tr('Tvoje lige', 'Your leagues')}">${mine.map(opt).join('')}</optgroup><optgroup label="${tr('Javne lige', 'Public leagues')}">${pub.map(opt).join('')}</optgroup>` : leagues.map(opt).join('')}</select></label>`;
 }

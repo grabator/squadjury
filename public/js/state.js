@@ -1,13 +1,14 @@
 // Stanje aplikacije i učitavanje podataka (sve preko /api, keš u api.js).
 import { get, forget } from './api.js';
 import { index } from './model.js';
+import { tr } from './i18n.js';
 
 export const S = { ready: false };
 
 export async function load(id) {
   const [boot, fixtures, team] = await Promise.all([get('/bootstrap'), get('/fixtures'), get('/team/' + id)]);
   const { entry, history, picks } = team;
-  if (!picks) { const e = new Error('Ovaj tim još nema odigrano kolo.'); e.status = 404; throw e; }
+  if (!picks) { const e = new Error(tr('Ovaj tim još nema odigrano kolo.', 'This team has not played a gameweek yet.')); e.status = 404; throw e; }
   const ix = index(boot, fixtures);
   const lastGw = team.gw;
   // sve klasične lige: privatne (league_type "x") prvo, pa javne (Overall, klub, država, kolo početka)

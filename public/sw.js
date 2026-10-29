@@ -1,7 +1,7 @@
 // Service worker: aplikacija radi i bez mreže (zadnja učitana verzija), podaci uvijek prvo sa mreže.
-const V = 'fm-v8';
+const V = 'fm-v10';
 const VIEWS = ['pregled', 'tim', 'kapiten', 'transferi', 'raspored', 'uzivo', 'rival', 'liga', 'karijera', 'vodic', 'kutak'].map((v) => '/js/views/' + v + '.js');
-const SHELL = ['/', '/css/app.css', '/js/boot.js', '/js/app.js', '/js/api.js', '/js/model.js', '/js/state.js', '/js/ui.js', '/js/dd.js', '/img/brand/mark.svg', ...VIEWS, '/fonts/manrope-latin.woff2', '/fonts/barlow-condensed-800.woff2'];
+const SHELL = ['/', '/css/app.css', '/js/boot.js', '/js/app.js', '/js/api.js', '/js/model.js', '/js/state.js', '/js/ui.js', '/js/dd.js', '/js/i18n.js', '/img/brand/mark.svg', ...VIEWS, '/fonts/manrope-latin.woff2', '/fonts/barlow-condensed-800.woff2'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(V).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== V).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', (e) => {

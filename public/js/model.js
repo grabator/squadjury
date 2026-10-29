@@ -1,14 +1,16 @@
 // Model predviđenih bodova i preporuke. Čiste funkcije, koriste ih i preglednik i testovi.
 // Sve brojke su procjena (forma, prosjek bodova, očekivani golovi i asistencije, minutaža,
 // težina protivnika, domaći teren), a ne sigurna brojka.
+import { tr, lang } from './i18n.js';
 
 export const POS = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
-export const POS_BS = { 1: 'Golman', 2: 'Odbrana', 3: 'Vezni', 4: 'Napad' };
+export const POS_BS = tr({ 1: 'Golman', 2: 'Odbrana', 3: 'Vezni', 4: 'Napad' }, { 1: 'Goalkeeper', 2: 'Defender', 3: 'Midfielder', 4: 'Forward' });
+const dec = (s) => (lang === 'bs' ? s.replace('.', ',') : s);
 const FDR_FACTOR = { 1: 1.25, 2: 1.15, 3: 1, 4: 0.85, 5: 0.72 };
 const GOAL_PTS = { 1: 10, 2: 6, 3: 5, 4: 4 };
 
 export const num = (v) => (v == null || v === '' ? 0 : +v);
-export const price = (e) => (e.now_cost / 10).toFixed(1).replace('.', ',');
+export const price = (e) => dec((e.now_cost / 10).toFixed(1));
 
 /** Indeksi za brz pristup: igrači i klubovi po id-u, utakmice po klubu. */
 export function index(boot, fixtures) {
@@ -83,21 +85,21 @@ export function xp(ix, e, fromGw = ix.nextGw, n = 1) {
   return out;
 }
 
-export const fmt = (v, d = 1) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d).replace('.', ',');
+export const fmt = (v, d = 1) => dec((Math.round(v * 10 ** d) / 10 ** d).toFixed(d));
 
 /** Kratko objašnjenje zašto je igrač dobar ili loš izbor za sljedeće kolo. */
 export function reason(ix, e) {
   const fx = fixturesFor(ix, e.team, ix.nextGw, 1);
   const parts = [];
-  if (!fx.length) return 'Nema utakmicu u ovom kolu.';
-  parts.push(fx.map((f) => (f.home ? 'kod kuće protiv ' : 'u gostima kod ') + ix.teams.get(f.opp).name).join(' i '));
-  if (fx.length > 1) parts.push('dvije utakmice u kolu');
+  if (!fx.length) return tr('Nema utakmicu u ovom kolu.', 'No match this gameweek.');
+  parts.push(fx.map((f) => (f.home ? tr('kod kuće protiv ', 'at home to ') : tr('u gostima kod ', 'away at ')) + ix.teams.get(f.opp).name).join(tr(' i ', ' and ')));
+  if (fx.length > 1) parts.push(tr('dvije utakmice u kolu', 'two matches this gameweek'));
   const form = num(e.form);
-  if (form >= 6) parts.push('odlična forma (' + fmt(form) + ')');
-  else if (form < 3) parts.push('slaba forma (' + fmt(form) + ')');
+  if (form >= 6) parts.push(tr('odlična forma (', 'great form (') + fmt(form) + ')');
+  else if (form < 3) parts.push(tr('slaba forma (', 'poor form (') + fmt(form) + ')');
   const xgi = num(e.expected_goals_per_90) + num(e.expected_assists_per_90);
-  if (e.element_type >= 3 && xgi >= 0.6) parts.push('stalno je u šansama (' + fmt(xgi, 2) + ' očekivanih golova i asistencija po utakmici)');
-  if (e.status !== 'a') parts.push(e.news ? e.news.toLowerCase() : 'upitan za kolo');
+  if (e.element_type >= 3 && xgi >= 0.6) parts.push(tr('stalno je u šansama (', 'always in the chances (') + fmt(xgi, 2) + tr(' očekivanih golova i asistencija po utakmici)', ' expected goals and assists per match)'));
+  if (e.status !== 'a') parts.push(e.news ? e.news.toLowerCase() : tr('upitan za kolo', 'doubtful for the gameweek'));
   const s = parts.join(', ');
   return s.charAt(0).toUpperCase() + s.slice(1) + '.';
 }
@@ -233,9 +235,9 @@ export function alerts(ix, squadIds) {
   for (const id of squadIds) {
     const e = ix.players.get(id);
     if (!e) continue;
-    if (e.status !== 'a') out.push({ e, kind: 'povreda', text: e.web_name + ': ' + (e.news || 'upitan za sljedeće kolo') + (e.chance_of_playing_next_round != null ? ' (' + e.chance_of_playing_next_round + '% šanse da igra)' : '') });
-    else if (!fixturesFor(ix, e.team, ix.nextGw, 1).length) out.push({ e, kind: 'bez utakmice', text: e.web_name + ' nema utakmicu u kolu ' + ix.nextGw + '.' });
-    if (e.cost_change_event < 0) out.push({ e, kind: 'cijena', text: e.web_name + ' je ovo kolo pao u cijeni.' });
+    if (e.status !== 'a') out.push({ e, kind: 'povreda', text: e.web_name + ': ' + (e.news || tr('upitan za sljedeće kolo', 'doubtful for the next gameweek')) + (e.chance_of_playing_next_round != null ? ' (' + e.chance_of_playing_next_round + tr('% šanse da igra)', '% chance of playing)') : '') });
+    else if (!fixturesFor(ix, e.team, ix.nextGw, 1).length) out.push({ e, kind: 'bez utakmice', text: e.web_name + tr(' nema utakmicu u kolu ', ' has no match in gameweek ') + ix.nextGw + '.' });
+    if (e.cost_change_event < 0) out.push({ e, kind: 'cijena', text: e.web_name + tr(' je ovo kolo pao u cijeni.', ' dropped in price this gameweek.') });
   }
   return out;
 }
@@ -352,12 +354,12 @@ export function careerXp(history, events, captainPts = {}) {
   for (const h of history.current) {
     const ev = events.find((e) => e.id === h.event) || {};
     const items = [];
-    if (prevRank != null && h.overall_rank < prevRank) items.push(['Zelena strelica', 30]);
-    if (ev.average_entry_score && h.points > ev.average_entry_score) items.push(['Iznad prosjeka kola', 20]);
-    if (h.points >= 70) items.push(['70+ bodova u kolu', 50]);
-    if (h.points >= 90) items.push(['90+ bodova u kolu', 50]);
-    if (!h.event_transfers_cost) items.push(['Bez minus bodova', 10]);
-    if (captainPts[h.event] >= 10) items.push(['Kapiten donio ' + captainPts[h.event] + ' bodova', 50]);
+    if (prevRank != null && h.overall_rank < prevRank) items.push([tr('Zelena strelica', 'Green arrow'), 30]);
+    if (ev.average_entry_score && h.points > ev.average_entry_score) items.push([tr('Iznad prosjeka kola', 'Above the gameweek average'), 20]);
+    if (h.points >= 70) items.push([tr('70+ bodova u kolu', '70+ points in a gameweek'), 50]);
+    if (h.points >= 90) items.push([tr('90+ bodova u kolu', '90+ points in a gameweek'), 50]);
+    if (!h.event_transfers_cost) items.push([tr('Bez minus bodova', 'No points hits'), 10]);
+    if (captainPts[h.event] >= 10) items.push([tr('Kapiten donio ' + captainPts[h.event] + ' bodova', 'Captain scored ' + captainPts[h.event] + ' points'), 50]);
     log.push({ gw: h.event, items, xp: items.reduce((s, x) => s + x[1], 0) });
     prevRank = h.overall_rank;
   }
@@ -365,7 +367,7 @@ export function careerXp(history, events, captainPts = {}) {
   return { total, log, ...levelOf(total) };
 }
 
-const TITLES = [[0, 'Amater'], [5, 'Trener početnik'], [10, 'Trener'], [15, 'Menadžer'], [25, 'Iskusni menadžer'], [35, 'Taktičar'], [45, 'Legenda']];
+const TITLES = tr([[0, 'Amater'], [5, 'Trener početnik'], [10, 'Trener'], [15, 'Menadžer'], [25, 'Iskusni menadžer'], [35, 'Taktičar'], [45, 'Legenda']], [[0, 'Amateur'], [5, 'Rookie coach'], [10, 'Coach'], [15, 'Manager'], [25, 'Seasoned manager'], [35, 'Tactician'], [45, 'Legend']]);
 export function levelOf(xpTotal) {
   // svaki nivo traži malo više od prethodnog: 100, 120, 140...
   let level = 1, need = 100, left = xpTotal;
@@ -382,14 +384,14 @@ export function badges(history, events, captainPts = {}) {
   for (const x of h) { if (prev != null && x.overall_rank < prev) { streak++; bestStreak = Math.max(bestStreak, streak); } else streak = 0; prev = x.overall_rank; }
   const caps = Object.values(captainPts);
   return [
-    { id: 'zelene3', name: 'Tri zelene zaredom', on: bestStreak >= 3, hint: 'Rang bolji tri kola zaredom' },
-    { id: 'sto', name: '100 bodova u kolu', on: h.some((x) => x.points >= 100), hint: 'Jedno kolo sa 100 ili više bodova' },
-    { id: 'sedamdeset', name: 'Veliko kolo', on: h.some((x) => x.points >= 70), hint: '70 ili više bodova u kolu' },
-    { id: 'kapiten', name: 'Kapitenski pogodak', on: caps.some((p) => p >= 16), hint: 'Kapiten sa 16+ bodova (8 duplo)' },
-    { id: 'bezminusa', name: 'Bez kazni', on: h.length >= 5 && h.every((x) => !x.event_transfers_cost), hint: 'Nijedan minus 4 cijelu sezonu' },
-    { id: 'iznad', name: 'Stalno iznad prosjeka', on: h.length >= 5 && h.slice(-5).every((x) => x.points > avg(x.event)), hint: '5 kola zaredom iznad prosjeka' },
-    { id: 'wildcard', name: 'Wildcard u pravo vrijeme', on: (history.chips || []).some((c) => c.name === 'wildcard' && h.find((x) => x.event === c.event)?.points > avg(c.event)), hint: 'Kolo sa Wildcardom iznad prosjeka' },
-    { id: 'top100k', name: 'Top 100.000', on: h.some((x) => x.overall_rank <= 100000), hint: 'Rang bolji od 100.000' }
+    { id: 'zelene3', name: tr('Tri zelene zaredom', 'Three greens in a row'), on: bestStreak >= 3, hint: tr('Rang bolji tri kola zaredom', 'Rank up three gameweeks in a row') },
+    { id: 'sto', name: tr('100 bodova u kolu', '100 in a gameweek'), on: h.some((x) => x.points >= 100), hint: tr('Jedno kolo sa 100 ili više bodova', 'One gameweek with 100 points or more') },
+    { id: 'sedamdeset', name: tr('Veliko kolo', 'Big gameweek'), on: h.some((x) => x.points >= 70), hint: tr('70 ili više bodova u kolu', '70 or more points in a gameweek') },
+    { id: 'kapiten', name: tr('Kapitenski pogodak', 'Captain haul'), on: caps.some((p) => p >= 16), hint: tr('Kapiten sa 16+ bodova (8 duplo)', 'Captain with 16+ points (8 doubled)') },
+    { id: 'bezminusa', name: tr('Bez kazni', 'No hits'), on: h.length >= 5 && h.every((x) => !x.event_transfers_cost), hint: tr('Nijedan minus 4 cijelu sezonu', 'Not a single -4 all season') },
+    { id: 'iznad', name: tr('Stalno iznad prosjeka', 'Always above average'), on: h.length >= 5 && h.slice(-5).every((x) => x.points > avg(x.event)), hint: tr('5 kola zaredom iznad prosjeka', '5 gameweeks in a row above average') },
+    { id: 'wildcard', name: tr('Wildcard u pravo vrijeme', 'Well-timed Wildcard'), on: (history.chips || []).some((c) => c.name === 'wildcard' && h.find((x) => x.event === c.event)?.points > avg(c.event)), hint: tr('Kolo sa Wildcardom iznad prosjeka', 'Wildcard gameweek above average') },
+    { id: 'top100k', name: tr('Top 100.000', 'Top 100k'), on: h.some((x) => x.overall_rank <= 100000), hint: tr('Rang bolji od 100.000', 'Overall rank inside 100,000') }
   ];
 }
 
@@ -417,16 +419,16 @@ export function regrets(history, captainMiss = {}) {
   return { bench, hits, cap, total: bench + hits + cap };
 }
 
-// ---- formatiranje na bosanskom, nezavisno od jezika preglednika ----
-const DAYS = ['nedjelja', 'ponedjeljak', 'utorak', 'srijeda', 'četvrtak', 'petak', 'subota'];
-const DAYS_SHORT = ['ned', 'pon', 'uto', 'sri', 'čet', 'pet', 'sub'];
+// ---- formatiranje po izabranom jeziku, nezavisno od jezika preglednika ----
+const DAYS = tr(['nedjelja', 'ponedjeljak', 'utorak', 'srijeda', 'četvrtak', 'petak', 'subota'], ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
+const DAYS_SHORT = tr(['ned', 'pon', 'uto', 'sri', 'čet', 'pet', 'sub'], ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const pad = (n) => String(n).padStart(2, '0');
-export const int = (v) => String(Math.round(Math.abs(v))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+export const int = (v) => String(Math.round(Math.abs(v))).replace(/\B(?=(\d{3})+(?!\d))/g, tr('.', ','));
 export const time = (d) => pad(d.getHours()) + ':' + pad(d.getMinutes());
 export const dayShort = (d) => DAYS_SHORT[d.getDay()];
-export const dateShort = (d) => d.getDate() + '.' + (d.getMonth() + 1) + '.';
-export const dateLong = (d) => DAYS[d.getDay()] + ', ' + d.getDate() + '.' + (d.getMonth() + 1) + '. u ' + time(d);
+export const dateShort = (d) => tr(d.getDate() + '.' + (d.getMonth() + 1) + '.', d.getDate() + ' ' + MONTHS[d.getMonth()]);
+export const dateLong = (d) => DAYS[d.getDay()] + ', ' + dateShort(d) + tr(' u ', ' at ') + time(d);
 export const pct = (p) => Math.round(p * 100) + '%';
 
-/** Bosanska množina: 1 bod, 2 boda, 5 bodova (11 do 14 uvijek "many"). */
-export const pl = (n, one, few, many) => { const a = Math.abs(n) % 10, b = Math.abs(n) % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+export { plural } from './i18n.js';
