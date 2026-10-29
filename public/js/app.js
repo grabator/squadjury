@@ -13,8 +13,9 @@ import * as rival from './views/rival.js';
 import * as liga from './views/liga.js';
 import * as karijera from './views/karijera.js';
 import * as vodic from './views/vodic.js';
+import * as kutak from './views/kutak.js';
 
-const VIEWS = { pregled, tim, kapiten, transferi, raspored, uzivo, rival, liga, karijera, vodic };
+const VIEWS = { pregled, tim, kapiten, transferi, raspored, uzivo, kutak, rival, liga, karijera, vodic };
 const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* */ } }, del: (k) => { try { localStorage.removeItem(k); } catch { /* */ } } };

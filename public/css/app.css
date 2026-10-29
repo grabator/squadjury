@@ -307,6 +307,29 @@ dialog.pd::backdrop { background: rgba(10, 2, 18, .6); -webkit-backdrop-filter: 
 .pts-head .main-s b { font: 800 64px/.95 var(--cond); }
 .pts-head .main-s .sub { color: var(--m); }
 
+/* zanimljivosti kola */
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.fact { display: grid; gap: 8px; align-content: start; padding: 16px 18px; text-align: left; color: inherit; font: inherit; cursor: pointer; transition: transform .2s var(--ease), border-color .2s; }
+.fact:hover { transform: translateY(-2px); border-color: rgba(0, 255, 135, .35); }
+.fact-p { display: flex; align-items: center; gap: 10px; }
+.fact-p .shirt { width: 40px; height: 40px; flex: none; }
+.fact-p b { display: block; font: 800 22px/1.05 var(--cond); }
+.fact-big { font: 800 34px/1 var(--cond); color: var(--green); }
+.kf { display: grid; grid-template-columns: minmax(170px, 1fr) auto minmax(170px, 1fr) 150px; gap: 14px; align-items: end; }
+.kf .field > span { display: block; }
+.kgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.kpair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+.kclub { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-weight: 800; }
+.kclub .kd { margin-right: 0; }
+.krow { display: grid; grid-template-columns: 16px 30px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--row); }
+.krow + .krow { margin-top: 6px; }
+.krow.mine { background: rgba(150, 60, 255, .22); box-shadow: inset 3px 0 0 var(--violet2); }
+.krow .kn { font-size: 12px; color: var(--d); font-weight: 700; }
+.krow .shirt { width: 30px; height: 30px; }
+.kmain { min-width: 0; }
+.kmain .kl { display: block; font-size: 12px; }
+.kga { font: 800 18px var(--cond); white-space: nowrap; } .kga small { font-size: 11px; color: var(--d); margin-left: 1px; }
+
 /* poređenje u kartici igrača */
 .cmp th[scope='row'] { color: var(--m); font-weight: 600; font-size: 13px; padding: 10px; background: var(--row); border-radius: 10px 0 0 10px; text-align: left; }
 .cmp td { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -349,7 +372,9 @@ main.in > :nth-child(2) { animation-delay: 50ms; } main.in > :nth-child(3) { ani
 /* mobitel */
 .tabs, .more-sheet { display: none; }
 @media (max-width: 1200px) {
-  .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid4, .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kgrid { grid-template-columns: 1fr; }
+  .kf { grid-template-columns: 1fr 1fr; }
   .grid2 { grid-template-columns: 1fr; }
 }
 @media (max-width: 900px) {
@@ -357,7 +382,7 @@ main.in > :nth-child(2) { animation-delay: 50ms; } main.in > :nth-child(3) { ani
   .side { display: none; }
   main { padding: 14px 16px 110px; }
   .mtop:not([hidden]) { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 0; }
-  .grid3, .grid2e { grid-template-columns: 1fr; }
+  .grid3, .grid2e, .facts, .kgrid, .kpair, .kf { grid-template-columns: 1fr; }
   .head h1 { font-size: 32px; }
   .hero { grid-template-columns: 1fr; padding: 20px; }
   .hero h1, .hero h2 { font-size: 32px; }
@@ -400,3 +425,5 @@ main.in > :nth-child(2) { animation-delay: 50ms; } main.in > :nth-child(3) { ani
 .more-d summary::-webkit-details-marker { display: none; }
 .more-d summary::after { content: '+'; font: 800 24px var(--cond); color: var(--m); }
 .more-d[open] summary::after { content: '−'; }
+.kf > * { min-width: 0; }
+.kf .seg { flex-wrap: wrap; }

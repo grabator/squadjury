@@ -22,6 +22,12 @@ Dizajn u bojama Premier lige (ljubičasta, zelena, cijan, roza) sa staklenim pan
 - **Karijera:** nivo i XP menadžera, najbolje kolo, brojač žaljenja (kapiten i klupa), kalendar sezone, značke i slika sezone za story.
 - **Vodič:** osnovna pravila FPL-a.
 
+**Novo: Zanimljivosti kola** (meni Kolo)
+- Rekordi igrača protiv protivnika iz sljedećeg kola: utakmice, golovi, asistencije i bodovi po utakmici u Premier ligi od sezone 2016/17.
+- Izdvojeno: najviše golova, najviše asistencija, najviše bodova po utakmici, igrač kojem protivnik „ne leži” i najbolji iz tvog tima.
+- Za svaku utakmicu kola top 5 igrača svakog kluba, sa filterom po klubu, poziciji i najmanjem broju utakmica i sortiranjem.
+- Podaci su u `public/data/h2h.json`, napravljeni iz javnog skupa FPL podataka po utakmicama (github.com/vaastav/Fantasy-Premier-League). Osvježavanje jednom po kolu: `npm run h2h`, pa commit i objava.
+
 **Novo u 0.5: SquadJury**
 - SquadJury je spojen sa Managerom kao dodatak (`/jury`), u istim bojama i fontovima, sa linkom „Manager” nazad i karticom na Pregledu.
 - Jedan Worker, jedna objava; oba dijela čitaju pravi FPL API.
