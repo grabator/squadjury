@@ -1,3 +1,10 @@
+// Jezik (engleski je zadani): klasa na <html> bira tekst uvodnog ekrana prije nego se učita ostatak.
+(function () {
+  var l = 'en';
+  try { if (localStorage.getItem('sj-lang') === 'bs') l = 'bs'; } catch (e) { /* bez spremnika */ }
+  document.documentElement.lang = l;
+  document.documentElement.classList.add('lang-' + l);
+})();
 // Uvodna animacija logotipa: jednom po posjeti, bez nje ako korisnik ne želi pokrete.
 (function () {
   var show = false;

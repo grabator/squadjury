@@ -19,7 +19,7 @@ async function main() {
     root.innerHTML = html`
       <header class="emb-head">
         <a class="emb-logo" href="${location.origin}/jury/?s=embed" target="_blank" rel="noopener"><picture><img src="/jury/img/logo/logo-white.svg" alt="SquadJury" width="103" height="24"></picture></a>
-        <span>GW${team.gw}${f ? ` · ${f}` : ''}</span>
+        <span>${t('lb.gw', { gw: team.gw })}${f ? ` · ${f}` : ''}</span>
       </header>
       <div class="emb-who">
         <div class="emb-title"><h1 class="emb-name">${team.nickname}</h1>${team.demo ? html`<span class="tag">${t('judge.exampleShort')}</span>` : ''}</div>

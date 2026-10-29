@@ -1,5 +1,7 @@
 // Pozivi prema našem Workeru. U demo modu se dodaje ?demo=1 pa Worker vraća izmišljene podatke.
+import { tr } from './i18n.js';
 const memo = new Map();
+const ERR = { 404: 'No team or league with that number.', 502: 'FPL is not responding right now. Try again in a minute.' };
 let demo = false;
 export const setDemo = (v) => { demo = !!v; memo.clear(); };
 export const isDemo = () => demo;
@@ -15,7 +17,7 @@ export async function get(path) {
     if (pre) delete window.__pre[url];
     memo.set(url, (pre || fetch(url)).then(async (r) => {
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { const e = new Error(d.greska || 'Greška ' + r.status); e.status = r.status; throw e; }
+      if (!r.ok) { const e = new Error(tr(d.greska || 'Greška ' + r.status, ERR[r.status] || 'Error ' + r.status)); e.status = r.status; throw e; }
       return d;
     }).catch((e) => { memo.delete(url); throw e; }));
   }

@@ -1,6 +1,7 @@
 // SquadJury (FPL dio): meni, rute, kartica igrača i početni ekran. Ekrani su u js/views/.
 import { setDemo, isDemo, warm } from './api.js';
 import { enhance } from './dd.js';
+import { tr, langSwitch, bindLang } from './i18n.js';
 import { S, load, reset, element, warmCaptainHistory } from './state.js';
 import { xp, fixturesFor, reason, fmt, price, num, POS_BS, dayShort, dateShort, dateLong } from './model.js';
 import { $, esc, ic, ROUTES, TABS, shirt, fdrChip } from './ui.js';
@@ -30,17 +31,18 @@ function chrome() {
   document.querySelector('.shell').classList.toggle('noside', !S.ready);
   if (!S.ready) { more.hidden = true; return; }
   let grp = '';
-  side.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, pregled"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a><button type="button" class="search-btn" data-cmd>${ic('search')}<span>Pretraga</span><kbd>${mac ? '⌘' : 'Ctrl'} K</kbd></button>` + ROUTES.map(([k, t, i, g]) => {
+  side.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a><button type="button" class="search-btn" data-cmd>${ic('search')}<span>${tr('Pretraga', 'Search')}</span><kbd>${mac ? '⌘' : 'Ctrl'} K</kbd></button>` + ROUTES.map(([k, t, i, g]) => {
     const head = g !== grp ? `<p class="grp">${g}</p>` : ''; grp = g;
     return head + `<a class="nv" href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}${t}</a>`;
-  }).join('') + `<p class="grp">Zajednica</p><a class="nv jury" href="/jury/">${ic('jury')}SquadJury<span class="new">ocijeni timove</span></a><div class="me"><span class="av" aria-hidden="true">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span><div style="min-width:0;flex:1"><b>${esc(S.entry.name)}</b><span class="sub">${esc(S.entry.player_first_name)} ${esc(S.entry.player_last_name)}</span>${isDemo() ? '<br><span class="demo-badge">Primjer</span>' : ''}</div><div class="acts"><button class="btn ghost sm" type="button" data-share>${ic('link')}Link</button><button class="btn ghost sm" type="button" data-logout>${ic('out')}Promijeni</button></div></div>`;
-  mtop.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, pregled"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a><span style="display:flex;gap:8px;align-items:center"><button type="button" class="icon-btn" data-cmd aria-label="Traži igrača ili ekran">${ic('search')}</button><span class="av" title="${esc(S.entry.name)}" aria-label="${esc(S.entry.name)}">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span></span>`;
+  }).join('') + `<p class="grp">${tr('Zajednica', 'Community')}</p><a class="nv jury" href="/jury/">${ic('jury')}SquadJury<span class="new">${tr('ocijeni timove', 'rate squads')}</span></a><div class="me"><span class="av" aria-hidden="true">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span><div style="min-width:0;flex:1"><b>${esc(S.entry.name)}</b><span class="sub">${esc(S.entry.player_first_name)} ${esc(S.entry.player_last_name)}</span>${isDemo() ? `<br><span class="demo-badge">${tr('Primjer', 'Demo')}</span>` : ''}</div><div class="acts"><button class="btn ghost sm" type="button" data-share>${ic('link')}Link</button><button class="btn ghost sm" type="button" data-logout>${ic('out')}${tr('Promijeni', 'Switch')}</button></div></div><div class="side-lang"><span class="sub">${tr('Jezik', 'Language')}</span>${langSwitch()}</div>`;
+  mtop.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a><span style="display:flex;gap:8px;align-items:center"><button type="button" class="icon-btn" data-cmd aria-label="${tr('Traži igrača ili ekran', 'Find a player or screen')}">${ic('search')}</button><span class="av" title="${esc(S.entry.name)}" aria-label="${esc(S.entry.name)}">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span></span>`;
   const inMore = !TABS.includes(r);
-  tabs.innerHTML = TABS.map((k) => { const [, t, i] = ROUTES.find((x) => x[0] === k); return `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}<span>${t}</span></a>`; }).join('') + `<button type="button" id="more-btn" aria-expanded="${!more.hidden}" aria-controls="more"${inMore ? ' aria-current="page"' : ''}>${ic('more')}<span>Više</span></button>`;
-  more.innerHTML = ROUTES.filter(([k]) => !TABS.includes(k)).map(([k, t, i]) => `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}${t}</a>`).join('') + `<a href="/jury/">${ic('jury')}SquadJury</a><a href="#/" data-logout>${ic('out')}Promijeni tim</a>`;
+  tabs.innerHTML = TABS.map((k) => { const [, t, i] = ROUTES.find((x) => x[0] === k); return `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}<span>${t}</span></a>`; }).join('') + `<button type="button" id="more-btn" aria-expanded="${!more.hidden}" aria-controls="more"${inMore ? ' aria-current="page"' : ''}>${ic('more')}<span>${tr('Više', 'More')}</span></button>`;
+  more.innerHTML = ROUTES.filter(([k]) => !TABS.includes(k)).map(([k, t, i]) => `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}${t}</a>`).join('') + `<a href="/jury/">${ic('jury')}SquadJury</a><a href="#/" data-logout>${ic('out')}${tr('Promijeni tim', 'Switch team')}</a><div class="more-lang">${langSwitch()}</div>`;
+  bindLang();
   $('#more-btn').onclick = () => { more.hidden = !more.hidden; $('#more-btn').setAttribute('aria-expanded', String(!more.hidden)); };
   document.querySelectorAll('[data-logout]').forEach((b) => { b.onclick = (e) => { e.preventDefault(); store.del('fm-id'); store.del('fm-demo'); reset(); setDemo(false); more.hidden = true; history.replaceState(null, '', location.pathname + '#/pregled'); render(); }; });
-  document.querySelectorAll('[data-share]').forEach((b) => { b.onclick = async () => { const url = location.origin + '/?id=' + S.id + (isDemo() ? '&demo=1' : ''); try { await navigator.clipboard.writeText(url); status('Link tima je kopiran.'); } catch { prompt('Link tvog tima', url); } }; });
+  document.querySelectorAll('[data-share]').forEach((b) => { b.onclick = async () => { const url = location.origin + '/?id=' + S.id + (isDemo() ? '&demo=1' : ''); try { await navigator.clipboard.writeText(url); status(tr('Link tima je kopiran.', 'Team link copied.')); } catch { prompt(tr('Link tvog tima', 'Your team link'), url); } }; });
 }
 const status = (t) => { $('#status').textContent = t; };
 
@@ -51,13 +53,13 @@ function deadline() {
   const d = new Date(ev.deadline_time), ms = d - Date.now();
   if (ms <= 0) return '';
   const m = Math.floor(ms / 60000), left = m >= 1440 ? Math.floor(m / 1440) + ' d ' + Math.floor(m / 60) % 24 + ' h' : Math.floor(m / 60) + ' h ' + m % 60 + ' min';
-  return `<p class="dl"><b>Kolo ${ev.id}</b><span>Rok: ${dateLong(d)}</span><span class="dl-left">još ${left}</span></p>`;
+  return `<p class="dl"><b>${tr('Kolo', 'Gameweek')} ${ev.id}</b><span>${tr('Rok', 'Deadline')}: ${dateLong(d)}</span><span class="dl-left">${tr('još ' + left, left + ' left')}</span></p>`;
 }
 
 // ---------- kartica igrača ----------
 // poređenje dva igrača: bolja vrijednost u redu je zelena
 function compare(ix, a, b) {
-  const rows = [['Cijena', (x) => x.now_cost / 10, (v) => '£' + fmt(v) + 'm', -1], ['Predviđeno, 5 kola', (x) => xp(ix, x, ix.nextGw, 5), fmt, 1], ['Forma', (x) => num(x.form), fmt, 1], ['Bodova po utakmici', (x) => num(x.points_per_game), fmt, 1], ['Ukupno bodova', (x) => x.total_points, String, 1], ['Golovi', (x) => x.goals_scored || 0, String, 1], ['Asistencije', (x) => x.assists || 0, String, 1], ['xG na 90 min', (x) => num(x.expected_goals_per_90), (v) => fmt(v, 2), 1], ['xA na 90 min', (x) => num(x.expected_assists_per_90), (v) => fmt(v, 2), 1], ['Minute', (x) => x.minutes, String, 1], ['Vlasništvo', (x) => num(x.selected_by_percent), (v) => fmt(v) + '%', 0]];
+  const rows = [[tr('Cijena', 'Price'), (x) => x.now_cost / 10, (v) => '£' + fmt(v) + 'm', -1], [tr('Predviđeno, 5 kola', 'Predicted, 5 GWs'), (x) => xp(ix, x, ix.nextGw, 5), fmt, 1], [tr('Forma', 'Form'), (x) => num(x.form), fmt, 1], [tr('Bodova po utakmici', 'Points per match'), (x) => num(x.points_per_game), fmt, 1], [tr('Ukupno bodova', 'Total points'), (x) => x.total_points, String, 1], [tr('Golovi', 'Goals'), (x) => x.goals_scored || 0, String, 1], [tr('Asistencije', 'Assists'), (x) => x.assists || 0, String, 1], [tr('xG na 90 min', 'xG per 90'), (x) => num(x.expected_goals_per_90), (v) => fmt(v, 2), 1], [tr('xA na 90 min', 'xA per 90'), (x) => num(x.expected_assists_per_90), (v) => fmt(v, 2), 1], [tr('Minute', 'Minutes'), (x) => x.minutes, String, 1], [tr('Vlasništvo', 'Ownership'), (x) => num(x.selected_by_percent), (v) => fmt(v) + '%', 0]];
   // jedan na jedan: vrijednosti lijevo i desno, naziv u sredini, trake pokazuju odnos
   const side = (e) => `<div class="cmp-pl"><span class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}</span><b>${esc(e.web_name)}</b><span class="sub">${esc(ix.teams.get(e.team).short_name)} · £${price(e)}m</span></div>`;
   const row = ([k, g, f, d]) => {
@@ -68,7 +70,7 @@ function compare(ix, a, b) {
   const fx = (e) => `<span class="fx3">${[0, 1, 2].map((k) => fdrChip(ix, e, ix.nextGw + k)).join('')}</span>`;
   const wins = rows.filter(([, g, , d]) => d && g(a) !== g(b)).map(([, g, , d]) => (d > 0 ? g(a) > g(b) : g(a) < g(b)));
   const wa = wins.filter(Boolean).length, wb = wins.length - wa;
-  return `<div class="cmp2" role="group" aria-label="Poređenje ${esc(a.web_name)} i ${esc(b.web_name)}"><div class="cmp-h">${side(a)}<span class="cmp-vs"><b>${wa} : ${wb}</b><span class="sub">bolji u</span></span>${side(b)}</div>${rows.map(row).join('')}<div class="cmp-r fxr"><span>${fx(a)}</span><span class="cmp-k">Sljedeća 3</span><span>${fx(b)}</span></div></div>`;
+  return `<div class="cmp2" role="group" aria-label="${tr('Poređenje', 'Comparing')} ${esc(a.web_name)} ${tr('i', 'and')} ${esc(b.web_name)}"><div class="cmp-h">${side(a)}<span class="cmp-vs"><b>${wa} : ${wb}</b><span class="sub">${tr('bolji u', 'better in')}</span></span>${side(b)}</div>${rows.map(row).join('')}<div class="cmp-r fxr"><span>${fx(a)}</span><span class="cmp-k">${tr('Sljedeća 3', 'Next 3')}</span><span>${fx(b)}</span></div></div>`;
 }
 
 async function openPlayer(id) {
@@ -77,15 +79,15 @@ async function openPlayer(id) {
   const t = ix.teams.get(e.team);
   const nextFx = fixturesFor(ix, e.team, ix.nextGw, 5);
   const xp5 = xp(ix, e, ix.nextGw, 5);
-  const top = `<div class="pd-top"><div class="shirt">${shirt(t, e.element_type === 1)}</div><div class="pd-name"><p class="sub">${POS_BS[e.element_type]} · ${esc(t.name)}</p><h2 id="pd-h">${esc(e.web_name)}</h2><p class="pd-tags"><span class="chg nt">£${price(e)}m</span><span class="chg vi">${fmt(xp5)} pred. 5 kola</span>${S.ids.includes(e.id) ? '<span class="chg up">u tvom timu</span>' : ''}</p></div><button type="button" class="icon-btn" data-close aria-label="Zatvori">${ic('close')}</button></div>`;
-  const stats = [['Forma', fmt(num(e.form))], ['Bodovi', e.total_points], ['Golovi', e.goals_scored ?? '–'], ['Asist.', e.assists ?? '–'], ['Minute', e.minutes], ['Vlasn.', fmt(num(e.selected_by_percent)) + '%'], ['xG/90', fmt(num(e.expected_goals_per_90), 2)], ['xA/90', fmt(num(e.expected_assists_per_90), 2)]];
-  const fxs = nextFx.map((f) => { const d = new Date(f.kickoff), o = ix.teams.get(f.opp); return `<div class="pfx d${f.fdr}" title="${esc(o.name)}, ${f.home ? 'kod kuće' : 'u gostima'}, ${dayShort(d)} ${dateShort(d)}"><span class="pfx-gw">K${f.gw}</span><b>${esc(o.short_name)}</b><span class="pfx-ha">${f.home ? 'kod kuće' : 'gost'}</span><span class="pfx-xp">${fmt(xp(ix, e, f.gw, 1))}</span></div>`; }).join('');
+  const top = `<div class="pd-top"><div class="shirt">${shirt(t, e.element_type === 1)}</div><div class="pd-name"><p class="sub">${POS_BS[e.element_type]} · ${esc(t.name)}</p><h2 id="pd-h">${esc(e.web_name)}</h2><p class="pd-tags"><span class="chg nt">£${price(e)}m</span><span class="chg vi">${fmt(xp5)} ${tr('pred. 5 kola', 'pred. 5 GWs')}</span>${S.ids.includes(e.id) ? `<span class="chg up">${tr('u tvom timu', 'in your team')}</span>` : ''}</p></div><button type="button" class="icon-btn" data-close aria-label="${tr('Zatvori', 'Close')}">${ic('close')}</button></div>`;
+  const stats = [[tr('Forma', 'Form'), fmt(num(e.form))], [tr('Bodovi', 'Points'), e.total_points], [tr('Golovi', 'Goals'), e.goals_scored ?? '–'], [tr('Asist.', 'Assists'), e.assists ?? '–'], [tr('Minute', 'Minutes'), e.minutes], [tr('Vlasn.', 'Owned'), fmt(num(e.selected_by_percent)) + '%'], ['xG/90', fmt(num(e.expected_goals_per_90), 2)], ['xA/90', fmt(num(e.expected_assists_per_90), 2)]];
+  const fxs = nextFx.map((f) => { const d = new Date(f.kickoff), o = ix.teams.get(f.opp); return `<div class="pfx d${f.fdr}" title="${esc(o.name)}, ${f.home ? tr('kod kuće', 'home') : tr('u gostima', 'away')}, ${dayShort(d)} ${dateShort(d)}"><span class="pfx-gw">${tr('K', 'GW')}${f.gw}</span><b>${esc(o.short_name)}</b><span class="pfx-ha">${f.home ? tr('kod kuće', 'home') : tr('gost', 'away')}</span><span class="pfx-xp">${fmt(xp(ix, e, f.gw, 1))}</span></div>`; }).join('');
   dlg.innerHTML = `${top}<div class="pd-in">${e.news ? `<p class="alert"><span class="dot" aria-hidden="true"></span><span>${esc(e.news)}</span></p>` : ''}
     <div class="pd-stats">${stats.map(([k, v]) => `<div><span class="sub">${k}</span><b>${esc(String(v))}</b></div>`).join('')}</div>
-    <h3 class="ct pd-h3">Sljedeće utakmice</h3><p class="sub">Boja je težina protivnika, broj su predviđeni bodovi</p>${fxs ? `<div class="pfxs">${fxs}</div>` : '<p class="muted">Nema zakazanih utakmica.</p>'}
+    <h3 class="ct pd-h3">${tr('Sljedeće utakmice', 'Next matches')}</h3><p class="sub">${tr('Boja je težina protivnika, broj su predviđeni bodovi', 'Colour is opponent difficulty, the number is predicted points')}</p>${fxs ? `<div class="pfxs">${fxs}</div>` : `<p class="muted">${tr('Nema zakazanih utakmica.', 'No scheduled matches.')}</p>`}
     <p class="sub" style="margin-top:8px">${esc(reason(ix, e))}</p>
-    <h3 class="ct pd-h3">Bodovi po kolima</h3><div id="pd-hist"><div class="sk" style="height:110px;margin-top:10px"></div></div>
-    <h3 class="ct pd-h3">Uporedi</h3><label class="field" style="margin-top:8px"><span class="sr">Uporedi sa igračem</span><input id="pd-cmp" list="pd-cmp-list" placeholder="Upiši ime igrača za poređenje" autocomplete="off"></label><datalist id="pd-cmp-list">${[...ix.players.values()].filter((x) => x.element_type === e.element_type && x.id !== e.id && x.minutes > 0).sort((a, b) => b.total_points - a.total_points).slice(0, 80).map((x) => `<option value="${esc(x.web_name)}">`).join('')}</datalist><div id="pd-cmp-res"></div></div>`;
+    <h3 class="ct pd-h3">${tr('Bodovi po kolima', 'Points per gameweek')}</h3><div id="pd-hist"><div class="sk" style="height:110px;margin-top:10px"></div></div>
+    <h3 class="ct pd-h3">${tr('Uporedi', 'Compare')}</h3><label class="field" style="margin-top:8px"><span class="sr">${tr('Uporedi sa igračem', 'Compare with a player')}</span><input id="pd-cmp" list="pd-cmp-list" placeholder="${tr('Upiši ime igrača za poređenje', 'Type a player name to compare')}" autocomplete="off"></label><datalist id="pd-cmp-list">${[...ix.players.values()].filter((x) => x.element_type === e.element_type && x.id !== e.id && x.minutes > 0).sort((a, b) => b.total_points - a.total_points).slice(0, 80).map((x) => `<option value="${esc(x.web_name)}">`).join('')}</datalist><div id="pd-cmp-res"></div></div>`;
   dlg.querySelector('[data-close]').onclick = () => dlg.close();
   const ci = $('#pd-cmp');
   ci.oninput = () => { const v = ci.value.trim().toLowerCase(); const o = [...ix.players.values()].find((x) => x.id !== e.id && x.web_name.toLowerCase() === v); $('#pd-cmp-res').innerHTML = o ? compare(ix, e, o) : ''; };
@@ -96,8 +98,8 @@ async function openPlayer(id) {
     const sum = await element(id);
     const hist = sum.history || [], mx = Math.max(4, ...hist.map((h) => h.total_points));
     const sumPts = hist.reduce((x, h) => x + h.total_points, 0);
-    $('#pd-hist').innerHTML = hist.length ? `<div class="pbars" role="img" aria-label="Bodovi po kolima: ${hist.map((h) => 'kolo ' + h.round + ' ' + h.total_points).join(', ')}">${hist.map((h) => `<div class="pbar${h.total_points >= 6 ? ' hi' : !h.minutes ? ' z' : ''}"><b>${h.total_points}</b><i style="height:${Math.max(4, h.total_points / mx * 100)}%"></i><span>${h.round}</span></div>`).join('')}</div><p class="sub" style="margin-top:6px">${sumPts} bodova u ${hist.length} ${hist.length === 1 ? 'kolu' : 'kola'}, najviše ${Math.max(...hist.map((h) => h.total_points))}. Zeleno je 6 ili više.</p>` : '<p class="muted">Još nema odigranih kola.</p>';
-  } catch { $('#pd-hist').innerHTML = '<p class="muted">Historija igrača trenutno nije dostupna.</p>'; }
+    $('#pd-hist').innerHTML = hist.length ? `<div class="pbars" role="img" aria-label="${tr('Bodovi po kolima', 'Points per gameweek')}: ${hist.map((h) => tr('kolo ', 'gameweek ') + h.round + ' ' + h.total_points).join(', ')}">${hist.map((h) => `<div class="pbar${h.total_points >= 6 ? ' hi' : !h.minutes ? ' z' : ''}"><b>${h.total_points}</b><i style="height:${Math.max(4, h.total_points / mx * 100)}%"></i><span>${h.round}</span></div>`).join('')}</div><p class="sub" style="margin-top:6px">${tr(`${sumPts} bodova u ${hist.length} ${hist.length === 1 ? 'kolu' : 'kola'}, najviše ${Math.max(...hist.map((h) => h.total_points))}. Zeleno je 6 ili više.`, `${sumPts} points in ${hist.length} ${hist.length === 1 ? 'gameweek' : 'gameweeks'}, best ${Math.max(...hist.map((h) => h.total_points))}. Green is 6 or more.`)}</p>` : `<p class="muted">${tr('Još nema odigranih kola.', 'No gameweeks played yet.')}</p>`;
+  } catch { $('#pd-hist').innerHTML = `<p class="muted">${tr('Historija igrača trenutno nije dostupna.', 'Player history is not available right now.')}</p>`; }
 }
 document.addEventListener('click', (ev) => {
   const p = ev.target.closest('[data-pid]');
@@ -112,7 +114,7 @@ const norm = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,
 function openCmd() {
   if (!S.ready) return;
   const dlg = $('#cmd'), ix = S.ix;
-  dlg.innerHTML = `<div class="cmd-in"><label class="cmd-q">${ic('search')}<span class="sr">Traži</span><input id="cmd-q" role="combobox" aria-controls="cmd-list" aria-expanded="true" aria-autocomplete="list" placeholder="Igrač, klub ili ekran" autocomplete="off"><kbd>Esc</kbd></label><ul id="cmd-list" role="listbox" aria-label="Rezultati"></ul></div>`;
+  dlg.innerHTML = `<div class="cmd-in"><label class="cmd-q">${ic('search')}<span class="sr">${tr('Traži', 'Search')}</span><input id="cmd-q" role="combobox" aria-controls="cmd-list" aria-expanded="true" aria-autocomplete="list" placeholder="${tr('Igrač, klub ili ekran', 'Player, club or screen')}" autocomplete="off"><kbd>Esc</kbd></label><ul id="cmd-list" role="listbox" aria-label="${tr('Rezultati', 'Results')}"></ul></div>`;
   const q = $('#cmd-q'), list = $('#cmd-list');
   let items = [], act = 0;
   const draw = () => {
@@ -121,7 +123,7 @@ function openCmd() {
     const players = v.length < 2 ? (v ? [] : S.ids.map((id) => ix.players.get(id))) : [...ix.players.values()].filter((e) => norm(e.web_name).includes(v) || norm(e.second_name).includes(v) || norm(ix.teams.get(e.team).name).includes(v)).sort((a, b) => num(b.selected_by_percent) - num(a.selected_by_percent));
     items = [...(v ? routes.slice(0, 4) : []), ...players.slice(0, 8).map((e) => ({ kind: 'p', e })), ...(v ? [] : routes.slice(0, 4))];
     act = Math.min(act, Math.max(0, items.length - 1));
-    list.innerHTML = items.length ? items.map((it, i) => `<li role="option" id="cmd-${i}" aria-selected="${i === act}" data-i="${i}">${it.kind === 'r' ? `<span class="ci">${ic(it.i)}</span><span>${it.t}</span><span class="sub">ekran</span>` : `<span class="ci shirt">${shirt(ix.teams.get(it.e.team), it.e.element_type === 1)}</span><span><b>${esc(it.e.web_name)}</b> <span class="sub">${esc(ix.teams.get(it.e.team).short_name)}, ${POS_BS[it.e.element_type]}</span></span><span class="sub">£${price(it.e)}m</span>`}</li>`).join('') : '<li class="muted" style="padding:14px">Nema rezultata.</li>';
+    list.innerHTML = items.length ? items.map((it, i) => `<li role="option" id="cmd-${i}" aria-selected="${i === act}" data-i="${i}">${it.kind === 'r' ? `<span class="ci">${ic(it.i)}</span><span>${it.t}</span><span class="sub">${tr('ekran', 'screen')}</span>` : `<span class="ci shirt">${shirt(ix.teams.get(it.e.team), it.e.element_type === 1)}</span><span><b>${esc(it.e.web_name)}</b> <span class="sub">${esc(ix.teams.get(it.e.team).short_name)}, ${POS_BS[it.e.element_type]}</span></span><span class="sub">£${price(it.e)}m</span>`}</li>`).join('') : `<li class="muted" style="padding:14px">${tr('Nema rezultata.', 'No results.')}</li>`;
     q.setAttribute('aria-activedescendant', items.length ? 'cmd-' + act : '');
     list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
   };
@@ -144,7 +146,7 @@ $('#cmd').addEventListener('click', (ev) => { if (ev.target === $('#cmd')) $('#c
 
 // ---------- početni ekran ----------
 const url = (id) => `<span class="url" aria-hidden="true"><i>fantasy.premierleague.com</i>/entry/<b>${id}</b>/event/9</span>`;
-const HOW = {
+const HOW = tr({
   pc: [
     ['Otvori stranicu', 'Idi na <b>fantasy.premierleague.com</b> i prijavi se svojim FPL računom.'],
     ['Klikni na Points', 'U meniju na vrhu otvori <b>Points</b>. Ne Pick Team, jer tamo broja nema u adresi.'],
@@ -157,7 +159,20 @@ const HOW = {
     ['Kopiraj adresu', `Dodirni adresnu traku i kopiraj link. Izgleda ovako: ${url('1234567')}`],
     ['Zalijepi ovdje', 'Zalijepi cijeli link u polje iznad. Ne moraš tražiti broj, sami ga izvlačimo.']
   ]
-};
+}, {
+  pc: [
+    ['Open the site', 'Go to <b>fantasy.premierleague.com</b> and log in with your FPL account.'],
+    ['Click Points', 'In the top menu open <b>Points</b>. Not Pick Team, that page has no number in the address.'],
+    ['Look at the address', `The address bar shows something like: ${url('1234567')} The number after <b>entry</b> is your ID.`],
+    ['Paste it here', 'Type that number, or copy the whole address and paste it into the box. We pull the number out for you.']
+  ],
+  mob: [
+    ['Open your browser', 'Open <b>fantasy.premierleague.com</b> in Safari or Chrome on your phone (not in the FPL app) and log in.'],
+    ['Open Points', 'Open the menu and choose <b>Points</b>, the page with your team\'s score.'],
+    ['Copy the address', `Tap the address bar and copy the link. It looks like this: ${url('1234567')}`],
+    ['Paste it here', 'Paste the whole link into the box above. No need to find the number, we pull it out for you.']
+  ]
+});
 const steps = (k) => HOW[k].map(([h, t], i) => `<li><span class="stp-n">${i + 1}</span><div><b>${h}</b><p>${t}</p></div></li>`).join('');
 const idOf = (v) => (v.match(/entry\/(\d+)/) || v.match(/^\s*(\d{1,9})\s*$/) || [])[1];
 
@@ -165,40 +180,41 @@ function start(msg = '') {
   const mob = matchMedia('(pointer: coarse)').matches;
   return `<div class="start">
     <section class="g card st-main">
-      <p class="st-brand"><img src="/img/brand/mark.svg" alt="" width="56" height="56"><span>Squad<em>Jury</em></span></p>
-      <h1>Tvoj FPL tim, <span>pregledno</span></h1>
-      <p class="lead">Kapiten, transferi, raspored, bodovi uživo i rival iz lige, sa procjenom bodova za svako kolo. Uz to ocjenjuješ tuđe timove.</p>
-      <form id="login" novalidate><label class="field" for="fid">Tvoj FPL ID ili link tima</label>
-        <div class="st-row field"><input id="fid" inputmode="text" autocomplete="off" placeholder="npr. 1234567 ili zalijepi link" aria-describedby="fhint lerr" required><button class="btn" type="submit">Otvori moj tim</button></div>
-        <p class="st-hint" id="fhint" aria-live="polite">Ne znaš svoj ID? Uputstvo je ${innerWidth > 980 ? 'desno' : 'ispod'}, traje pola minute.</p>
+      <div class="st-top"><p class="st-brand"><img src="/img/brand/mark.svg" alt="" width="56" height="56"><span>Squad<em>Jury</em></span></p>${langSwitch()}</div>
+      <h1>${tr('Tvoj FPL tim, <span>pregledno</span>', 'Your FPL team, <span>at a glance</span>')}</h1>
+      <p class="lead">${tr('Kapiten, transferi, raspored, bodovi uživo i rival iz lige, sa procjenom bodova za svako kolo. Uz to ocjenjuješ tuđe timove.', 'Captain, transfers, fixtures, live points and your league rival, with predicted points for every gameweek. Plus you get to rate other squads.')}</p>
+      <form id="login" novalidate><label class="field" for="fid">${tr('Tvoj FPL ID ili link tima', 'Your FPL ID or team link')}</label>
+        <div class="st-row field"><input id="fid" inputmode="text" autocomplete="off" placeholder="${tr('npr. 1234567 ili zalijepi link', 'e.g. 1234567 or paste a link')}" aria-describedby="fhint lerr" required><button class="btn" type="submit">${tr('Otvori moj tim', 'Open my team')}</button></div>
+        <p class="st-hint" id="fhint" aria-live="polite">${innerWidth > 980 ? tr('Ne znaš svoj ID? Uputstvo je desno, traje pola minute.', 'Don\'t know your ID? The steps are on the right, it takes half a minute.') : tr('Ne znaš svoj ID? Uputstvo je ispod, traje pola minute.', 'Don\'t know your ID? The steps are below, it takes half a minute.')}</p>
         <p class="err" id="lerr" role="alert">${esc(msg)}</p></form>
-      <p class="st-or"><span>ili</span></p>
-      <button class="btn ghost st-demo" type="button" id="demo">Pogledaj primjer bez prijave</button>
-      <p class="sub st-note">Ne tražimo lozinku ni email. Koriste se samo javni podaci tvog tima. Nezvanična aplikacija, nije povezana sa Premier League.</p>
+      <p class="st-or"><span>${tr('ili', 'or')}</span></p>
+      <button class="btn ghost st-demo" type="button" id="demo">${tr('Pogledaj primjer bez prijave', 'Try a demo team first')}</button>
+      <p class="sub st-note">${tr('Ne tražimo lozinku ni email. Koriste se samo javni podaci tvog tima. Nezvanična aplikacija, nije povezana sa Premier League.', 'We never ask for a password or email. Only your team\'s public data is used. Unofficial app, not affiliated with the Premier League.')}</p>
     </section>
     <section class="g card st-how" aria-labelledby="h-how">
-      <h2 id="h-how" class="ct">Kako da nađem svoj FPL ID?</h2>
-      <p class="sub">ID je broj tvog tima na FPL-u. Isti je cijelu sezonu, pa ga upisuješ samo jednom.</p>
-      <div class="seg st-tabs" role="group" aria-label="Uređaj"><button type="button" data-how="pc" aria-pressed="${!mob}">Računar</button><button type="button" data-how="mob" aria-pressed="${mob}">Mobitel</button></div>
+      <h2 id="h-how" class="ct">${tr('Kako da nađem svoj FPL ID?', 'How do I find my FPL ID?')}</h2>
+      <p class="sub">${tr('ID je broj tvog tima na FPL-u. Isti je cijelu sezonu, pa ga upisuješ samo jednom.', 'Your ID is your team\'s number on FPL. It stays the same all season, so you only enter it once.')}</p>
+      <div class="seg st-tabs" role="group" aria-label="${tr('Uređaj', 'Device')}"><button type="button" data-how="pc" aria-pressed="${!mob}">${tr('Računar', 'Computer')}</button><button type="button" data-how="mob" aria-pressed="${mob}">${tr('Mobitel', 'Phone')}</button></div>
       <ol class="stp" id="how">${steps(mob ? 'mob' : 'pc')}</ol>
-      <p class="st-tip"><b>Drugi način:</b> u bilo kojoj ligi na FPL-u klikni na svoje ime u tabeli. I tada je u adresi /entry/<b>broj</b>/.</p>
+      <p class="st-tip">${tr('<b>Drugi način:</b> u bilo kojoj ligi na FPL-u klikni na svoje ime u tabeli. I tada je u adresi /entry/<b>broj</b>/.', '<b>Another way:</b> in any league on FPL, click your own name in the table. The address then also shows /entry/<b>number</b>/.')}</p>
     </section>
   </div>`;
 }
 function bindStart() {
   const f = $('#login');
   if (!f) return;
+  bindLang();
   const fid = $('#fid'), hint = $('#fhint');
   fid.oninput = () => {
     const id = idOf(fid.value);
     $('#lerr').textContent = '';
     hint.classList.toggle('ok', !!id);
-    hint.textContent = id ? `Pronađen ID: ${id}. Klikni Otvori moj tim.` : fid.value.trim() ? 'U ovome nema broja tima. Treba broj ili link sa /entry/broj/.' : 'Upiši broj ili zalijepi link.';
+    hint.textContent = id ? tr(`Pronađen ID: ${id}. Klikni Otvori moj tim.`, `Found ID: ${id}. Click Open my team.`) : fid.value.trim() ? tr('U ovome nema broja tima. Treba broj ili link sa /entry/broj/.', 'There is no team number in this. Use a number or a link with /entry/number/.') : tr('Upiši broj ili zalijepi link.', 'Type a number or paste a link.');
   };
   f.onsubmit = (e) => {
     e.preventDefault();
     const id = idOf(fid.value);
-    if (!id) { $('#lerr').textContent = 'Upiši broj (FPL ID) ili zalijepi link sa Points stranice.'; fid.focus(); return; }
+    if (!id) { $('#lerr').textContent = tr('Upiši broj (FPL ID) ili zalijepi link sa Points stranice.', 'Type your number (FPL ID) or paste the link from the Points page.'); fid.focus(); return; }
     store.set('fm-id', id); store.set('fm-demo', '0'); setDemo(false); render();
   };
   $('#demo').onclick = () => { store.set('fm-id', '1'); store.set('fm-demo', '1'); setDemo(true); render(); };
@@ -223,7 +239,7 @@ async function render(quiet) {
     if (!busy) {
       setDemo(store.get('fm-demo') === '1');
       main.innerHTML = '<div class="sk" style="height:180px"></div><div class="grid4 mt">' + '<div class="sk" style="height:120px"></div>'.repeat(4) + '</div><div class="sk mt" style="height:320px"></div>';
-      busy = load(+saved).catch((e) => { store.del('fm-id'); reset(); main.innerHTML = start(e.status === 404 ? 'Ne postoji tim sa tim ID-om.' : e.message); bindStart(); }).finally(() => { busy = null; });
+      busy = load(+saved).catch((e) => { store.del('fm-id'); reset(); main.innerHTML = start(e.status === 404 ? tr('Ne postoji tim sa tim ID-om.', 'There is no team with that ID.') : e.message); bindStart(); }).finally(() => { busy = null; });
     }
     await busy;
     if (!S.ready || my !== seq) return;
@@ -245,7 +261,7 @@ async function render(quiet) {
   } catch (e) {
     clearTimeout(skT);
     console.error(e);
-    main.innerHTML = `<section class="g card"><h1 class="ct">Ovaj dio se nije učitao</h1><p class="muted" style="margin-top:8px">${esc(e.status === 502 ? 'FPL trenutno ne odgovara. To se dešava dok se ažurira kolo. Pokušaj za koju minutu.' : e.message || 'Nepoznata greška.')}</p><p style="margin-top:12px"><button class="btn" type="button" id="retry">Pokušaj ponovo</button></p></section>`;
+    main.innerHTML = `<section class="g card"><h1 class="ct">${tr('Ovaj dio se nije učitao', 'This part did not load')}</h1><p class="muted" style="margin-top:8px">${esc(e.status === 502 ? tr('FPL trenutno ne odgovara. To se dešava dok se ažurira kolo. Pokušaj za koju minutu.', 'FPL is not responding right now. This happens while a gameweek is being updated. Try again in a few minutes.') : e.message || tr('Nepoznata greška.', 'Unknown error.'))}</p><p style="margin-top:12px"><button class="btn" type="button" id="retry">${tr('Pokušaj ponovo', 'Try again')}</button></p></section>`;
     $('#retry').onclick = () => render();
   }
   document.title = v.title + ' · SquadJury';

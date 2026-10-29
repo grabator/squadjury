@@ -1,6 +1,6 @@
 // Service worker: the app shell loads instantly on repeat visits.
 // Our JS and CSS are network first, fonts and images cache first; the API and share pages always go to the network.
-const VERSION = 'sj-v22';
+const VERSION = 'sj-v23';
 const SHELL = ['/jury/', '/jury/css/app.css?v=13', '/jury/js/app.js?v=13', '/jury/img/logo/logo.svg', '/jury/img/logo/mark.svg', '/jury/img/logo/logo-white.svg', '/jury/fonts/archivo-latin-var.woff2', '/jury/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {

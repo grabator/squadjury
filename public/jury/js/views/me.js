@@ -1,6 +1,6 @@
 // Me: your numbers, your verdicts (by gameweek, 10 at a time), your squads, settings and About.
 
-import { t } from '../i18n.js';
+import { t, getLang, switchLang } from '../i18n.js';
 import { badgeRowHtml, openBadgesSheet, toastBadges } from '../badges.js';
 import { html, raw, $, sheet, toast, errText, ICONS, pagerHtml, pagedList } from '../ui.js';
 import { api } from '../api.js';
@@ -19,7 +19,8 @@ const aboutHtml = () => html`<h2 class="section-h">${t('me.about')}</h2>
   <p class="fan-note">${t('footer.fan')}</p>`;
 
 const settingsHtml = () => html`<h2 class="section-h">${t('me.settings')}</h2>
-  <label class="switch"><span>${t('me.sound')}<br><small style="color:var(--ink-2)">${t('me.soundHint')}</small></span><input type="checkbox" id="sound" ${raw(soundOn() ? 'checked' : '')}></label>`;
+  <label class="switch"><span>${t('me.sound')}<br><small style="color:var(--ink-2)">${t('me.soundHint')}</small></span><input type="checkbox" id="sound" ${raw(soundOn() ? 'checked' : '')}></label>
+  <div class="switch lang-row"><span>${t('me.language')}</span><span class="seg-lang" role="group" aria-label="${t('me.language')}">${['en', 'bs'].map((l) => html`<button type="button" data-lang="${l}" aria-pressed="${getLang() === l}" lang="${l}">${l === 'en' ? 'English' : 'Bosanski'}</button>`)}</span></div>`;
 
 /** Rows of verdicts: owner on the left, your score on the right. */
 export const verdictRows = (items) => html`${items.map((v) => html`<li><button class="item" data-key="${v.key}" data-score="${v.score}" data-nick="${v.nickname}">
@@ -52,6 +53,7 @@ export function wireVerdicts(box, { open, onChange }) {
 
 function wireCommon(el) {
   $('#sound', el)?.addEventListener('change', (e) => setSound(e.target.checked));
+  el.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => { if (b.dataset.lang !== getLang()) switchLang(b.dataset.lang); }));
 }
 
 export async function mount(el) {

@@ -21,13 +21,15 @@ export async function loadFpl() {
 export const POS = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
 export const POS_LONG = { 1: 'goalkeeper', 2: 'defender', 3: 'midfielder', 4: 'forward' };
 
+import { getLang } from './i18n.js';
+
 /** "TOT (H)" style label for a club in a gameweek (double gameweeks join with a comma). */
 export function fixtureLabel(fpl, teamId, gw) {
   const out = [];
   for (const f of fpl.fixtures) {
     if (f.event !== gw) continue;
-    if (f.team_h === teamId) out.push(`${fpl.teamsById.get(f.team_a)?.short_name} (H)`);
-    else if (f.team_a === teamId) out.push(`${fpl.teamsById.get(f.team_h)?.short_name} (A)`);
+    if (f.team_h === teamId) out.push(`${fpl.teamsById.get(f.team_a)?.short_name} (${getLang() === 'bs' ? 'D' : 'H'})`);
+    else if (f.team_a === teamId) out.push(`${fpl.teamsById.get(f.team_h)?.short_name} (${getLang() === 'bs' ? 'G' : 'A'})`);
   }
   return out.join(', ') || '-';
 }

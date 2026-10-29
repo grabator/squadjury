@@ -1036,3 +1036,8 @@ h1, h2, h3, .title { font-family: var(--cond); font-weight: 800; letter-spacing:
 .fm-back:hover { background: rgba(255, 255, 255, .1); }
 .brand-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .bench .bl, .bl { color: rgba(255, 255, 255, .9); }
+
+/* izbor jezika u postavkama */
+.lang-row .seg-lang { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, .07); border: 1px solid var(--line); }
+.lang-row .seg-lang button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 9px; background: none; color: var(--ink-2); font-weight: 700; font-size: 13px; cursor: pointer; }
+.lang-row .seg-lang button[aria-pressed='true'] { background: linear-gradient(135deg, #7b2cf5, #b44dff); color: #fff; }

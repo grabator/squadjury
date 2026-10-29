@@ -214,7 +214,7 @@ export async function renderShareImage(kind, fpl, team, place, { result = false 
   let meta = [team.x ? `@${team.x}` : null, place?.rank ? t('share.of', { rank: place.rank, total: place.total }) : null, scored ? t('share.from', { n: team.votes }) : t('share.judgeMy')].filter(Boolean).join(' · ');
   // Result after the gameweek: the jury's verdict, the real points and how the jury did.
   if (result && team.points != null) {
-    gwLine = `GW${team.gw}${team.call ? ` · ${t(`pts.${team.call}`)}` : ''}`;
+    gwLine = `${t('lb.gw', { gw: team.gw })}${team.call ? ` · ${t(`pts.${team.call}`)}` : ''}`;
     meta = place?.rank
       ? t('pts.resultLine', { rank: place.rank, total: place.total, score, pts: team.points })
       : t('pts.resultLineNoRank', { score, pts: team.points });

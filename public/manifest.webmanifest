@@ -1,8 +1,8 @@
 {
-  "name": "SquadJury: tvoj FPL tim",
+  "name": "SquadJury: your FPL team",
   "short_name": "SquadJury",
-  "description": "Tvoj Fantasy Premier League tim na jednom mjestu.",
-  "lang": "bs",
+  "description": "Your Fantasy Premier League team in one place.",
+  "lang": "en",
   "start_url": "/#/pregled",
   "display": "standalone",
   "background_color": "#14061f",

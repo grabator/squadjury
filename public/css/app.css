@@ -63,7 +63,7 @@ main:focus { outline: none; }
 .side a.nv { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; color: var(--m); font-weight: 600; text-decoration: none; transition: background .2s, color .2s; }
 .side a.nv:hover { background: rgba(255, 255, 255, .06); color: var(--t); }
 .side a.nv[aria-current='page'] { background: linear-gradient(135deg, #7b2cf5, #b44dff); color: #fff; box-shadow: 0 10px 22px -12px rgba(150, 60, 255, .9); }
-.side a.nv.jury .new { margin-left: auto; padding: 1px 7px; border-radius: 99px; background: rgba(0, 255, 135, .14); color: var(--green); font-size: 10.5px; font-weight: 700; }
+.side a.nv.jury .new { margin-left: auto; white-space: nowrap; padding: 1px 7px; border-radius: 99px; background: rgba(0, 255, 135, .14); color: var(--green); font-size: 10.5px; font-weight: 700; }
 .side .grp { margin: 14px 12px 4px; font-size: 12px; color: var(--d); font-weight: 600; }
 .side .me { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: rgba(255, 255, 255, .06); }
 .side .me b, .side .me .sub { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -547,6 +547,14 @@ main.in > :nth-child(2) { animation-delay: 50ms; } main.in > :nth-child(3) { ani
 .mtop .brand { margin: 0; }
 .side .brand { margin-bottom: 14px; }
 @media (max-width: 520px) { .grid4 { gap: 10px; } .stat { padding: 14px; } .stat .v { font-size: 26px; } .card { padding: 16px; } }
+/* jezik: tekst u HTML-u za oba jezika, vidi se samo izabrani */
+.lang-bs .t-en, .lang-en .t-bs, html:not(.lang-bs):not(.lang-en) .t-bs { display: none; }
+.lang-sw { flex: none; }
+.lang-sw button { min-width: 44px; font-weight: 800; letter-spacing: .04em; }
+.st-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.side-lang { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 12px 8px 0; }
+.more-lang { grid-column: 1 / -1; display: flex; justify-content: center; padding-top: 6px; }
+
 /* uvodna animacija: crvena strelica, zelena strelica, kvačica, pa ime */
 .splash { display: none; }
 .splashing .splash { display: grid; place-items: center; position: fixed; inset: 0; z-index: 100; background: radial-gradient(120% 80% at 50% 30%, #2f0a45 0%, #14061f 70%); animation: sp-out .35s ease-in 2.6s forwards; cursor: pointer; }

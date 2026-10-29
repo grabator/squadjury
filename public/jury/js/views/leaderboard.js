@@ -57,7 +57,7 @@ function renderTabs(gameweeks, open) {
   if (scope) tabs.push({ id: 'h2h', label: t('h2h.tab'), on: tab === 'h2h' });
   const box = $('#lbtabs', root);
   box.innerHTML = `<div class="tablist" role="tablist" aria-label="${t('lb.title')}">${tabs.map((x) => html`<button type="button" role="tab" class="lb-tab" data-tab="${x.id}" aria-selected="${String(x.on)}">${x.label}</button>`.s).join('')}</div>`
-    + (onPast ? html`<button type="button" class="gw-pick" id="gwpick" aria-haspopup="dialog" aria-label="${t('lb.pickGw')}: GW${tab.slice(2)}">GW${tab.slice(2)}<svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`.s : '');
+    + (onPast ? html`<button type="button" class="gw-pick" id="gwpick" aria-haspopup="dialog" aria-label="${t('lb.pickGw')}: ${t('lb.gw', { gw: tab.slice(2) })}">${t('lb.gw', { gw: tab.slice(2) })}<svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`.s : '');
   const go = (next) => {
     tab = next;
     resetPages();
@@ -208,9 +208,9 @@ function renderBoard(lb) {
   const body = $('#lbbody', root);
   const byPoints = lb.sort === 'points';
   const seg = segHtml(lb.live, lb.hasPoints, byPoints ? 'points' : 'jury');
-  const label = lb.live ? t('lb.live', { gw: lb.gw }) : `${t('lb.final')}, GW${lb.gw}`;
+  const label = lb.live ? t('lb.live', { gw: lb.gw }) : `${t('lb.final')}, ${t('lb.gw', { gw: lb.gw })}`;
   const mePending = lb.pending?.some((r) => r.mine);
-  body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}, GW${lb.gw}</p>` : ''}${seg}
+  body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}, ${t('lb.gw', { gw: lb.gw })}</p>` : ''}${seg}
     ${lb.ranked.length ? html`<div id="lb-list"></div>` : html`<div class="empty"><span class="ycard"></span><h2>${t('lb.emptyTitle')}</h2><p>${t('lb.empty')}</p><a class="btn btn-go" href="/jury/">${t('nav.judge')}</a></div>`}
     ${lb.pending?.length ? foldHtml('lb-pending', t('lb.waiting'), lb.pending.length, mePending || !lb.ranked.length) : ''}
     ${lb.ranked.length ? howHtml(t('lb.how'), `<a href="/jury/rules">${esc(t('page.rules'))}</a>`) : ''}`.s;
@@ -253,13 +253,13 @@ function renderDuels(d) {
   const seg = segHtml(d.live, hasPointsByGw.get(d.gw), 'duels');
   const me = d.me && !d.ranked.some((r) => r.mine) && d.me.needs
     ? html`<p class="sub" style="margin:10px 2px 0">${t('lb.you')}: ${t('duel.needs', { n: d.me.needs })}</p>` : '';
-  body.innerHTML = html`${!d.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}, GW${d.gw}</p>` : ''}${seg}
+  body.innerHTML = html`${!d.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}, ${t('lb.gw', { gw: d.gw })}</p>` : ''}${seg}
     ${d.ranked.length ? html`<div id="lb-list"></div>` : html`<div class="empty"><span class="ycard"></span><h2>${t('lb.emptyTitle')}</h2><p>${t('duel.lbEmpty', { n: d.minDuels })}</p>${d.live ? html`<a class="btn btn-go" href="/jury/">${t('nav.judge')}</a>` : ''}</div>`}
     ${me}${d.ranked.length ? howHtml(t('duel.lbHow', { n: d.minDuels })) : ''}`.s;
   boardList($('#lb-list', body), d.ranked, (r) => html`<li class="${r.mine ? 'me' : ''} ${r.rank <= 3 ? `p${r.rank}` : ''}" data-key="${r.key}">
         <a href="/t/${r.key}"><span class="pos">${r.rank}</span>
         <span class="who"><b>${r.nickname}${r.mine ? ` (${t('lb.you')})` : ''}${r.demo ? html`<span class="tag">${t('judge.exampleShort')}</span>` : ''}</b><span>${r.w}-${r.l} · ${r.pct}%</span></span>
-        <span class="score"><span class="num">${r.rating}</span><small>${t('duel.ratingShort')}</small></span></a></li>`, { key: 'duels', label: `${t('duel.tab')}, GW${d.gw}`, focusMine: false });
+        <span class="score"><span class="num">${r.rating}</span><small>${t('duel.ratingShort')}</small></span></a></li>`, { key: 'duels', label: `${t('duel.tab')}, ${t('lb.gw', { gw: d.gw })}`, focusMine: false });
   wireSeg(body);
   $('#sticky', root).innerHTML = '';
 }
@@ -339,7 +339,7 @@ function renderLeagueBoard(lb) {
     return wireEmpty(body);
   }
   const mePending = lb.pending.some((r) => r.mine), meMissing = lb.missing.some((m) => m.mine);
-  body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}, GW${lb.gw}</p>` : ''}${segHtml(lb.live, false, 'jury')}
+  body.innerHTML = html`${!lb.live ? html`<p class="sub" style="margin:0 0 10px">${t('lb.final')}, ${t('lb.gw', { gw: lb.gw })}</p>` : ''}${segHtml(lb.live, false, 'jury')}
     ${lb.ranked.length ? html`<div id="lb-list"></div>` : html`<div class="empty"><span class="ycard"></span><h2>${t('lb.emptyTitle')}</h2><p>${t('lb.empty')}</p><a class="btn btn-go" href="/jury/">${t('nav.judge')}</a></div>`}
     ${lb.pending.length ? foldHtml('lb-pending', t('lb.waiting'), lb.pending.length, mePending || !lb.ranked.length) : ''}
     ${lb.missing.length ? foldHtml('lb-missing', t('league.notPosted'), lb.missing.length, meMissing) : ''}`.s;
@@ -403,7 +403,7 @@ function renderH2H(r) {
   }
   const table = r.tables[h2hTableKind] || [];
   body.innerHTML = html`${howHtml(t('h2h.how'))}
-    <div class="h2h-gws" role="group" aria-label="${t('lb.pickGw')}">${r.gws.map((g) => html`<button type="button" data-h2hgw="${g}" aria-pressed="${String(g === r.gw)}">GW${g}</button>`)}</div>
+    <div class="h2h-gws" role="group" aria-label="${t('lb.pickGw')}">${r.gws.map((g) => html`<button type="button" data-h2hgw="${g}" aria-pressed="${String(g === r.gw)}">${t('lb.gw', { gw: g })}</button>`)}</div>
     <h2 class="board-sub">${t('h2h.matches', { gw: r.gw })}${r.live ? html` <span class="live-dot">${t('h2h.live')}</span>` : ''}</h2>
     <div class="h2h-head h2h-cols" aria-hidden="true"><span></span><span>${t('h2h.jury')}</span><span>${t('h2h.pts')}</span></div>
     <div id="h2h-matches"></div>

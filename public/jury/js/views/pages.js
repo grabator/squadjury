@@ -1,9 +1,9 @@
 // Static pages: How it works, Rules, Privacy and the 404 page.
 
-import { t } from '../i18n.js';
+import { t, getLang } from '../i18n.js';
 import { html } from '../ui.js';
 
-const PAGES = {
+const PAGES_EN = {
   how: () => html`<div class="prose">
     <h1 class="title">${t('page.how')}</h1>
     <p class="sub">Post your squad. The jury decides.</p>
@@ -80,6 +80,83 @@ const PAGES = {
     <h1 class="title" style="margin-bottom:8px">${t('page.notFound')}</h1><p>${t('page.notFoundText')}</p>
     <a class="btn btn-go" href="/jury/">${t('page.home')}</a></div>`,
 };
+
+// bosanske verzije istih stranica
+const PAGES_BS = {
+  how: () => html`<div class="prose">
+    <h1 class="title">${t('page.how')}</h1>
+    <p class="sub">Objavi svoj tim. Žiri odlučuje.</p>
+    <button class="btn" data-intro>${t('intro.again')}</button>
+    <h2>1. Objavi svoj tim</h2>
+    <p>Prijavi se preko Googlea ili linka koji ti pošaljemo na email, pa ubaci screenshot ekrana <strong>Pick Team</strong> iz zvanične FPL aplikacije. SquadJury pročita tvojih 15 igrača, kapitena i vice kapitena direktno u tvom pregledniku. Provjeri ih, ispravi ako smo nešto promašili i pošalji tim žiriju.</p>
+    <h2>2. Ocjenjuj tuđe timove</h2>
+    <p>Timovi se pojavljuju jedan po jedan. Dodirni <strong>koliko će tim biti dobar ovo kolo</strong>, od 1 (promašaj) do 10 (pun pogodak), i stiže sljedeći. Protivnici, kapiten, diferencijali, klupa: ti odlučuješ, za to i postoji žiri. Prosjek žirija vidiš tek kad daš svoju ocjenu, a niko nikad ne vidi ko je dao koju ocjenu.</p>
+    <h2>3. Penji se na tabeli</h2>
+    <p>Ocjene su otvorene do FPL roka za kolo. U rok se kolo zaključava i konačni top 10 ostaje sačuvan na tabeli.</p>
+    <h2>4. Vidi stvarne bodove</h2>
+    <p>Kad se kolo završi, SquadJury sabere stvarne FPL bodove svakog tima: prvih 11, dupli kapiten i automatske zamjene sa klupe. Onda vidiš da li je žiri bio u pravu. Dodaj svoj <strong>FPL ID tima</strong> u profilu i koriste se tvoji tačni bodovi iz FPL-a, sa minus bodovima i čipovima.</p>
+    <h2>Skaut bodovi</h2>
+    <p>Tvoja ocjena je i prognoza. Poslije kola svaki tim dobije pravu ocjenu od 1 do 10 po stvarnim FPL bodovima (najbolji tim 10, najslabiji 1). Ocjena tačno na nju donosi 10 skaut bodova, za 1 promašaj 8, za 2 je 6, za 3 je 3, a više od toga 0. Izbor u duelu donosi 5 kad tim koji si izabrao osvoji više. Tvoj skaut rezultat za kolo je prosjek, kad daš bar 10 ocjena. Sezona sabira kola. Vidi ga pod Skauti na tabeli i na svom profilu.</p>
+    <h2>Značke i niz</h2>
+    <p>Ima 18 znački za porotnike, menadžere, skaute, duele i dovođenje prijatelja. Profil pokazuje one koje si otključao; dodirni red da vidiš sve, i koliko ti fali za svaku. Niz broji kola zaredom u kojima si dao bar 5 ocjena ili duela. Propustiš li kolo, kreće ispočetka, ali najbolji niz ostaje.</p>
+    <h2>Dueli</h2>
+    <p>Prebaci Ocjenjuj na <strong>Duel</strong> i vidiš dva tima odjednom. Dodirni bolji. Svaki izbor pomjera duel rejting timova (kreće od 1500, kao šahovski rejting) i njihov omjer pobjeda i poraza, koji se vidi na tabeli pod Dueli. Duel se računa kao jedan ocijenjen tim. Izbori brži od jedne sekunde, ili uvijek na istu stranu, ne pomjeraju rejting.</p>
+    <h2>Plan A protiv Plana B</h2>
+    <p>Nisi siguran za transfer ili kapitena? Kad objaviš tim, dodaj Plan B. Porotnici vide oba u duelima i biraju plan koji bi oni izabrali. Izaberi svoj plan najkasnije 30 minuta prije roka, inače ide plan sa više glasova. Ovi glasovi nikad ne mijenjaju tabelu.</p>
+    <h2>Privatne lige</h2>
+    <p>Napravi ligu za prijatelje, kolege ili svoju mini ligu i podijeli njen link ili kod od 6 znakova. Svi u njoj dobiju svoju tabelu za svako kolo i za sezonu. Ocjene su iste kao na glavnoj tabeli, pa niko ne može pogurati prijatelja samo unutar lige.</p>
+    <p>Sa 4 ili više članova liga igra i <strong>jedan na jedan</strong>: svako kolo igraš protiv jednog člana, kao u FPL H2H ligi. Rezultat žirija je ko je dobio više duela između ta dva tima (sa manje od 3 glasa u duelu pobjeđuje bolja ocjena žirija). Rezultat po bodovima stiže poslije kola, iz stvarnih FPL bodova. Pobjeda je 3 boda, neriješeno 1, u tabeli žirija i tabeli bodova. Ko nema tim do roka, gubi 0:3.</p>
+    <h2>Podijeli</h2>
+    <p>Svaki tim ima svoj link. Pošalji ga svojoj mini ligi, ili objavi kvadratnu sliku svog tima na X jednim dodirom.</p>
+    <p>Imaš blog ili kanal? Na Moj tim, <strong>Ugradi</strong> ti daje kod da pokažeš tim na svojoj stranici, gdje ga posjetioci mogu ocijeniti, i sliku 1920x1080 sa QR kodom za tvoj YouTube video.</p>
+  </div>`,
+  rules: () => html`<div class="prose">
+    <h1 class="title">${t('page.rules')}</h1>
+    <h2>Timovi</h2>
+    <ul>
+      <li>Jedan tim po računu po kolu. Screenshot možeš zamijeniti do roka, a to briše njegove ocjene.</li>
+      <li>Tim mora poštovati FPL pravila: 2 golmana, 5 odbrambenih, 5 veznih, 3 napadača i najviše 3 igrača iz jednog kluba.</li>
+      <li>Objavi svoj tim, sa ekrana Pick Team. Sve drugo se može prijaviti i ukloniti.</li>
+    </ul>
+    <h2>Ocjene</h2>
+    <ul>
+      <li>Jedna ocjena po timu, od 1 do 10. Možeš je promijeniti do roka.</li>
+      <li>Ne možeš ocijeniti svoj tim.</li>
+      <li>Vlasnici timova ne vide ko je dao koju ocjenu.</li>
+      <li>Ocjena govori koliko će tim biti dobar ovo kolo: 1 promašaj, 10 pun pogodak. Poslije kola poredi se sa stvarnim bodovima (skaut bodovi). Ako svima daješ istu ocjenu, nećeš dobro proći.</li>
+      <li>Skaut rezultat traži bar 10 ocjena u kolu, i ne računa se kad manje od 10 timova ima bodove.</li>
+    </ul>
+    <h2>Tabela</h2>
+    <p>Da bi ušao u poredak, tim treba <strong>najmanje 5 ocjena</strong>, a njegov vlasnik treba to kolo ocijeniti <strong>najmanje 5 drugih timova</strong> (ili sve ostale, dok ih ima manje). Duel se računa kao jedan ocijenjen tim.</p>
+    <p><strong>Kako se računa poredak:</strong> više ocjena čini rezultat pouzdanijim, pa tim sa samo par ocjena treba visoke ocjene od više ljudi da dođe do vrha. Tehnički, svaki prosjek se miješa sa prosjekom kola kao da ima još 5 glasova sa tim prosjekom. Tabela pokazuje pravi prosjek.</p>
+    <h2>Dueli</h2>
+    <p>Duel rejting kreće od 1500 i mijenja se poslije svakog duela (Elo, K 24): pobjeda nad timom sa većim rejtingom ga više pomjeri. Tim treba 5 duela da bude na listi. Možeš ocijeniti do 200 duela po kolu i svaki par samo jednom. Niko nikad ne vidi ko je izabrao koji tim.</p>
+    <h2>Fer igra</h2>
+    <ul>
+      <li>Računi koji daju samo 1 ili 10 vrijede pola.</li>
+      <li>Izbori u duelu brži od jedne sekunde, ili skoro uvijek na istu stranu, ne pomjeraju duel rejting.</li>
+      <li>Broj ocjena je ograničen, a timovi prijavljeni 3 puta se sakrivaju dok se ne pregledaju.</li>
+      <li>Računi koji varaju se zabranjuju.</li>
+    </ul>
+  </div>`,
+  privacy: () => html`<div class="prose">
+    <h1 class="title">${t('page.privacy')}</h1>
+    <p>SquadJury čuva što manje može.</p>
+    <h2>Šta čuvamo</h2>
+    <ul>
+      <li><strong>Račun:</strong> tvoj email i, ako ih koristiš, id tvog Google ili Apple računa (da te prijavimo, nikad se nikome ne prikazuje). Linkovi za prijavu se čuvaju samo kao otisak i ističu poslije 15 minuta. Tvoj nadimak i X korisničko ime ako ga dodaš.</li>
+      <li><strong>Timovi:</strong> igrači koje objaviš i tvoj screenshot. Screenshotovi se brišu dva kola kasnije, osim ako je tim završio u top 10.</li>
+      <li><strong>Ocjene:</strong> ocjene koje daješ. Vlasnici vide samo prosjeke i zbirove.</li>
+      <li><strong>Tehnički:</strong> kolačić sesije koji te drži prijavljenim 90 dana, i kratkotrajni brojači protiv spama.</li>
+    </ul>
+    <h2>Šta nikad ne radimo</h2>
+    <p>Nema reklama, nema skripti za praćenje i nema prodaje podataka. Screenshotovi se čitaju u tvom pregledniku; šalje se samo slika koju objaviš.</p>
+    <h2>Obriši svoje podatke</h2>
+    <p>Idi na <a href="/jury/me">Ja</a> i izaberi <strong>Obriši moj račun</strong>. Tvoj račun, timovi, screenshotovi i ocjene se odmah brišu.</p>
+    <p>${t('footer.fan')}</p>
+  </div>`,
+};
+const PAGES = getLang() === 'bs' ? { ...PAGES_EN, ...PAGES_BS } : PAGES_EN;
 
 export function mount(el, which) {
   const page = PAGES[which] || PAGES[404];

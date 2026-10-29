@@ -1,6 +1,6 @@
 // SquadJury app shell: router, the deadline in the header and the menu.
 
-import { t } from './i18n.js';
+import { t, getLang } from './i18n.js';
 import { $, html, raw, ICONS, sheet } from './ui.js';
 import { nowMs } from './api.js';
 import { store, refreshState } from './store.js';
@@ -115,7 +115,7 @@ function tickClock() {
   else {
     const ms = s.gw.deadline - nowMs();
     if (ms <= 0) {
-      text = html`GW${s.gw.id} <b>${t('clock.locked')}</b>`.s;
+      text = html`${t('lb.gw', { gw: s.gw.id })} <b>${t('clock.locked')}</b>`.s;
       if (!clock.locked) {
         clock.locked = true;
         // The next gameweek opens as soon as the server sees the deadline pass.
@@ -139,7 +139,7 @@ function ics(gw, deadline) {
     'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SquadJury//EN', 'BEGIN:VEVENT',
     `UID:gw${gw}-deadline@squadjury.com`, `DTSTAMP:${fmt(Date.now())}`,
     `DTSTART:${fmt(deadline - 3600e3)}`, `DTEND:${fmt(deadline)}`,
-    `SUMMARY:GW${gw} FPL deadline: last call on SquadJury`,
+    `SUMMARY:${t('lb.gw', { gw: gw })} FPL deadline: last call on SquadJury`,
     'DESCRIPTION:Post your squad and give your verdicts before the deadline. https://squadjury.com',
     'BEGIN:VALARM', 'TRIGGER:-PT0M', 'ACTION:DISPLAY', 'DESCRIPTION:FPL deadline in 1 hour', 'END:VALARM',
     'END:VEVENT', 'END:VCALENDAR',
@@ -158,7 +158,7 @@ function openClockSheet() {
   const d = new Date(s.gw.deadline);
   const when = d.toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
   const sh = sheet(
-    html`<h2>GW${s.gw.id} ${t('clock.deadline')}</h2>
+    html`<h2>${t('lb.gw', { gw: s.gw.id })} ${t('clock.deadline')}</h2>
       <p class="big-time">${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
       <p>${when}. ${t('clock.sheetText')}</p>
       <button class="btn btn-go btn-block" id="ics">${raw(ICONS.calendar)}${t('clock.addCal')}</button>`,
@@ -168,6 +168,10 @@ function openClockSheet() {
 }
 
 // ============================================================ wiring
+
+// the link back to the FPL part follows the chosen language
+const back = document.querySelector('.fm-back span');
+if (back && getLang() === 'bs') back.textContent = 'Moj tim';
 
 // Internal links go through the router.
 document.addEventListener('click', (e) => {
