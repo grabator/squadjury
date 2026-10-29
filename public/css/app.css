@@ -19,8 +19,7 @@
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; min-height: 100vh; color: var(--t); font: 500 15px/1.5 'Manrope', system-ui, sans-serif; background: var(--night); -webkit-font-smoothing: antialiased; }
-body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('/img/stadion.webp') center / cover; opacity: .55; }
-body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: radial-gradient(900px 600px at 0% 0%, rgba(150, 60, 255, .38), transparent 70%), radial-gradient(800px 500px at 100% 100%, rgba(255, 40, 130, .18), transparent 70%), linear-gradient(180deg, rgba(55, 0, 60, .78), rgba(20, 6, 31, .9)); }
+body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: radial-gradient(900px 600px at 0% 0%, rgba(150, 60, 255, .38), transparent 70%), radial-gradient(800px 500px at 100% 100%, rgba(255, 40, 130, .18), transparent 70%), linear-gradient(180deg, #37003c, #14061f 70%); }
 h1, h2, h3, p { margin: 0; }
 a { color: inherit; }
 button, input, select { font: inherit; color: inherit; }
@@ -393,11 +392,23 @@ dialog.pd::backdrop { background: rgba(10, 2, 18, .6); -webkit-backdrop-filter: 
 .kmain .kl { display: block; font-size: 12px; }
 .kga { font: 800 18px var(--cond); white-space: nowrap; } .kga small { font-size: 11px; color: var(--d); margin-left: 1px; }
 
-/* poređenje u kartici igrača */
-.cmp th[scope='row'] { color: var(--m); font-weight: 600; font-size: 13px; padding: 10px; background: var(--row); border-radius: 10px 0 0 10px; text-align: left; }
-.cmp td { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
-.cmp td.win { color: var(--green); }
-.cmp tbody td:first-of-type { border-radius: 0; }
+/* poređenje u kartici igrača: jedan na jedan, stane na ekran mobitela */
+.cmp2 { margin-top: 12px; display: grid; gap: 6px; }
+.cmp-h { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; padding: 12px; border-radius: 14px; background: rgba(255, 255, 255, .06); }
+.cmp-pl { display: grid; justify-items: center; gap: 2px; min-width: 0; text-align: center; }
+.cmp-pl .shirt { width: 42px; height: 42px; }
+.cmp-pl b { max-width: 100%; font: 800 20px/1.05 var(--cond); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmp-vs { display: grid; justify-items: center; } .cmp-vs b { font: 800 24px/1 var(--cond); color: var(--green); }
+.cmp-r { display: grid; grid-template-columns: minmax(0, 1fr) minmax(96px, auto) minmax(0, 1fr); grid-template-rows: auto 4px; column-gap: 8px; row-gap: 5px; align-items: center; padding: 7px 10px; border-radius: 10px; background: var(--row); }
+.cmp-r > b { font: 800 18px/1 var(--cond); font-variant-numeric: tabular-nums; }
+.cmp-r > b:first-child { text-align: left; } .cmp-r > b:nth-child(3) { text-align: right; }
+.cmp-r > b.win { color: var(--green); }
+.cmp-k { text-align: center; font-size: 12px; font-weight: 600; color: var(--m); line-height: 1.15; }
+.cmp-bar { grid-row: 2; display: flex; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.cmp-bar.l { grid-column: 1 / 2; justify-content: flex-end; } .cmp-bar.r { grid-column: 3 / 4; }
+.cmp-bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--violet), var(--cyan)); }
+.cmp-r.fxr { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; row-gap: 6px; } .cmp-r.fxr > .cmp-k { grid-column: 1 / -1; grid-row: 1; } .cmp-r.fxr > span:first-child { grid-row: 2; justify-self: start; } .cmp-r.fxr > span:last-child { grid-row: 2; justify-self: end; }
+.cmp-r .fx3 .fdr { min-width: 0; padding: 2px 4px; font-size: 10.5px; }
 
 /* pretraga */
 .search-btn { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); color: var(--d); font-size: 13px; cursor: pointer; text-align: left; transition: background .2s, color .2s; }

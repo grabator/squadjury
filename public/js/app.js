@@ -57,9 +57,18 @@ function deadline() {
 // ---------- kartica igrača ----------
 // poređenje dva igrača: bolja vrijednost u redu je zelena
 function compare(ix, a, b) {
-  const rows = [['Cijena', (x) => x.now_cost / 10, (v) => '£' + fmt(v) + 'm', -1], ['Forma', (x) => num(x.form), fmt, 1], ['Bodova po utakmici', (x) => num(x.points_per_game), fmt, 1], ['Ukupno bodova', (x) => x.total_points, String, 1], ['Golovi', (x) => x.goals_scored || 0, String, 1], ['Asistencije', (x) => x.assists || 0, String, 1], ['xG na 90 min', (x) => num(x.expected_goals_per_90), (v) => fmt(v, 2), 1], ['xA na 90 min', (x) => num(x.expected_assists_per_90), (v) => fmt(v, 2), 1], ['Minute', (x) => x.minutes, String, 1], ['Vlasništvo', (x) => num(x.selected_by_percent), (v) => fmt(v) + '%', 0], ['Predviđeno, 5 kola', (x) => xp(ix, x, ix.nextGw, 5), fmt, 1]];
-  const cell = (v, w, f, dir) => `<td class="${dir && v !== w && (dir > 0 ? v > w : v < w) ? 'win' : ''}">${f(v)}</td>`;
-  return `<table class="tbl cmp" style="margin-top:10px"><caption class="sr">Poređenje ${esc(a.web_name)} i ${esc(b.web_name)}</caption><thead><tr><th scope="col"><span class="sr">Statistika</span></th><th scope="col">${esc(a.web_name)}</th><th scope="col">${esc(b.web_name)}</th></tr></thead><tbody>${rows.map(([k, g, f, d]) => `<tr><th scope="row">${k}</th>${cell(g(a), g(b), f, d)}${cell(g(b), g(a), f, d)}</tr>`).join('')}<tr><th scope="row">Sljedeća 3</th><td><span class="fx3">${[0, 1, 2].map((k) => fdrChip(ix, a, ix.nextGw + k)).join('')}</span></td><td><span class="fx3">${[0, 1, 2].map((k) => fdrChip(ix, b, ix.nextGw + k)).join('')}</span></td></tr></tbody></table>`;
+  const rows = [['Cijena', (x) => x.now_cost / 10, (v) => '£' + fmt(v) + 'm', -1], ['Predviđeno, 5 kola', (x) => xp(ix, x, ix.nextGw, 5), fmt, 1], ['Forma', (x) => num(x.form), fmt, 1], ['Bodova po utakmici', (x) => num(x.points_per_game), fmt, 1], ['Ukupno bodova', (x) => x.total_points, String, 1], ['Golovi', (x) => x.goals_scored || 0, String, 1], ['Asistencije', (x) => x.assists || 0, String, 1], ['xG na 90 min', (x) => num(x.expected_goals_per_90), (v) => fmt(v, 2), 1], ['xA na 90 min', (x) => num(x.expected_assists_per_90), (v) => fmt(v, 2), 1], ['Minute', (x) => x.minutes, String, 1], ['Vlasništvo', (x) => num(x.selected_by_percent), (v) => fmt(v) + '%', 0]];
+  // jedan na jedan: vrijednosti lijevo i desno, naziv u sredini, trake pokazuju odnos
+  const side = (e) => `<div class="cmp-pl"><span class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}</span><b>${esc(e.web_name)}</b><span class="sub">${esc(ix.teams.get(e.team).short_name)} · £${price(e)}m</span></div>`;
+  const row = ([k, g, f, d]) => {
+    const va = g(a), vb = g(b), mx = Math.max(Math.abs(va), Math.abs(vb)) || 1;
+    const wa = d && va !== vb && (d > 0 ? va > vb : va < vb), wb = d && va !== vb && !wa;
+    return `<div class="cmp-r"><b class="${wa ? 'win' : ''}">${f(va)}</b><span class="cmp-k">${k}</span><b class="${wb ? 'win' : ''}">${f(vb)}</b><span class="cmp-bar l"><i style="width:${(Math.abs(va) / mx * 100).toFixed(0)}%"></i></span><span class="cmp-bar r"><i style="width:${(Math.abs(vb) / mx * 100).toFixed(0)}%"></i></span></div>`;
+  };
+  const fx = (e) => `<span class="fx3">${[0, 1, 2].map((k) => fdrChip(ix, e, ix.nextGw + k)).join('')}</span>`;
+  const wins = rows.filter(([, g, , d]) => d && g(a) !== g(b)).map(([, g, , d]) => (d > 0 ? g(a) > g(b) : g(a) < g(b)));
+  const wa = wins.filter(Boolean).length, wb = wins.length - wa;
+  return `<div class="cmp2" role="group" aria-label="Poređenje ${esc(a.web_name)} i ${esc(b.web_name)}"><div class="cmp-h">${side(a)}<span class="cmp-vs"><b>${wa} : ${wb}</b><span class="sub">bolji u</span></span>${side(b)}</div>${rows.map(row).join('')}<div class="cmp-r fxr"><span>${fx(a)}</span><span class="cmp-k">Sljedeća 3</span><span>${fx(b)}</span></div></div>`;
 }
 
 async function openPlayer(id) {
