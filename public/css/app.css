@@ -53,6 +53,9 @@ main:focus { outline: none; }
 
 /* ---- okvir aplikacije ---- */
 .shell { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
+/* bez bočnog menija (početni ekran): sadržaj preko cijele širine */
+.shell.noside, .shell:has(> .side[hidden]) { grid-template-columns: minmax(0, 1fr); }
+.shell.noside main { margin: 0 auto; }
 .side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 4px; padding: 22px 14px; border-right: 1px solid var(--line); background: rgba(20, 6, 31, .55); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); overflow-y: auto; }
 .brand { display: flex; align-items: center; gap: 10px; margin: 0 8px 18px; text-decoration: none; }
 .brand i { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(135deg, var(--green), var(--cyan)); color: var(--plum); font: 800 18px var(--cond); font-style: normal; }

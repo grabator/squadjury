@@ -25,6 +25,7 @@ function chrome() {
   const r = route(), side = $('#side'), tabs = $('#tabs'), more = $('#more');
   const mtop = $('#mtop');
   side.hidden = tabs.hidden = mtop.hidden = !S.ready;
+  document.querySelector('.shell').classList.toggle('noside', !S.ready);
   if (!S.ready) { more.hidden = true; return; }
   let grp = '';
   side.innerHTML = `<a class="brand" href="#/pregled"><i>FM</i><span>FPL Manager</span></a><button type="button" class="search-btn" data-cmd>${ic('search')}<span>Pretraga</span><kbd>${mac ? '⌘' : 'Ctrl'} K</kbd></button>` + ROUTES.map(([k, t, i, g]) => {
