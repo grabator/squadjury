@@ -1023,3 +1023,8 @@ main.in .tro { animation: rise .6s var(--ease) both; } main.in .tro:nth-child(2)
   .tv-f { gap: 3px; padding: 3px 5px 6px; }
   .tv .tg { font-size: 12px; line-height: 1.6; }
 }
+/* slike igrača i u listama (transferi, pretraga, kapiteni, kartica igrača): ista zamjena dresa slikom */
+.shirt { position: relative; }
+.shirt .ph { position: absolute; left: 50%; bottom: -1px; height: 120%; width: auto; transform: translateX(-50%); opacity: 0; transition: opacity .25s; pointer-events: none; }
+.shirt.has-ph .ph { opacity: 1; }
+.shirt.has-ph > svg { visibility: hidden; }

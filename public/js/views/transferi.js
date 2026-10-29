@@ -1,13 +1,13 @@
 // Transferi: besplatni transferi, pojedinačni i dvostruki prijedlozi, minus 4, šta ako, cijene.
 import { S, ftLeft } from '../state.js';
 import { transferIdeas, transferPairs, hitWorth, whatIf, alerts, risers, xp, num, fmt, price, int, POS_BS } from '../model.js';
-import { esc, ic, pbtn, $, fdrChip, shirt } from '../ui.js';
+import { esc, ic, pbtn, $, fdrChip, shirt, photo } from '../ui.js';
 import { tr } from '../i18n.js';
 
 export const title = tr('Transferi', 'Transfers');
 const POS_SHORT = tr({ 1: 'GOL', 2: 'ODB', 3: 'VEZ', 4: 'NAP' }, { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' });
 // jedan igrač u redu transfera: mali dres, ime, cijena i klub
-const pcell = (ix, e, cls) => `<span class="trx-p ${cls}"><span class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}</span><span class="trx-n">${pbtn(e)}<span class="sub">£${price(e)}m · ${esc(ix.teams.get(e.team).short_name)}</span></span></span>`;
+const pcell = (ix, e, cls) => `<span class="trx-p ${cls}"><span class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}${photo(e)}</span><span class="trx-n">${pbtn(e)}<span class="sub">£${price(e)}m · ${esc(ix.teams.get(e.team).short_name)}</span></span></span>`;
 const swapCells = (ix, out, inn) => `${pcell(ix, out, 'o')}<span class="trx-arrow" aria-hidden="true">→</span><span class="sr">${tr('mijenja se za', 'replaced by')}</span>${pcell(ix, inn, 'i')}`;
 let hz = 5;
 const mk = { pos: 0, max: 0, sort: 'xp', q: '' };
