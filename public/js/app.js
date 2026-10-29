@@ -2,8 +2,8 @@
 import { setDemo, isDemo, warm } from './api.js';
 import { enhance } from './dd.js';
 import { tr, langSwitch, bindLang } from './i18n.js';
-import { S, load, reset, element, warmCaptainHistory } from './state.js';
-import { xp, fixturesFor, reason, fmt, price, num, POS_BS, dayShort, dateShort, dateLong } from './model.js';
+import { S, load, reset, element, warmCaptainHistory, ftLeft, live } from './state.js';
+import { xp, fixturesFor, reason, fmt, price, num, int, POS_BS, dayShort, dateShort, dateLong, alerts, liveBonus } from './model.js';
 import { $, esc, ic, ROUTES, TABS, shirt, photo, fdrChip } from './ui.js';
 import * as pregled from './views/pregled.js';
 import * as tim from './views/tim.js';
@@ -36,7 +36,9 @@ function chrome() {
     const head = g !== grp ? `<p class="grp">${g}</p>` : ''; grp = g;
     return head + `<a class="nv" href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}${t}</a>`;
   }).join('') + `<p class="grp">${tr('Zajednica', 'Community')}</p><a class="nv jury" href="/jury/">${ic('jury')}SquadJury<span class="new">${tr('ocijeni timove', 'rate squads')}</span></a><div class="me"><span class="av" aria-hidden="true">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span><div style="min-width:0;flex:1"><b>${esc(S.entry.name)}</b><span class="sub">${esc(S.entry.player_first_name)} ${esc(S.entry.player_last_name)}</span>${isDemo() ? `<br><span class="demo-badge">${tr('Primjer', 'Demo')}</span>` : ''}</div><div class="acts"><button class="btn ghost sm" type="button" data-share>${ic('link')}Link</button><button class="btn ghost sm" type="button" data-logout>${ic('out')}${tr('Promijeni', 'Switch')}</button></div></div><div class="side-lang"><span class="sub">${tr('Jezik', 'Language')}</span>${langSwitch()}</div>`;
-  mtop.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a><span style="display:flex;gap:8px;align-items:center"><button type="button" class="icon-btn" data-cmd aria-label="${tr('Traži igrača ili ekran', 'Find a player or screen')}">${ic('search')}</button><button type="button" class="av av-btn" id="acct-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="acct" aria-label="${initials()}, ${tr('tvoj tim i promjena tima', 'your team and switching team')}: ${esc(S.entry.name)}">${initials()}</button></span>`;
+  const al = alerts(S.ix, S.nextIds || S.ids);
+  mtop.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a>${hchip()}<span class="mtop-r">${al.length ? `<button type="button" class="icon-btn bell" id="bell-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="alerts" aria-label="${tr('Upozorenja', 'Alerts')}: ${al.length}">${ic('bell')}<i aria-hidden="true">${al.length}</i></button>` : ''}<button type="button" class="icon-btn" data-cmd aria-label="${tr('Traži igrača ili ekran', 'Find a player or screen')}">${ic('search')}</button><button type="button" class="av av-btn" id="acct-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="acct" aria-label="${initials()}, ${tr('tvoj tim i promjena tima', 'your team and switching team')}: ${esc(S.entry.name)}">${initials()}</button></span>`;
+  bell(al); liveChip();
   acct();
   const inMore = !TABS.includes(r);
   tabs.innerHTML = TABS.map((k) => { const [, t, i] = ROUTES.find((x) => x[0] === k); return `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}<span>${t}</span></a>`; }).join('') + `<button type="button" id="more-btn" aria-expanded="${!more.hidden}" aria-controls="more"${inMore ? ' aria-current="page"' : ''}>${ic('more')}<span>${tr('Više', 'More')}</span></button>`;
@@ -50,6 +52,41 @@ function chrome() {
 }
 const status = (t) => { $('#status').textContent = t; };
 const initials = () => esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''));
+
+// ---------- gornja traka na mobitelu: čip sa stanjem i zvonce sa upozorenjima ----------
+const short = (n) => (n >= 1e6 ? fmt(n / 1e6, 1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(n));
+// kolo je uživo: rok je prošao, a FPL ga još nije završio
+const liveGw = () => { const ev = S.ix.events.find((e) => e.id === S.lastGw); return ev && !ev.finished && new Date(ev.deadline_time) < Date.now() ? ev.id : null; };
+function hchip() {
+  if (liveGw()) return `<a class="hchip live" id="hchip" href="#/uzivo"><span class="hs"><span class="dot" aria-hidden="true"></span><span class="lv">${tr('UŽIVO', 'LIVE')}</span><b id="hc-pts">…</b></span><span class="hs" id="hc-left"></span></a>`;
+  const h = S.history.current, last = h[h.length - 1], prev = h[h.length - 2], chg = last && prev ? prev.overall_rank - last.overall_rank : 0, ft = ftLeft();
+  const bank = fmt((S.nextBank ?? S.bank) / 10);
+  return `<a class="hchip" id="hchip" href="#/transferi"><span class="hs"><b>${ft}</b> FT<span class="sr"> (${tr('besplatni transferi', 'free transfers')})</span></span><span class="hs"><span class="sr">${tr('banka', 'bank')} </span><b>£${bank}m</b></span>${last ? `<span class="hs hrk ${chg >= 0 ? 'up' : 'dn'}"><span class="sr">${tr('rang', 'rank')} ${chg > 0 ? tr('gore', 'up') : chg < 0 ? tr('dole', 'down') : ''} </span><span aria-hidden="true">${chg > 0 ? '▲' : chg < 0 ? '▼' : '•'}</span> ${short(Math.abs(chg) || last.overall_rank)}</span>` : ''}</a>`;
+}
+// uživo: bodovi tima (kapiten duplo, privremeni bonus) i koliko igrača iz postave još igra
+async function liveChip() {
+  const gw = liveGw();
+  if (!gw) return;
+  try {
+    const lv = await live(gw), lb = liveBonus(lv), mult = S.picks?.active_chip === '3xc' ? 3 : 2;
+    const pts = S.xi.reduce((t, id) => t + ((lv.get(id)?.total_points || 0) + (lb.get(id)?.provisional || 0)) * (id === S.captain ? mult : 1), 0);
+    const left = S.xi.filter((id) => fixturesFor(S.ix, S.ix.players.get(id).team, gw, 1).some((f) => !f.finished)).length;
+    const a = $('#hc-pts'), b = $('#hc-left');
+    if (a) a.textContent = pts;
+    if (b) b.textContent = left ? tr(`još ${left} igra`, `${left} to play`) : tr('svi odigrali', 'all played');
+  } catch { /* bez uživo podataka čip ostaje sa tačkicama */ }
+}
+// zvonce: povrede, igrači bez utakmice i pad cijene
+function bell(al) {
+  const box = $('#alerts'), btn = $('#bell-btn');
+  if (!btn) { box.hidden = true; return; }
+  const col = { povreda: '#ffab1b', 'bez utakmice': '#9ff8ff', cijena: '#ff6aa6' };
+  box.innerHTML = `<div class="ms-h"><b>${tr('Upozorenja', 'Alerts')}</b><button type="button" class="icon-btn" data-close-al aria-label="${tr('Zatvori', 'Close')}">${ic('close')}</button></div><div class="al-list">${al.map((a) => `<button type="button" class="al-row" data-pid="${a.e.id}"><i style="background:${col[a.kind] || '#fff'}" aria-hidden="true"></i><span>${esc(a.text)}</span></button>`).join('')}</div>`;
+  const close = () => { box.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+  btn.onclick = () => { box.hidden = !box.hidden; $('#acct').hidden = true; $('#more').hidden = true; btn.setAttribute('aria-expanded', String(!box.hidden)); if (!box.hidden) box.querySelector('button')?.focus(); };
+  box.querySelector('[data-close-al]').onclick = close;
+  box.querySelectorAll('.al-row').forEach((r) => { r.addEventListener('click', close); });
+}
 
 // ---------- tim: nedavni timovi, promjena tima, meni računa ----------
 const recent = () => { try { return JSON.parse(store.get('fm-recent') || '[]').filter((x) => x && /^\d{1,9}$/.test(String(x.id))); } catch { return []; } };
@@ -79,7 +116,7 @@ function acct() {
     ${others.length ? `<p class="ms-g">${tr('Nedavni timovi', 'Recent teams')}</p><div class="tm-list">${others.map(teamRow).join('')}</div>` : ''}
     <div class="more-lang"><span class="sub">${tr('Jezik', 'Language')}</span>${langSwitch()}</div>`;
   bindAcctActions(box); bindLang();
-  btn.onclick = () => { box.hidden = !box.hidden; $('#more').hidden = true; btn.setAttribute('aria-expanded', String(!box.hidden)); if (!box.hidden) box.querySelector('button')?.focus(); };
+  btn.onclick = () => { box.hidden = !box.hidden; $('#more').hidden = true; $('#alerts').hidden = true; btn.setAttribute('aria-expanded', String(!box.hidden)); if (!box.hidden) box.querySelector('button')?.focus(); };
 }
 
 // traka sa rokom za transfere, kao na vrhu FPL stranica
@@ -144,6 +181,8 @@ document.addEventListener('click', (ev) => {
   if (!more.hidden && !ev.target.closest('#more, #more-btn')) { more.hidden = true; $('#more-btn')?.setAttribute('aria-expanded', 'false'); }
   const ac = $('#acct');
   if (ac && !ac.hidden && !ev.target.closest('#acct, #acct-btn')) { ac.hidden = true; $('#acct-btn')?.setAttribute('aria-expanded', 'false'); }
+  const alb = $('#alerts');
+  if (alb && !alb.hidden && !ev.target.closest('#alerts, #bell-btn')) { alb.hidden = true; $('#bell-btn')?.setAttribute('aria-expanded', 'false'); }
 });
 $('#pd').addEventListener('click', (ev) => { if (ev.target === $('#pd')) $('#pd').close(); });
 
@@ -191,6 +230,7 @@ document.addEventListener('error', (ev) => { if (ev.target.matches?.('img.ph')) 
 document.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Escape') return;
   if (!$('#acct').hidden) { $('#acct').hidden = true; $('#acct-btn')?.setAttribute('aria-expanded', 'false'); $('#acct-btn')?.focus(); }
+  if (!$('#alerts').hidden) { $('#alerts').hidden = true; $('#bell-btn')?.setAttribute('aria-expanded', 'false'); $('#bell-btn')?.focus(); }
   if (!$('#more').hidden) { $('#more').hidden = true; $('#more-btn')?.setAttribute('aria-expanded', 'false'); $('#more-btn')?.focus(); }
 });
 $('#cmd').addEventListener('click', (ev) => { if (ev.target === $('#cmd')) $('#cmd').close(); });
@@ -353,7 +393,7 @@ let warmed = false;
 const pre = (ev) => { const a = ev.target.closest?.('a[href^="#/"]'); const k = a?.getAttribute('href').slice(2); if (S.ready && VIEWS[k]?.prefetch) VIEWS[k].prefetch(); };
 addEventListener('pointerover', pre, { passive: true });
 addEventListener('focusin', pre);
-addEventListener('hashchange', () => { $('#more').hidden = true; $('#acct').hidden = true; render(); if (!calm) scrollTo(0, 0); $('#main').focus({ preventScroll: true }); });
+addEventListener('hashchange', () => { $('#more').hidden = true; $('#acct').hidden = true; $('#alerts').hidden = true; render(); if (!calm) scrollTo(0, 0); $('#main').focus({ preventScroll: true }); });
 const q = new URLSearchParams(location.search);
 if (q.get('id') && /^\d{1,9}$/.test(q.get('id'))) { store.set('fm-id', q.get('id')); store.set('fm-demo', q.get('demo') === '1' ? '1' : '0'); history.replaceState(null, '', location.pathname + location.hash); }
 else if (q.get('demo') === '1') { store.set('fm-id', '1'); store.set('fm-demo', '1'); history.replaceState(null, '', location.pathname + location.hash); }
