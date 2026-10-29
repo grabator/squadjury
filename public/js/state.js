@@ -10,13 +10,21 @@ export async function load(id) {
   if (!picks) { const e = new Error('Ovaj tim još nema odigrano kolo.'); e.status = 404; throw e; }
   const ix = index(boot, fixtures);
   const lastGw = team.gw;
+  // samo privatne klasične lige (league_type "x"); javne (Overall, klub, država) imaju stotine hiljada menadžera
+  const leagues = (entry.leagues?.classic || []).filter((l) => l.id > 0 && (l.league_type ?? 'x') === 'x');
+  let saved = null;
+  try { saved = +localStorage.getItem('fm-league-' + id) || null; } catch { /* bez spremnika */ }
   const ids = picks.picks.map((p) => p.element);
   const last = history.current[history.current.length - 1] || {};
   Object.assign(S, {
     ready: true, id, ix, entry, history, picks, ids, xi: ids.slice(0, 11), bench: ids.slice(11), lastGw,
     captain: picks.picks.find((p) => p.is_captain)?.element, vice: picks.picks.find((p) => p.is_vice_captain)?.element,
-    bank: last.bank ?? entry.last_deadline_bank ?? 0, league: null, leagueId: entry.leagues?.classic?.find((l) => l.id > 0)?.id || null
+    bank: last.bank ?? entry.last_deadline_bank ?? 0, league: null, leagues, leagueId: leagues.some((l) => l.id === saved) ? saved : leagues[0]?.id || null
   });
+}
+export function setLeague(lid) {
+  S.leagueId = lid; S.league = null;
+  try { localStorage.setItem('fm-league-' + S.id, String(lid)); } catch { /* bez spremnika */ }
 }
 export function reset() { for (const k of Object.keys(S)) delete S[k]; S.ready = false; }
 

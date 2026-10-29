@@ -75,6 +75,13 @@ main:focus { outline: none; }
 .demo-badge { display: inline-block; margin-top: 3px; padding: 1px 8px; border-radius: 99px; background: rgba(255, 201, 74, .16); color: var(--amber); font-size: 11px; font-weight: 700; }
 
 main { padding: 26px 30px 60px; max-width: 1480px; width: 100%; }
+/* veliki ekrani: sadržaj se širi i ostaje na sredini, desna kolona malo šira */
+@media (min-width: 1700px) {
+  main { max-width: 1840px; margin: 0 auto; padding: 30px 40px 60px; }
+  .grid2 { grid-template-columns: minmax(0, 1fr) 440px; }
+  .bars { height: 300px; }
+}
+@media (min-width: 2300px) { .grid2 { grid-template-columns: minmax(0, 1fr) 520px; } }
 .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
 .head h1 { font: 800 40px/1 var(--cond); letter-spacing: .005em; }
 .head p { margin-top: 6px; }

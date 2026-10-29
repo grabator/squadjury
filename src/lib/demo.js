@@ -217,7 +217,7 @@ function historyFor(id) {
 export function entry(id) {
   const n = NAMES[id] || ['Tim ' + id, 'Menadžer', String(id)];
   const h = historyFor(id).current, last = h[h.length - 1];
-  return { id, name: n[0], player_first_name: n[1], player_last_name: n[2], summary_overall_points: last.total_points, summary_overall_rank: last.overall_rank, summary_event_points: last.points, current_event: DEMO_CURRENT, last_deadline_bank: last.bank, last_deadline_value: last.value, leagues: { classic: [{ id: 1, name: 'Liga iz kancelarije', entry_rank: 0, entry_last_rank: 0 }] } };
+  return { id, name: n[0], player_first_name: n[1], player_last_name: n[2], summary_overall_points: last.total_points, summary_overall_rank: last.overall_rank, summary_event_points: last.points, current_event: DEMO_CURRENT, last_deadline_bank: last.bank, last_deadline_value: last.value, leagues: { classic: [{ id: 1, name: 'Liga iz kancelarije', league_type: 'x', entry_rank: 0, entry_last_rank: 0 }, { id: 314, name: 'Overall', league_type: 's', entry_rank: last.overall_rank, entry_last_rank: 0 }] } };
 }
 export const history = (id) => historyFor(id);
 

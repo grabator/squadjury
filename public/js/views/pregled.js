@@ -23,7 +23,8 @@ export async function render() {
   const ft = freeTransfers(history);
   const cd = countdown(ix);
   const L = await league().catch(() => null);
-  const rows = L?.standings?.results || [], myL = rows.find((r) => r.entry === S.id), lead = rows[0];
+  const rows = L?.standings?.results || [], lead = rows[0], meta = S.leagues.find((l) => l.id === S.leagueId);
+  const myL = rows.find((r) => r.entry === S.id) || (meta?.entry_rank ? { rank: meta.entry_rank, total: null } : null);
 
   // stubići
   const gwPts = h.map((x) => x.points), best = Math.max(...gwPts, 1), avgs = h.map((x) => avgOf(x.event));
@@ -59,7 +60,7 @@ export async function render() {
       <div class="g stat"><p class="sub">Ukupni rang</p><p class="v" data-n="${last.overall_rank}" data-f="int">${int(last.overall_rank)}</p><div class="row2">${rankChg ? `<span class="chg ${rankChg > 0 ? 'up' : 'dn'}">${rankChg > 0 ? '▲' : '▼'} ${int(rankChg)}</span>` : '<span class="chg nt">bez promjene</span>'}${spark(h.map((x) => x.overall_rank), '#05f0ff', true)}</div></div>
       <div class="g stat"><p class="sub">Bodovi u kolu ${last.event}</p><p class="v" data-n="${last.points}" data-f="int">${last.points}</p><div class="row2"><span class="chg ${last.points >= avg ? 'up' : 'dn'}">${last.points >= avg ? '+' : '−'}${int(last.points - avg)} od prosjeka</span>${spark(gwPts, '#00ff87')}</div></div>
       <div class="g stat"><p class="sub">Vrijednost tima</p><p class="v" data-n="${last.value / 10}" data-f="m">£${fmt(last.value / 10)}m</p><div class="row2"><span class="chg nt">banka £${fmt(last.bank / 10)}m</span>${spark(h.map((x) => x.value), '#ffc94a')}</div></div>
-      <div class="g stat"><p class="sub">${esc(L?.league?.name || 'Mini liga')}</p><p class="v">${myL ? myL.rank + '. mjesto' : '–'}</p><div class="row2">${myL && lead && lead.entry !== S.id ? `<span class="chg dn">${lead.total - myL.total} bod. do prvog</span>` : myL ? '<span class="chg up">vodiš ligu</span>' : '<span class="chg nt">nema lige</span>'}${spark(h.map((x) => x.total_points), '#d98bff')}</div></div>
+      <div class="g stat"><p class="sub">${esc(L?.league?.name || meta?.name || 'Mini liga')}</p><p class="v">${myL ? int(myL.rank) + '. mjesto' : '–'}</p><div class="row2">${myL && lead && lead.entry !== S.id && myL.total != null ? `<span class="chg dn">${int(lead.total - myL.total)} bod. do prvog</span>` : myL && myL.rank === 1 ? '<span class="chg up">vodiš ligu</span>' : myL ? `<a class="chg nt" href="#/liga">tabela</a>` : '<span class="chg nt">nema privatne lige</span>'}${spark(h.map((x) => x.total_points), '#d98bff')}</div></div>
     </section>
     <div class="grid2 mt">
       <div class="stack">
@@ -70,10 +71,10 @@ export async function render() {
           <section class="g card"><div class="ch"><h2 class="ct">Preporučeni transfer</h2><a class="sub" href="#/transferi">svi prijedlozi</a></div>${idea ? `<div class="swap"><div class="p o">${pbtn(idea.out)}<span class="sub">£${price(idea.out)}m</span></div>${ic('swap')}<div class="p i">${pbtn(idea.inn)}<span class="sub">£${price(idea.inn)}m</span></div></div><p style="margin-top:10px"><span class="chg up">+${fmt(idea.gain)} bodova kroz 5 kola</span></p>` : '<p class="muted">Nema transfera koji se jasno isplati.</p>'}</section>
         </div>
         <section class="g card arrow-card"><div class="ring-wrap">${ring(odds.p, 'url(#rgg)')}<b>${pct(odds.p)}</b></div><div><h2 class="ct">Šansa za zelenu strelicu</h2><p class="muted" style="margin-top:6px">Kolo ${gw} „odigrano” 2.000 puta sa tvojim timom i kapitenom ${esc(cap?.e.web_name || '')}. Najvjerovatnije ${odds.low} do ${odds.high} bodova, a prosjek kola je oko ${Math.round(recentAvg)}.</p></div></section>
+        <section class="g card"><div class="ch"><h2 class="ct">Upozorenja</h2>${al.length ? `<span class="chg dn">${al.length}</span>` : ''}</div>${al.length ? al.map((a) => `<p class="alert"><span class="dot" aria-hidden="true"></span><span>${esc(a.text)}</span></p>`).join('') : '<p class="muted">Svi tvoji igrači su spremni za kolo.</p>'}</section>
       </div>
       <div class="stack">
         <section class="g card" aria-labelledby="h-gw"><div class="ch"><div><h2 id="h-gw" class="ct">Kolo ${gw}</h2><p class="sub">Utakmice tvojih igrača, broj je težina</p></div><a class="sub" href="#/raspored">više kola</a></div><div class="list">${fxHtml}</div></section>
-        <section class="g card"><div class="ch"><h2 class="ct">Upozorenja</h2>${al.length ? `<span class="chg dn">${al.length}</span>` : ''}</div>${al.length ? al.map((a) => `<p class="alert"><span class="dot" aria-hidden="true"></span><span>${esc(a.text)}</span></p>`).join('') : '<p class="muted">Svi tvoji igrači su spremni za kolo.</p>'}</section>
         <section class="g card jury-cta"><div class="ch" style="margin-bottom:8px"><h2 class="ct">SquadJury</h2><span class="chg up">dodatak</span></div><p class="muted">Objavi svoj tim za kolo ${gw} i neka ga zajednica ocijeni od 1 do 10. Ocjenjuj tuđe timove, igraj duele i skupljaj scout bodove.</p><p style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn sm" href="/jury/post">Objavi tim</a><a class="btn sm ghost" href="/jury/">Ocjenjuj timove</a></p></section>
       </div>
     </div>`;
