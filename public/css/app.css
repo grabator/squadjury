@@ -756,3 +756,72 @@ button.li:active { transform: scale(.99); }
   .pl { width: 62px; flex-basis: 62px; }
   .pl .meta .fdr { font-size: 8.5px; }
 }
+
+/* ---- izabrani dizajn: dorađena PL ljubičasta, šare u ćoškovima, staklo, cijan-zelena dugmad, staklena pilula menija ---- */
+body::after { z-index: -2; background: radial-gradient(720px 560px at 0% 0%, rgba(155, 77, 255, .5), transparent 70%), radial-gradient(620px 520px at 100% 35%, rgba(255, 40, 130, .18), transparent 70%), radial-gradient(660px 540px at 20% 100%, rgba(5, 240, 255, .12), transparent 70%), linear-gradient(180deg, #2b0a44, #14051f 60%, #100318); }
+/* talasaste linije sa sjajem: gore desno i dolje lijevo, iza sadržaja (staklo ih samo blago zamuti) */
+body::before { content: ''; position: fixed; z-index: -1; right: -90px; top: -40px; width: 340px; height: 180px; background: url('/img/wave-1.svg') no-repeat 0 0 / 100% 100%; transform: rotate(-28deg); opacity: .9; filter: drop-shadow(0 0 8px rgba(0, 255, 135, .7)); pointer-events: none; }
+.shell::after { content: ''; position: fixed; z-index: -1; left: -110px; bottom: 40px; width: 340px; height: 170px; background: url('/img/wave-2.svg') no-repeat 0 0 / 100% 100%; transform: rotate(-28deg); opacity: .75; filter: drop-shadow(0 0 8px rgba(155, 77, 255, .9)); pointer-events: none; }
+@media (min-width: 901px) { body::before { width: 520px; height: 260px; right: -120px; top: -70px; } .shell::after { left: 150px; bottom: -70px; width: 480px; height: 220px; } }
+
+/* staklene kartice: svjetlija gornja ivica i blagi prelaz */
+.g { -webkit-backdrop-filter: blur(5px) saturate(140%); backdrop-filter: blur(5px) saturate(140%); background: linear-gradient(160deg, rgba(255, 255, 255, .13), rgba(255, 255, 255, .04) 45%, rgba(255, 255, 255, .02)); border-color: rgba(255, 255, 255, .15); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 20px 40px -24px rgba(0, 0, 0, .9); }
+
+/* dugmad: cijan-zeleno glavno, sporedno sa obrubom u istom prelazu */
+.btn { background: linear-gradient(135deg, var(--cyan), var(--green)); color: #14051f; font-weight: 800; box-shadow: 0 8px 22px -8px rgba(5, 240, 255, .8); }
+.btn.ghost { color: var(--t); border: 1.5px solid transparent; background: linear-gradient(#1d0830, #1d0830) padding-box, linear-gradient(135deg, var(--cyan), var(--green)) border-box; box-shadow: none; }
+.side a.nv[aria-current='page'] { background: linear-gradient(135deg, var(--cyan), var(--green)); color: #14051f; font-weight: 800; box-shadow: 0 8px 22px -10px rgba(5, 240, 255, .8); }
+
+/* Pregled: naslov sa prstenom roka */
+.hero2 { display: block; padding: 20px 22px; }
+.hero2::after { display: none; }
+.h2g { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.hero2 h1 { text-transform: uppercase; margin-top: 6px; }
+.hero-bt { position: relative; z-index: 1; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px !important; }
+.dl-ring { --p: 60%; width: 124px; height: 124px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--cyan) 0 var(--p), rgba(255, 255, 255, .09) var(--p)); box-shadow: 0 0 26px -6px rgba(5, 240, 255, .6); }
+.dl-ring > div { width: 104px; height: 104px; border-radius: 50%; display: grid; place-content: center; text-align: center; background: #1d0830; }
+.dl-ring b { font: 800 28px/1 var(--cond); }
+.dl-ring span { font-size: 11px; color: var(--m); }
+.dl-ring.done { box-shadow: none; }
+.dl-ring.done b { font-size: 20px; }
+.grid4 .stat .chg { margin-top: 4px; }
+.mini2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.mini .v { font-size: 28px; }
+.mini .v.tr2 { font-size: 21px; line-height: 1.2; }
+.mini .v .pbtn { font: inherit; }
+.mini > a.sub { text-decoration: none; }
+.mini > a.sub:hover { color: var(--t); }
+.cta { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.cta .btn { min-height: 46px; }
+@media (max-width: 900px) { .mini2 { gap: 10px; } }
+@media (max-width: 520px) {
+  .hero2 { padding: 16px; }
+  .hero2 h1 { font-size: 30px; }
+  .dl-ring { width: 108px; height: 108px; } .dl-ring > div { width: 90px; height: 90px; } .dl-ring b { font-size: 24px; } .dl-ring span { font-size: 10.5px; }
+  .mini { padding: 14px; } .mini .v { font-size: 24px; } .mini .v.tr2 { font-size: 18px; }
+}
+
+/* donji meni na mobitelu: staklena pilula u sredini, natpis samo uz aktivnu stavku.
+   Tamnija podloga i jaka zamućenost da se meni jasno vidi preko sadržaja; sadržaj ima donji razmak pa ništa ne ostaje skriveno iza njega. */
+@media (max-width: 900px) {
+  .tabs { left: 50%; right: auto; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 4px; padding: 6px; border-radius: 99px; background: rgba(28, 8, 44, .78); border: 1px solid rgba(255, 255, 255, .2); -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); box-shadow: 0 14px 34px -10px rgba(0, 0, 0, .85), inset 0 1px 0 rgba(255, 255, 255, .14); }
+  .tabs a, .tabs button { display: flex; align-items: center; gap: 6px; white-space: nowrap; padding: 11px 13px; border-radius: 99px; font-size: 12.5px; font-weight: 800; transition: background .3s var(--ease), color .3s; }
+  .tabs .ico { width: 22px; height: 22px; }
+  .tabs a:not([aria-current]) span, .tabs button:not([aria-current]) span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tabs [aria-current='page'] { background: linear-gradient(135deg, var(--cyan), var(--green)); color: #14051f; }
+  .more-sheet { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 66px); }
+  .planbar { bottom: 84px; }
+  main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+}
+
+/* animacija ulaza: blokovi se redom podignu, pločice jedna za drugom, brojevi se izbroje, stubići narastu */
+main.in > * { animation: rise .55s var(--ease) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+main.in > .grid4, main.in > .grid2.pg { animation: none; }
+main.in .grid4 > *, main.in .mini2 > *, main.in .grid2.pg > .stack > :not(.mini2) { animation: rise .55s var(--ease) both; }
+main.in .grid4 > :nth-child(1) { animation-delay: .15s; } main.in .grid4 > :nth-child(2) { animation-delay: .25s; } main.in .grid4 > :nth-child(3) { animation-delay: .35s; } main.in .grid4 > :nth-child(4) { animation-delay: .45s; }
+main.in .mini2 > * { animation-delay: .55s; } main.in .grid2.pg > .stack > :nth-child(2) { animation-delay: .65s; } main.in .grid2.pg > .stack > :nth-child(n+3) { animation-delay: .75s; }
+@keyframes riseTab { from { opacity: 0; transform: translate(-50%, 18px); } }
+@media (max-width: 900px) { .tabs { animation: riseTab .5s var(--ease) .3s both; } }
+/* boja je na html-u, tijelo providno da se vide pozadinska svjetla i šare */
+body { background: transparent; }
