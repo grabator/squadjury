@@ -1,5 +1,5 @@
 // Liga: tabela, kapitenski duel kola i najbolji ovog kola.
-import { S, league, picksOf, teamOf, live } from '../state.js';
+import { S, league, picksOf, teamOf, live, setLeague } from '../state.js';
 import { int } from '../model.js';
 import { esc } from '../ui.js';
 
@@ -9,7 +9,7 @@ export const title = 'Liga';
 export async function render() {
   const { ix } = S;
   const L = await league().catch(() => null);
-  if (!L) return `<div class="head"><h1>Liga</h1></div><section class="g card"><p class="muted">Ovaj tim nije ni u jednoj klasičnoj mini ligi.</p></section>`;
+  if (!L) return `<div class="head"><h1>Liga</h1></div><section class="g card"><p class="muted">Ovaj tim nije ni u jednoj privatnoj klasičnoj ligi. Napravi ligu u FPL-u ili se pridruži ligi sa prijateljima, pa će se ovdje pojaviti.</p></section>`;
   const rows = L.standings.results, gw = S.lastGw;
   const lv = await live(gw);
   const caps = await Promise.all(rows.slice(0, 20).map(async (r) => {
@@ -18,7 +18,7 @@ export async function render() {
   caps.sort((a, b) => b.pts - a.pts);
   const bestGw = rows.slice().sort((a, b) => b.event_total - a.event_total)[0];
   const mover = rows.slice().sort((a, b) => (b.last_rank - b.rank) - (a.last_rank - a.rank))[0];
-  return `<div class="head"><div><h1>${esc(L.league.name)}</h1><p class="sub">Klasična tabela, ukupni bodovi poslije kola ${gw}</p></div></div>
+  return `<div class="head"><div><h1>${esc(L.league.name)}</h1><p class="sub">Klasična tabela, ukupni bodovi poslije kola ${gw}</p></div>${S.leagues.length > 1 ? `<label class="field" style="min-width:240px">Liga<select id="lg-sel">${S.leagues.map((l) => `<option value="${l.id}"${l.id === S.leagueId ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select></label>` : ''}</div>
     <div class="grid2">
       <section class="g card"><h2 class="ct">Tabela</h2><table class="tbl" style="margin-top:6px"><thead><tr><th scope="col">#</th><th scope="col">Tim</th><th scope="col">Kolo</th><th scope="col">Ukupno</th></tr></thead><tbody>${rows.map((r) => `<tr${r.entry === S.id ? ' class="me"' : ''}><td>${r.rank} ${r.last_rank > r.rank ? '<span class="chg up" aria-label="gore">▲</span>' : r.last_rank < r.rank ? '<span class="chg dn" aria-label="dole">▼</span>' : ''}</td><td>${esc(r.entry_name)}<br><span class="sub">${esc(r.player_name)}</span></td><td class="num">${r.event_total}</td><td class="num">${int(r.total)}</td></tr>`).join('')}</tbody></table></section>
       <div class="stack">
@@ -29,4 +29,9 @@ export async function render() {
         </div></section>
       </div>
     </div>`;
+}
+
+export function bind(rerender) {
+  const sel = document.getElementById('lg-sel');
+  if (sel) sel.onchange = () => { setLeague(+sel.value); rerender(); };
 }

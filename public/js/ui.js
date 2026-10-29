@@ -12,6 +12,7 @@ const ICON = {
   cup: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/>', star: '<path d="M12 4l2.4 5 5.4.7-4 3.8 1 5.4L12 16.3 7.2 18.9l1-5.4-4-3.8 5.4-.7z"/>',
   book: '<path d="M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h9"/>', out: '<path d="M10 6H6v12h4M14 8l4 4-4 4M18 12H9"/>',
   more: '<circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>', close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
   jury: '<rect x="6" y="3.5" width="12" height="17" rx="2"/><path d="M9.5 8.5h5M9.5 12h5M9.5 15.5h3"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
   share: '<path d="M12 4v11M8 8l4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>', link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
@@ -21,7 +22,7 @@ export const ic = (k) => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true
 // meni: [ruta, naziv, ikona, grupa]
 export const ROUTES = [
   ['pregled', 'Pregled', 'home', 'Tim'], ['tim', 'Moj tim', 'team', 'Tim'], ['kapiten', 'Kapiten', 'cap', 'Tim'], ['transferi', 'Transferi', 'swap', 'Tim'], ['raspored', 'Raspored', 'cal', 'Tim'],
-  ['uzivo', 'Uživo', 'live', 'Kolo'], ['rival', 'Rival', 'vs', 'Kolo'], ['liga', 'Liga', 'cup', 'Kolo'],
+  ['uzivo', 'Uživo', 'live', 'Kolo'], ['kutak', 'Zanimljivosti', 'spark', 'Kolo'], ['rival', 'Rival', 'vs', 'Kolo'], ['liga', 'Liga', 'cup', 'Kolo'],
   ['karijera', 'Karijera', 'star', 'Ti'], ['vodic', 'Vodič', 'book', 'Ti']
 ];
 export const TABS = ['pregled', 'tim', 'uzivo', 'transferi'];

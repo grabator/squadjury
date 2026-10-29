@@ -13,7 +13,8 @@
     "deploy": "node scripts/vendor.mjs && wrangler deploy",
     "test": "node --test tests/*.test.mjs tests/jury/unit/*.test.mjs",
     "test:api": "node tests/jury/api/run.mjs",
-    "points": "node scripts/points.mjs"
+    "points": "node scripts/points.mjs",
+    "h2h": "node scripts/h2h.mjs"
   },
   "devDependencies": {
     "axe-core": "^4.14.0",
