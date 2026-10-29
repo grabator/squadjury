@@ -1,4 +1,4 @@
-// FPL Manager: meni, rute, kartica igrača i početni ekran. Ekrani su u js/views/.
+// SquadJury (FPL dio): meni, rute, kartica igrača i početni ekran. Ekrani su u js/views/.
 import { setDemo, isDemo, warm } from './api.js';
 import { enhance } from './dd.js';
 import { S, load, reset, element, warmCaptainHistory } from './state.js';
@@ -30,11 +30,11 @@ function chrome() {
   document.querySelector('.shell').classList.toggle('noside', !S.ready);
   if (!S.ready) { more.hidden = true; return; }
   let grp = '';
-  side.innerHTML = `<a class="brand" href="#/pregled"><i>FM</i><span>FPL Manager</span></a><button type="button" class="search-btn" data-cmd>${ic('search')}<span>Pretraga</span><kbd>${mac ? '⌘' : 'Ctrl'} K</kbd></button>` + ROUTES.map(([k, t, i, g]) => {
+  side.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, pregled"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a><button type="button" class="search-btn" data-cmd>${ic('search')}<span>Pretraga</span><kbd>${mac ? '⌘' : 'Ctrl'} K</kbd></button>` + ROUTES.map(([k, t, i, g]) => {
     const head = g !== grp ? `<p class="grp">${g}</p>` : ''; grp = g;
     return head + `<a class="nv" href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}${t}</a>`;
   }).join('') + `<p class="grp">Zajednica</p><a class="nv jury" href="/jury/">${ic('jury')}SquadJury<span class="new">ocijeni timove</span></a><div class="me"><span class="av" aria-hidden="true">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span><div style="min-width:0;flex:1"><b>${esc(S.entry.name)}</b><span class="sub">${esc(S.entry.player_first_name)} ${esc(S.entry.player_last_name)}</span>${isDemo() ? '<br><span class="demo-badge">Primjer</span>' : ''}</div><div class="acts"><button class="btn ghost sm" type="button" data-share>${ic('link')}Link</button><button class="btn ghost sm" type="button" data-logout>${ic('out')}Promijeni</button></div></div>`;
-  mtop.innerHTML = `<a class="brand" href="#/pregled"><i>FM</i><span>FPL Manager</span></a><span style="display:flex;gap:8px;align-items:center"><button type="button" class="icon-btn" data-cmd aria-label="Traži igrača ili ekran">${ic('search')}</button><span class="av" title="${esc(S.entry.name)}" aria-label="${esc(S.entry.name)}">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span></span>`;
+  mtop.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, pregled"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a><span style="display:flex;gap:8px;align-items:center"><button type="button" class="icon-btn" data-cmd aria-label="Traži igrača ili ekran">${ic('search')}</button><span class="av" title="${esc(S.entry.name)}" aria-label="${esc(S.entry.name)}">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span></span>`;
   const inMore = !TABS.includes(r);
   tabs.innerHTML = TABS.map((k) => { const [, t, i] = ROUTES.find((x) => x[0] === k); return `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}<span>${t}</span></a>`; }).join('') + `<button type="button" id="more-btn" aria-expanded="${!more.hidden}" aria-controls="more"${inMore ? ' aria-current="page"' : ''}>${ic('more')}<span>Više</span></button>`;
   more.innerHTML = ROUTES.filter(([k]) => !TABS.includes(k)).map(([k, t, i]) => `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}${t}</a>`).join('') + `<a href="/jury/">${ic('jury')}SquadJury</a><a href="#/" data-logout>${ic('out')}Promijeni tim</a>`;
@@ -143,24 +143,74 @@ document.addEventListener('click', (ev) => { if (ev.target.closest('[data-cmd]')
 $('#cmd').addEventListener('click', (ev) => { if (ev.target === $('#cmd')) $('#cmd').close(); });
 
 // ---------- početni ekran ----------
+const url = (id) => `<span class="url" aria-hidden="true"><i>fantasy.premierleague.com</i>/entry/<b>${id}</b>/event/9</span>`;
+const HOW = {
+  pc: [
+    ['Otvori stranicu', 'Idi na <b>fantasy.premierleague.com</b> i prijavi se svojim FPL računom.'],
+    ['Klikni na Points', 'U meniju na vrhu otvori <b>Points</b>. Ne Pick Team, jer tamo broja nema u adresi.'],
+    ['Pogledaj adresu', `Gore u pregledniku piše adresa ovakva: ${url('1234567')} Broj iza <b>entry</b> je tvoj ID.`],
+    ['Zalijepi ovdje', 'Upiši taj broj, ili kopiraj cijelu adresu i zalijepi je u polje. Broj izvlačimo sami.']
+  ],
+  mob: [
+    ['Otvori preglednik', 'Otvori <b>fantasy.premierleague.com</b> u Safariju ili Chromeu na mobitelu (ne u FPL aplikaciji) i prijavi se.'],
+    ['Otvori Points', 'Otvori meni i izaberi <b>Points</b>, stranicu sa bodovima tvog tima.'],
+    ['Kopiraj adresu', `Dodirni adresnu traku i kopiraj link. Izgleda ovako: ${url('1234567')}`],
+    ['Zalijepi ovdje', 'Zalijepi cijeli link u polje iznad. Ne moraš tražiti broj, sami ga izvlačimo.']
+  ]
+};
+const steps = (k) => HOW[k].map(([h, t], i) => `<li><span class="stp-n">${i + 1}</span><div><b>${h}</b><p>${t}</p></div></li>`).join('');
+const idOf = (v) => (v.match(/entry\/(\d+)/) || v.match(/^\s*(\d{1,9})\s*$/) || [])[1];
+
 function start(msg = '') {
-  return `<div class="start"><div class="g card"><h1>Tvoj FPL tim, <span>pregledno</span></h1><p class="lead">Kapiten, transferi, raspored, bodovi uživo, rival iz lige i tvoja karijera menadžera, sa procjenom bodova za svako kolo.</p>
-    <form id="login"><label class="field">Tvoj FPL ID ili link tima<input id="fid" inputmode="numeric" autocomplete="off" placeholder="npr. 1234567" required></label>
-      <button class="btn" type="submit">Otvori moj tim</button><p class="err" id="lerr" role="alert">${esc(msg)}</p></form>
-    <p style="margin-top:12px"><button class="btn ghost" type="button" id="demo">Pogledaj primjer bez prijave</button></p>
-    <details><summary>Gdje da nađem svoj FPL ID?</summary><p style="margin-top:8px">Na fantasy.premierleague.com otvori stranicu Points. U adresi piše /entry/<b>1234567</b>/event/…, a taj broj je tvoj ID. Možeš zalijepiti i cijeli link.</p></details>
-    <p class="sub" style="margin-top:16px">Ne tražimo lozinku. Koriste se samo javni podaci tvog tima. Nezvanična aplikacija, nije povezana sa Premier League.</p></div></div>`;
+  const mob = matchMedia('(pointer: coarse)').matches;
+  return `<div class="start">
+    <section class="g card st-main">
+      <p class="st-brand"><img src="/img/brand/mark.svg" alt="" width="56" height="56"><span>Squad<em>Jury</em></span></p>
+      <h1>Tvoj FPL tim, <span>pregledno</span></h1>
+      <p class="lead">Kapiten, transferi, raspored, bodovi uživo i rival iz lige, sa procjenom bodova za svako kolo. Uz to ocjenjuješ tuđe timove.</p>
+      <form id="login" novalidate><label class="field" for="fid">Tvoj FPL ID ili link tima</label>
+        <div class="st-row field"><input id="fid" inputmode="text" autocomplete="off" placeholder="npr. 1234567 ili zalijepi link" aria-describedby="fhint lerr" required><button class="btn" type="submit">Otvori moj tim</button></div>
+        <p class="st-hint" id="fhint" aria-live="polite">Ne znaš svoj ID? Uputstvo je ${innerWidth > 980 ? 'desno' : 'ispod'}, traje pola minute.</p>
+        <p class="err" id="lerr" role="alert">${esc(msg)}</p></form>
+      <p class="st-or"><span>ili</span></p>
+      <button class="btn ghost st-demo" type="button" id="demo">Pogledaj primjer bez prijave</button>
+      <p class="sub st-note">Ne tražimo lozinku ni email. Koriste se samo javni podaci tvog tima. Nezvanična aplikacija, nije povezana sa Premier League.</p>
+    </section>
+    <section class="g card st-how" aria-labelledby="h-how">
+      <h2 id="h-how" class="ct">Kako da nađem svoj FPL ID?</h2>
+      <p class="sub">ID je broj tvog tima na FPL-u. Isti je cijelu sezonu, pa ga upisuješ samo jednom.</p>
+      <div class="seg st-tabs" role="group" aria-label="Uređaj"><button type="button" data-how="pc" aria-pressed="${!mob}">Računar</button><button type="button" data-how="mob" aria-pressed="${mob}">Mobitel</button></div>
+      <ol class="stp" id="how">${steps(mob ? 'mob' : 'pc')}</ol>
+      <p class="st-tip"><b>Drugi način:</b> u bilo kojoj ligi na FPL-u klikni na svoje ime u tabeli. I tada je u adresi /entry/<b>broj</b>/.</p>
+    </section>
+  </div>`;
 }
 function bindStart() {
   const f = $('#login');
   if (!f) return;
+  const fid = $('#fid'), hint = $('#fhint');
+  fid.oninput = () => {
+    const id = idOf(fid.value);
+    $('#lerr').textContent = '';
+    hint.classList.toggle('ok', !!id);
+    hint.textContent = id ? `Pronađen ID: ${id}. Klikni Otvori moj tim.` : fid.value.trim() ? 'U ovome nema broja tima. Treba broj ili link sa /entry/broj/.' : 'Upiši broj ili zalijepi link.';
+  };
   f.onsubmit = (e) => {
     e.preventDefault();
-    const v = $('#fid').value.trim(), m = v.match(/entry\/(\d+)/) || v.match(/^(\d{1,9})$/);
-    if (!m) { $('#lerr').textContent = 'Upiši broj (FPL ID) ili zalijepi link svog tima.'; $('#fid').focus(); return; }
-    store.set('fm-id', m[1]); store.set('fm-demo', '0'); setDemo(false); render();
+    const id = idOf(fid.value);
+    if (!id) { $('#lerr').textContent = 'Upiši broj (FPL ID) ili zalijepi link sa Points stranice.'; fid.focus(); return; }
+    store.set('fm-id', id); store.set('fm-demo', '0'); setDemo(false); render();
   };
   $('#demo').onclick = () => { store.set('fm-id', '1'); store.set('fm-demo', '1'); setDemo(true); render(); };
+  document.querySelectorAll('[data-how]').forEach((b) => { b.onclick = () => { document.querySelectorAll('[data-how]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); $('#how').innerHTML = steps(b.dataset.how); }; });
+}
+
+// uvodna animacija: makni je kad završi ili na dodir
+const splash = $('#splash');
+if (splash) {
+  const done = () => { splash.remove(); document.documentElement.classList.remove('splashing'); };
+  if (!document.documentElement.classList.contains('splashing')) done();
+  else { splash.addEventListener('animationend', (e) => { if (e.animationName === 'sp-out') done(); }); splash.onclick = done; setTimeout(done, 4000); }
 }
 
 // ---------- prikaz ----------
@@ -198,7 +248,7 @@ async function render(quiet) {
     main.innerHTML = `<section class="g card"><h1 class="ct">Ovaj dio se nije učitao</h1><p class="muted" style="margin-top:8px">${esc(e.status === 502 ? 'FPL trenutno ne odgovara. To se dešava dok se ažurira kolo. Pokušaj za koju minutu.' : e.message || 'Nepoznata greška.')}</p><p style="margin-top:12px"><button class="btn" type="button" id="retry">Pokušaj ponovo</button></p></section>`;
     $('#retry').onclick = () => render();
   }
-  document.title = v.title + ' · FPL Manager';
+  document.title = v.title + ' · SquadJury';
 }
 
 let warmed = false;

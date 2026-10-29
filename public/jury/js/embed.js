@@ -18,7 +18,7 @@ async function main() {
     const f = formationOf(fpl, team.picks);
     root.innerHTML = html`
       <header class="emb-head">
-        <a class="emb-logo" href="${location.origin}/jury/?s=embed" target="_blank" rel="noopener"><picture><img src="/jury/img/logo/logo-white.svg" alt="SquadJury" width="86" height="24"></picture></a>
+        <a class="emb-logo" href="${location.origin}/jury/?s=embed" target="_blank" rel="noopener"><picture><img src="/jury/img/logo/logo-white.svg" alt="SquadJury" width="103" height="24"></picture></a>
         <span>GW${team.gw}${f ? ` · ${f}` : ''}</span>
       </header>
       <div class="emb-who">

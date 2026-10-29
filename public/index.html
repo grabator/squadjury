@@ -3,12 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>FPL Manager</title>
-  <meta name="description" content="Tvoj Fantasy Premier League tim na jednom mjestu: kapiten, transferi, raspored, uživo, rival i liga.">
+  <title>SquadJury: tvoj FPL tim, kapiten i transferi</title>
+  <meta name="description" content="SquadJury: tvoj Fantasy Premier League tim na jednom mjestu. Kapiten, transferi, raspored, uživo, rival i liga, plus ocjenjivanje timova.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SquadJury">
+  <meta property="og:title" content="SquadJury: tvoj FPL tim, kapiten i transferi">
+  <meta property="og:description" content="Upiši svoj FPL ID i vidi kapitena, transfere, raspored i bodove uživo. Ocijeni i tuđe timove.">
+  <meta property="og:image" content="/img/og.png">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#2a0a3d">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/img/favicon-32.png" sizes="32x32" type="image/png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="apple-touch-icon" href="/img/icon-192.png">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
   <link rel="preload" href="/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/barlow-condensed-800.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/app.css">
@@ -33,6 +40,13 @@
   <script type="module" src="/js/app.js"></script>
 </head>
 <body>
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="sp-in">
+      <svg class="sp-mark" viewBox="0 0 100 100"><defs><linearGradient id="spc" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#00ff87"/><stop offset="1" stop-color="#05f0ff"/></linearGradient><linearGradient id="spp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b1480"/><stop offset="1" stop-color="#2a0538"/></linearGradient></defs><rect class="sp-tile" x="4" y="4" width="92" height="92" rx="24" fill="url(#spp)"/><g transform="translate(1 0)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="sp-d sp-r1" pathLength="1" d="M33 50A13 13 0 0 1 33 76H25" stroke="#ff3355" stroke-width="8"/><path class="sp-d sp-r2" pathLength="1" d="M28 68.5L20 76L28 83.5" stroke="#ff3355" stroke-width="6.4"/><path class="sp-d sp-g1" pathLength="1" d="M33 50A13 13 0 0 1 33 24H44" stroke="#00e676" stroke-width="8"/><path class="sp-d sp-g2" pathLength="1" d="M41 16.5L49 24L41 31.5" stroke="#00e676" stroke-width="6.4"/><path class="sp-d sp-c" pathLength="1" d="M60 60L68 74L84 24" stroke="url(#spc)" stroke-width="8.5"/></g></svg>
+      <p class="sp-word"><span>Squad</span><em>Jury</em></p>
+      <p class="sp-tag">Planiraj svoj tim. Ocijeni tuđe.</p>
+    </div>
+  </div>
   <a class="skip" href="#main">Preskoči na sadržaj</a>
   <div class="shell">
     <aside class="side" id="side" aria-label="Meni" hidden></aside>

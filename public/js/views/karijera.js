@@ -52,7 +52,7 @@ async function drawWrap() {
   const last1 = h[h.length - 1] || {};
   const rows = [['Ukupno bodova', int(last1.total_points || 0)], ['Rang', int(last1.overall_rank || 0)], ['Najbolje kolo', (best?.points || 0) + ' (K' + (best?.event || '') + ')'], ['Nivo menadžera', c.level + ', ' + c.title], ['Ostalo na klupi', rg.bench + ' bodova'], ['Značke', b.filter((y) => y.on).length + ' od ' + b.length]];
   rows.forEach(([k, v], i) => { const y = 520 + i * 200; T(k, y, 44, 'rgba(246,241,251,.65)', '600 44px Manrope, sans-serif'); T(v, y + 92, 96); });
-  T('FPL Manager', 1820, 48, 'rgba(246,241,251,.6)');
+  T('SquadJury', 1820, 48, 'rgba(246,241,251,.6)');
   return new Promise((res) => cv.toBlob(res, 'image/png'));
 }
 
