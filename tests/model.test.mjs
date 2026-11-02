@@ -215,15 +215,18 @@ test('uživo: stanje utakmice i igrača koji još igraju', () => {
   assert.deepEqual([playerState(ix, e, 9, lf2).state, playerState(ix, e, 9, lf2).toPlay], ['live', true]);
 });
 
-test('rotacija: svako kolo igra bolji od dvojice, parovi iz različitih klubova', async () => {
-  const { rotationPair, rotationPairs, xp } = await import('../public/js/model.js');
+test('rotacija: igra lakši protivnik, parovi iz različitih klubova i pozicija po izboru', async () => {
+  const { rotationPair, rotationPairs } = await import('../public/js/model.js');
   const defs = [...ix.players.values()].filter((e) => e.element_type === 2 && e.minutes > 0).slice(0, 12);
+  const mids = [...ix.players.values()].filter((e) => e.element_type === 3 && e.minutes > 0).slice(0, 12);
+  const hard = (e, g) => { const fx = fixturesFor(ix, e.team, g, 1); return fx.length ? Math.min(...fx.map((f) => f.fdr)) : 6; };
   const r = rotationPair(ix, defs[0], defs[1], 9, 6);
   assert.equal(r.pick.length, 6);
-  for (const p of r.pick) assert.equal(p.use, p.xa >= p.xb ? defs[0].id : defs[1].id);
-  assert.ok(Math.abs(r.total - r.pick.reduce((s, p) => s + Math.max(p.xa, p.xb), 0)) < 1e-9);
-  assert.ok(r.total >= Math.max(xp(ix, defs[0], 9, 6), xp(ix, defs[1], 9, 6)) - 1e-9);
-  const best = rotationPairs(ix, defs, { mine: new Set([defs[0].id]), from: 9 });
-  assert.ok(best.length > 0 && best.every((x) => x.a.team !== x.b.team && (x.a.id === defs[0].id || x.b.id === defs[0].id)));
-  for (let i = 1; i < best.length; i++) assert.ok(best[i - 1].total >= best[i].total);
+  for (const p of r.pick) { const ha = hard(defs[0], p.gw), hb = hard(defs[1], p.gw); if (ha !== hb) assert.equal(p.use, ha < hb ? defs[0].id : defs[1].id); }
+  assert.equal(r.green, r.pick.filter((p) => hard(ix.players.get(p.use), p.gw) <= 2).length);
+  const best = rotationPairs(ix, defs, mids, { from: 9 });
+  assert.ok(best.length > 0 && best.every((x) => x.a.team !== x.b.team && x.a.element_type === 2 && x.b.element_type === 3));
+  for (let i = 1; i < best.length; i++) assert.ok(best[i - 1].green >= best[i].green);
+  const mine = rotationPairs(ix, defs, defs, { mine: new Set([defs[0].id]), from: 9 });
+  assert.ok(mine.every((x) => x.a.id === defs[0].id || x.b.id === defs[0].id));
 });
