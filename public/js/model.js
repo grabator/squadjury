@@ -528,3 +528,32 @@ export function leagueAwards(members, me, caps = new Map()) {
   }
   return out;
 }
+
+/**
+ * Rotacija dva igrača kroz n kola: svako kolo igra onaj sa više predviđenih bodova.
+ * Vraća zbir tih bodova, broj kola sa lakim protivnikom (težina 2 ili manje) i ko igra po kolu.
+ */
+export function rotationPair(ix, a, b, from = ix.nextGw, n = 6) {
+  const gws = [];
+  for (let g = from; g < from + n && g <= ix.lastGw; g++) gws.push(g);
+  const easy = (e, g) => fixturesFor(ix, e.team, g, 1).some((f) => f.fdr <= 2);
+  let total = 0, green = 0;
+  const pick = gws.map((g) => {
+    const xa = xp(ix, a, g, 1), xb = xp(ix, b, g, 1), use = xa >= xb ? a : b;
+    total += Math.max(xa, xb);
+    if (easy(use, g)) green++;
+    return { gw: g, use: use.id, xa, xb };
+  });
+  return { a, b, gws, pick, total, green };
+}
+/** Najbolji parovi za rotaciju: različiti klubovi; uz mine bar jedan igrač mora biti iz tima. */
+export function rotationPairs(ix, pool, { mine = null, from = ix.nextGw, n = 6, limit = 8 } = {}) {
+  const out = [];
+  for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) {
+    const a = pool[i], b = pool[j];
+    if (a.team === b.team) continue;
+    if (mine && !mine.has(a.id) && !mine.has(b.id)) continue;
+    out.push(rotationPair(ix, a, b, from, n));
+  }
+  return out.sort((x, y) => y.total - x.total || y.green - x.green).slice(0, limit);
+}
