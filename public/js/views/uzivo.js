@@ -1,7 +1,7 @@
 // Uživo: bodovi tvog tima u kolu, događaji (golovi, asistencije, bonus) i dvoboj sa rivalom iz lige.
 import { S, live, liveFix, league, picksOf, teamOf, refreshLive, setLeague } from '../state.js';
 import { POS_BS, plural, int, liveBonus, defCon, fixturesFor, playerState, dayShort, time } from '../model.js';
-import { esc, ic, pbtn, pitchCard, leaguePick, kit } from '../ui.js';
+import { esc, ic, pbtn, leaguePick, kit, shirt, photo, flagColor } from '../ui.js';
 import { TVBG } from './tim.js';
 import { tr } from '../i18n.js';
 
@@ -13,28 +13,23 @@ let rivalId = null, timer = null, side = false;
 const ptsOf = (lv, lb, id) => (lv.get(id)?.total_points || 0) + (lb.get(id)?.provisional || 0);
 const teamPoints = (t, lv, lb) => t.xi.reduce((s, id) => s + ptsOf(lv, lb, id) * (id === t.captain ? t.mult || 2 : 1), 0);
 /**
- * TV pločica ispod igrača: ime, minute i bodovi; ispod BPS i DefCon (golman: odbrane);
- * dole u jednom redu DefCon i Bonus, a prije utakmice dan i vrijeme početka.
+ * Kartica igrača uživo: lijevo slika u okviru sa šarom SJ, desno bodovi, minute, DefCon (golman: odbrane) i bonus.
+ * Prije utakmice desno stoje dan i vrijeme početka. Ime je na traci ispod.
  */
-const lbl = (full, short) => `<span class="lf">${full}</span><span class="ls">${short}</span>`;
-function tvPlate(ix, e, s = {}, b = {}, pts, gw, lf) {
+function liveCard(ix, e, s = {}, b = {}, pts, gw, lf, { cap, vice, bench }) {
   const { fx, state } = playerState(ix, e, gw, lf), mins = s.minutes || 0, now = Date.now();
   const ko = fx.map((f) => f.kickoff && new Date(f.kickoff)).filter(Boolean).sort((x, y) => x - y);
-  const upcoming = state === 'pre', live = state === 'live';
-  const dc = defCon(e, s), gk = e.element_type === 1, sv = s.saves || 0;
-  const head = `<span class="tv-h"><b class="tv-n">${esc(e.web_name)}</b>${upcoming || !fx.length ? '' : `<span class="tv-m${live ? ' live' : ''}">${mins}'</span>`}<span class="tv-p">${upcoming || !fx.length ? '–' : pts}</span></span>`;
-  const mid = `<span class="tv-s"><span>BPS <b>${upcoming ? '–' : b.bps || 0}</b></span>${gk ? `<span>${tr('OD', 'SV')} <b>${upcoming ? '–' : sv}</b></span>` : dc ? `<span>DC <b>${upcoming ? '–' : dc.v}</b>/${dc.need}</span>` : ''}</span>`;
-  let ft;
-  if (!fx.length) ft = `<span class="tg ko">${tr('ne igra', 'no game')}</span>`;
-  else if (upcoming) { const d = ko.find((x) => x > now) || ko[0]; ft = `<span class="tg ko">${dayShort(d)} ${time(d)}</span>`; }
+  const pre = state === 'pre', none = !fx.length, gk = e.element_type === 1, dc = defCon(e, s), sv = s.saves || 0, fc = flagColor(e);
+  let right;
+  if (none) right = `<b class="lc-p">–</b><span class="lc-k">${tr('ne igra', 'no game')}</span>`;
+  else if (pre) { const d = ko.find((x) => x > now) || ko[0]; right = `<b class="lc-p">–</b><span class="lc-k">${dayShort(d)}<br>${time(d)}</span>`; }
   else {
-    const dcTag = gk ? (Math.floor(sv / 3) ? `<span class="tg grn">+${Math.floor(sv / 3)} ${lbl(tr('Odbrane', 'Saves'), tr('OD', 'SV'))}</span>` : `<span class="tg zero">0 ${lbl(tr('Odbrane', 'Saves'), tr('OD', 'SV'))}</span>`)
-      : dc?.hit ? `<span class="tg grn">+2 ${lbl('DefCon', 'DC')}</span>` : `<span class="tg zero">0 ${lbl('DefCon', 'DC')}</span>`;
-    const bTag = b.bonus ? `<span class="tg gold${b.provisional ? ' pr' : ''}">+${b.bonus} ${lbl('Bonus', 'B')}</span>` : `<span class="tg zero">0 ${lbl('Bonus', 'B')}</span>`;
-    ft = dcTag + bTag;
+    const dcT = gk ? `<span class="lc-t${Math.floor(sv / 3) ? ' on' : ''}">${Math.floor(sv / 3) ? '+' + Math.floor(sv / 3) : sv} ${tr('OD', 'SV')}</span>` : dc ? `<span class="lc-t${dc.hit ? ' on' : ''}">${dc.hit ? '+2' : `${dc.v}/${dc.need}`} DC</span>` : '';
+    const bT = `<span class="lc-t${b.bonus ? ' gd' + (b.provisional ? ' pr' : '') : ''}">${b.bonus ? '+' + b.bonus : 0} B</span>`;
+    right = `<b class="lc-p">${pts}</b><span class="lc-m${state === 'live' ? ' live' : ''}">${mins}'</span>${dcT}${bT}`;
   }
-  const sr = `<span class="sr">, ${upcoming ? tr('utakmica još nije počela', 'match not started') : `${mins} ${tr('minuta', 'minutes')}, ${pts} ${tr('bodova', 'points')}, BPS ${b.bps || 0}, bonus ${b.bonus || 0}${b.provisional ? tr(' (nije konačan)', ' (not final)') : ''}${dc ? `, DefCon ${dc.v} ${tr('od', 'of')} ${dc.need}` : ''}`}</span>`;
-  return `${head}<span aria-hidden="true" class="tv-b">${mid}<span class="tv-f">${ft}</span></span>${sr}`;
+  const sr = `<span class="sr">${esc(e.web_name)}${cap ? ', ' + tr('kapiten', 'captain') : vice ? ', ' + tr('vice kapiten', 'vice captain') : ''}${bench ? ', ' + tr('na klupi', 'on the bench') : ''}: ${none ? tr('ne igra', 'no game') : pre ? tr('utakmica još nije počela', 'match not started') : `${pts} ${tr('bodova', 'points')}, ${mins} ${tr('minuta', 'minutes')}, BPS ${b.bps || 0}, bonus ${b.bonus || 0}${b.provisional ? tr(' (nije konačan)', ' (not final)') : ''}${dc ? `, DefCon ${dc.v} ${tr('od', 'of')} ${dc.need}` : ''}${gk ? `, ${tr('odbrane', 'saves')} ${sv}` : ''}`}</span>`;
+  return `<button type="button" class="lc${bench ? ' out' : ''}${cap ? ' cap' : ''}" data-pid="${e.id}"${fc && e.news ? ` title="${esc(e.news)}"` : ''}><span class="lc-ph pat-bg" aria-hidden="true"><span class="shirt">${shirt(ix.teams.get(e.team), gk)}${photo(e)}</span>${cap ? '<i class="lc-c">C</i>' : vice ? '<i class="lc-c v">V</i>' : ''}${fc ? `<i class="lc-f" style="background:${fc}">!</i>` : ''}</span><span class="lc-r" aria-hidden="true">${right}</span><span class="lc-n" aria-hidden="true">${esc(e.web_name)}</span>${sr}</button>`;
 }
 
 export async function render() {
@@ -106,8 +101,8 @@ export async function render() {
         <div><span class="sub">${tr('Rang kola', 'GW rank')}</span><b>${hist?.rank ? short(hist.rank) : '–'}</b></div>
       </div>
       <div class="pl-tools"><span class="sub lx-legend">${tr('B bonus po BPS-u, DC odbrambeni doprinos (10 odbrana, 12 ostali = +2)', 'B bonus from BPS, DC defensive contribution (10 defenders, 12 others = +2)')}</span><button type="button" class="btn sm ghost plan-open" data-side aria-expanded="${side}" aria-controls="tm-side">${tr('Detalji', 'Details')}</button></div>
-      <section class="pitch tvp lvp" aria-label="${tr('Bodovi igrača', 'Player points')}">${TVBG}<div class="field">${[1, 2, 3, 4].map((pos) => `<div class="line-row">${S.xi.map((id) => ix.players.get(id)).filter((e) => e.element_type === pos).map((e) => pitchCard(ix, e, { cap: e.id === S.captain, vice: e.id === S.vice, attr: 'data-pid', tv: tvPlate(ix, e, lv.get(e.id), lb.get(e.id), ptsOf(lv, lb, e.id) * (e.id === S.captain ? me.mult : 1), gw, lf) })).join('')}</div>`).join('')}</div>
-        <div class="bench" aria-label="${tr('Klupa', 'Bench')}"><span class="bench-l">${tr('Klupa', 'Bench')}</span>${S.bench.map((id, i) => { const e = ix.players.get(id); return `<div class="bslot"><span class="sub">${i ? i + '.' : tr('GOL', 'GK')}</span>${pitchCard(ix, e, { bench: true, attr: 'data-pid', tv: tvPlate(ix, e, lv.get(id), lb.get(id), ptsOf(lv, lb, id), gw, lf) })}</div>`; }).join('')}</div></section>
+      <section class="pitch tvp lvp" aria-label="${tr('Bodovi igrača', 'Player points')}">${TVBG}<div class="field">${[1, 2, 3, 4].map((pos) => `<div class="line-row">${S.xi.map((id) => ix.players.get(id)).filter((e) => e.element_type === pos).map((e) => liveCard(ix, e, lv.get(e.id), lb.get(e.id), ptsOf(lv, lb, e.id) * (e.id === S.captain ? me.mult : 1), gw, lf, { cap: e.id === S.captain, vice: e.id === S.vice })).join('')}</div>`).join('')}</div>
+        <div class="bench" aria-label="${tr('Klupa', 'Bench')}"><span class="bench-l">${tr('Klupa', 'Bench')}</span>${S.bench.map((id, i) => { const e = ix.players.get(id); return `<div class="bslot"><span class="sub">${i ? i + '.' : tr('GOL', 'GK')}</span>${liveCard(ix, e, lv.get(id), lb.get(id), ptsOf(lv, lb, id), gw, lf, { bench: true })}</div>`; }).join('')}</div></section>
     </div>
     <div class="tm-side" id="tm-side">
       <div class="side-h"><h2 class="ct">${tr(`Kolo ${gw}: detalji`, `Gameweek ${gw}: details`)}</h2><button type="button" class="icon-btn" data-side aria-label="${tr('Zatvori detalje', 'Close details')}">${ic('close')}</button></div>
