@@ -1,32 +1,32 @@
 // Uživo: bodovi tvog tima u kolu, događaji (golovi, asistencije, bonus) i dvoboj sa rivalom iz lige.
-import { S, live, league, picksOf, teamOf, refreshLive, setLeague } from '../state.js';
-import { POS_BS, plural, int, liveBonus, defCon, fixturesFor, dayShort, time } from '../model.js';
-import { esc, pbtn, pitchCard, leaguePick, kit } from '../ui.js';
+import { S, live, liveFix, league, picksOf, teamOf, refreshLive, setLeague } from '../state.js';
+import { POS_BS, plural, int, liveBonus, defCon, fixturesFor, playerState, dayShort, time } from '../model.js';
+import { esc, ic, pbtn, pitchCard, leaguePick, kit } from '../ui.js';
+import { TVBG } from './tim.js';
 import { tr } from '../i18n.js';
 
-export const prefetch = () => { live(S.lastGw).catch(() => {}); league().catch(() => {}); };
+export const prefetch = () => { live(S.lastGw).catch(() => {}); liveFix(S.lastGw).catch(() => {}); league().catch(() => {}); };
 export const title = tr('Uživo', 'Live');
-let rivalId = null, timer = null;
+let rivalId = null, timer = null, side = false;
 
 // bodovi igrača uživo: FPL bodovi plus privremeni bonus iz BPS-a dok ga FPL ne potvrdi
 const ptsOf = (lv, lb, id) => (lv.get(id)?.total_points || 0) + (lb.get(id)?.provisional || 0);
-const teamPoints = (t, lv, lb) => t.xi.reduce((s, id) => s + ptsOf(lv, lb, id) * (id === t.captain ? 2 : 1), 0);
+const teamPoints = (t, lv, lb) => t.xi.reduce((s, id) => s + ptsOf(lv, lb, id) * (id === t.captain ? t.mult || 2 : 1), 0);
 /**
  * TV pločica ispod igrača: ime, minute i bodovi; ispod BPS i DefCon (golman: odbrane);
  * dole u jednom redu DefCon i Bonus, a prije utakmice dan i vrijeme početka.
  */
 const lbl = (full, short) => `<span class="lf">${full}</span><span class="ls">${short}</span>`;
-function tvPlate(ix, e, s = {}, b = {}, pts, gw) {
-  const fx = fixturesFor(ix, e.team, gw, 1), mins = s.minutes || 0, now = Date.now();
+function tvPlate(ix, e, s = {}, b = {}, pts, gw, lf) {
+  const { fx, state } = playerState(ix, e, gw, lf), mins = s.minutes || 0, now = Date.now();
   const ko = fx.map((f) => f.kickoff && new Date(f.kickoff)).filter(Boolean).sort((x, y) => x - y);
-  const upcoming = !mins && ko.length && ko.some((d) => d > now) && !fx.some((f) => f.finished || (f.kickoff && new Date(f.kickoff) <= now));
-  const live = mins > 0 && fx.some((f) => !f.finished && f.kickoff && new Date(f.kickoff) <= now);
+  const upcoming = state === 'pre', live = state === 'live';
   const dc = defCon(e, s), gk = e.element_type === 1, sv = s.saves || 0;
   const head = `<span class="tv-h"><b class="tv-n">${esc(e.web_name)}</b>${upcoming || !fx.length ? '' : `<span class="tv-m${live ? ' live' : ''}">${mins}'</span>`}<span class="tv-p">${upcoming || !fx.length ? '–' : pts}</span></span>`;
   const mid = `<span class="tv-s"><span>BPS <b>${upcoming ? '–' : b.bps || 0}</b></span>${gk ? `<span>${tr('OD', 'SV')} <b>${upcoming ? '–' : sv}</b></span>` : dc ? `<span>DC <b>${upcoming ? '–' : dc.v}</b>/${dc.need}</span>` : ''}</span>`;
   let ft;
   if (!fx.length) ft = `<span class="tg ko">${tr('ne igra', 'no game')}</span>`;
-  else if (upcoming) { const d = ko.find((x) => x > now); ft = `<span class="tg ko">${dayShort(d)} ${time(d)}</span>`; }
+  else if (upcoming) { const d = ko.find((x) => x > now) || ko[0]; ft = `<span class="tg ko">${dayShort(d)} ${time(d)}</span>`; }
   else {
     const dcTag = gk ? (Math.floor(sv / 3) ? `<span class="tg grn">+${Math.floor(sv / 3)} ${lbl(tr('Odbrane', 'Saves'), tr('OD', 'SV'))}</span>` : `<span class="tg zero">0 ${lbl(tr('Odbrane', 'Saves'), tr('OD', 'SV'))}</span>`)
       : dc?.hit ? `<span class="tg grn">+2 ${lbl('DefCon', 'DC')}</span>` : `<span class="tg zero">0 ${lbl('DefCon', 'DC')}</span>`;
@@ -41,22 +41,23 @@ export async function render() {
   const { ix } = S, gw = S.lastGw;
   const ev = ix.events.find((e) => e.id === gw) || {};
   const hist = S.history.current.find((h) => h.event === gw);
-  const lv = await live(gw), lb = liveBonus(lv);
-  const me = { xi: S.xi, bench: S.bench, captain: S.captain };
-  const mine = teamPoints(me, lv, lb), prov = S.xi.reduce((s, id) => s + (lb.get(id)?.provisional || 0) * (id === S.captain ? 2 : 1), 0);
+  const [lv, lf] = await Promise.all([live(gw), liveFix(gw).catch(() => null)]), lb = liveBonus(lv);
+  const me = { xi: S.xi, bench: S.bench, captain: S.captain, mult: S.picks?.active_chip === '3xc' ? 3 : 2 };
+  const toPlay = (xi) => xi.filter((id) => playerState(ix, ix.players.get(id), gw, lf).toPlay).length;
+  const mine = teamPoints(me, lv, lb), prov = S.xi.reduce((s, id) => s + (lb.get(id)?.provisional || 0) * (id === S.captain ? me.mult : 1), 0);
   const L = await league().catch(() => null);
   const others = (L?.standings?.results || []).filter((r) => r.entry !== S.id);
   if (rivalId && !others.some((r) => r.entry === rivalId)) rivalId = null;
   if (!rivalId && others.length) { const myRow = L.standings.results.find((r) => r.entry === S.id); rivalId = (L.standings.results.find((r) => myRow && r.rank === myRow.rank - 1) || others[0]).entry; }
   let duel = '';
   if (rivalId) {
-    const rp = teamOf(await picksOf(rivalId, gw)), rname = others.find((r) => r.entry === rivalId)?.entry_name || 'Rival';
+    const rpk = await picksOf(rivalId, gw), rp = { ...teamOf(rpk), mult: rpk.active_chip === '3xc' ? 3 : 2 }, rname = others.find((r) => r.entry === rivalId)?.entry_name || 'Rival';
     const theirs = teamPoints(rp, lv, lb), total = Math.max(1, mine + theirs);
-    const leftMine = S.xi.filter((id) => !(lv.get(id)?.minutes)).length, leftTheirs = rp.xi.filter((id) => !(lv.get(id)?.minutes)).length;
+    const leftMine = toPlay(S.xi), leftTheirs = toPlay(rp.xi);
     duel = `<section class="g card" aria-labelledby="h-duel"><div class="ch"><h2 id="h-duel" class="ct">${tr('Dvoboj', 'Head to head')}</h2></div><div class="pick2">${leaguePick(S.leagues, S.leagueId)}<label class="field">Rival<select id="rival">${others.map((r) => `<option value="${r.entry}"${r.entry === rivalId ? ' selected' : ''}>${esc(r.entry_name)}</option>`).join('')}</select></label></div>
       <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;gap:10px"><div><p class="sub">${esc(S.entry.name)}</p><p class="big" style="color:var(--green)">${mine}</p></div><p class="cond" style="font-size:28px;color:var(--d)">:</p><div><p class="sub">${esc(rname)}</p><p class="big" style="color:#ff6aa6">${theirs}</p></div></div>
       <div class="odds mt" aria-hidden="true"><i style="width:${(mine / total * 100).toFixed(0)}%;background:linear-gradient(90deg,#00c46a,var(--green))"></i><i style="width:${(theirs / total * 100).toFixed(0)}%;background:linear-gradient(90deg,var(--pink),#ff6aa6)"></i></div>
-      <p class="sub" style="margin-top:10px">${mine === theirs ? tr('Izjednačeno.', 'Level.') : mine > theirs ? `${tr('Vodiš', 'You lead by')} ${mine - theirs} ${plural(mine - theirs, ['bod', 'boda', 'bodova'], ['point'])}.` : `${tr('Zaostaješ', 'You trail by')} ${theirs - mine} ${plural(theirs - mine, ['bod', 'boda', 'bodova'], ['point'])}.`} ${tr(`Bez minuta još: ti ${leftMine}, rival ${leftTheirs} igrača.`, `Still to play: you ${leftMine}, rival ${leftTheirs} players.`)}</p></section>`;
+      <p class="sub" style="margin-top:10px">${mine === theirs ? tr('Izjednačeno.', 'Level.') : mine > theirs ? `${tr('Vodiš', 'You lead by')} ${mine - theirs} ${plural(mine - theirs, ['bod', 'boda', 'bodova'], ['point'])}.` : `${tr('Zaostaješ', 'You trail by')} ${theirs - mine} ${plural(theirs - mine, ['bod', 'boda', 'bodova'], ['point'])}.`} ${tr(`Još igra: ti ${leftMine}, rival ${leftTheirs} igrača.`, `Still to play: you ${leftMine}, rival ${leftTheirs} players.`)}</p></section>`;
   }
   else if (S.leagues.length) duel = `<section class="g card"><h2 class="ct">${tr('Dvoboj', 'Head to head')}</h2><div class="pick2" style="margin-top:12px">${leaguePick(S.leagues, S.leagueId)}</div><p class="muted" style="margin-top:10px">${tr('U ovoj ligi nema drugih menadžera. Izaberi drugu ligu.', 'There are no other managers in this league. Pick another league.')}</p></section>`;
   // događaji
@@ -64,7 +65,7 @@ export async function render() {
   for (const id of [...S.xi, ...S.bench]) {
     const s = lv.get(id), e = ix.players.get(id);
     if (!s) continue;
-    const mult = id === S.captain ? 2 : S.bench.includes(id) ? 0 : 1;
+    const mult = id === S.captain ? me.mult : S.bench.includes(id) ? 0 : 1;
     const gp = { 1: 10, 2: 6, 3: 5, 4: 4 }[e.element_type];
     for (let k = 0; k < s.goals_scored; k++) feed.push(['g', tr('GOL', 'GOAL'), e, tr(`${e.web_name} je dao gol`, `${e.web_name} scored`), gp * mult]);
     for (let k = 0; k < s.assists; k++) feed.push(['a', tr('AS', 'AST'), e, `${e.web_name}: ${tr('asistencija', 'assist')}`, 3 * mult]);
@@ -75,7 +76,7 @@ export async function render() {
   }
   const rows = [...S.xi, ...S.bench].map((id, i) => {
     const e = ix.players.get(id), s = lv.get(id) || {}, cap = id === S.captain, bench = i > 10;
-    return `<div class="li${cap ? ' hl' : ''}"><span class="k">${bench ? tr('klupa', 'bench') : POS_BS[e.element_type]}</span><span>${pbtn(e)}${cap ? ' <span class="chg up">C ×2</span>' : ''}<br><span class="sub">${s.minutes || 0} min${s.goals_scored ? ', ' + s.goals_scored + tr(' gol', ' G') : ''}${s.assists ? ', ' + s.assists + tr(' as.', ' A') : ''}${(lb.get(id)?.bonus) ? ', bonus ' + lb.get(id).bonus : ''}, BPS ${lb.get(id)?.bps || 0}${defCon(e, s) ? ', DC ' + defCon(e, s).v + '/' + defCon(e, s).need : ''}</span></span><b class="cond" style="font-size:24px${bench ? ';opacity:.5' : ''}">${ptsOf(lv, lb, id) * (cap ? 2 : 1)}</b></div>`;
+    return `<div class="li${cap ? ' hl' : ''}"><span class="k">${bench ? tr('klupa', 'bench') : POS_BS[e.element_type]}</span><span>${pbtn(e)}${cap ? ` <span class="chg up">C ×${me.mult}</span>` : ''}<br><span class="sub">${s.minutes || 0} min${s.goals_scored ? ', ' + s.goals_scored + tr(' gol', ' G') : ''}${s.assists ? ', ' + s.assists + tr(' as.', ' A') : ''}${(lb.get(id)?.bonus) ? ', bonus ' + lb.get(id).bonus : ''}, BPS ${lb.get(id)?.bps || 0}${defCon(e, s) ? ', DC ' + defCon(e, s).v + '/' + defCon(e, s).need : ''}</span></span><b class="cond" style="font-size:24px${bench ? ';opacity:.5' : ''}">${ptsOf(lv, lb, id) * (cap ? me.mult : 1)}</b></div>`;
   }).join('');
   // bonus uživo: po utakmici kola, igrači sa najviše BPS-a (prvo utakmice tvojih igrača)
   const myIds = new Set([...S.xi, ...S.bench]), myTeams = new Set([...myIds].map((id) => ix.players.get(id).team));
@@ -93,25 +94,34 @@ export async function render() {
   const dcs = [...S.xi, ...S.bench].map((id) => { const e = ix.players.get(id), st = lv.get(id) || {}; return { e, st, dc: defCon(e, st) }; }).filter((x) => x.dc && x.st.minutes > 0).sort((x, y) => y.dc.v / y.dc.need - x.dc.v / x.dc.need);
   const dcCard = dcs.length ? `<section class="g card" aria-labelledby="h-dc"><h2 id="h-dc" class="ct">${tr('Odbrambeni doprinos (DefCon)', 'Defensive contribution (DefCon)')}</h2><p class="sub">${tr('Otklanjanja, blokade, presjeci i startovi (vezni i napadači i povrati lopte). Na 10 za odbranu i 12 za ostale stiže +2.', 'Clearances, blocks, interceptions and tackles (plus recoveries for midfielders and forwards). At 10 for defenders and 12 for the rest it is +2.')}</p>
       <div class="list" style="margin-top:10px">${dcs.map(({ e, dc }) => `<div class="li dc-r"><span>${pbtn(e)} <span class="sub">${POS_BS[e.element_type]}</span><span class="meter${dc.hit ? ' green' : ''}"><i style="width:${Math.min(100, Math.round(dc.v / dc.need * 100))}%"></i></span></span><b class="num">${dc.v}<small>/${dc.need}</small></b><span class="chg ${dc.hit ? 'up' : 'nt'}">${dc.hit ? '+2' : tr(`još ${dc.need - dc.v}`, `${dc.need - dc.v} to go`)}</span></div>`).join('')}</div></section>` : '';
-  return `<div class="head"><div><h1>${tr(`Kolo ${gw} uživo`, `Gameweek ${gw} live`)}</h1><p class="sub">${ev.finished ? tr('Kolo je završeno. Bonus bodovi su konačni kad ih FPL potvrdi.', 'The gameweek is finished. Bonus points are final once FPL confirms them.') : tr('Osvježava se svake minute dok traju utakmice. Bonus bodovi su privremeni.', 'Refreshes every minute while matches are on. Bonus points are provisional.')}</p></div><span class="chg ${ev.finished ? 'nt' : 'up'}" style="font-size:14px">${ev.finished ? tr('završeno', 'finished') : tr('uživo', 'live')}</span></div>
-    <div class="grid2">
-      <div class="stack">
-        <section class="g pts-head" aria-label="${tr('Bodovi u kolu', 'Points in gameweek')} ${gw}">
-          <div class="side-s"><div><span class="sub">${tr('Prosjek', 'Average')}</span><b>${ev.average_entry_score ?? '–'}</b></div><div><span class="sub">${tr('Najviše', 'Highest')}</span><b>${ev.highest_score ?? '–'}</b></div></div>
-          <div class="main-s"><span class="sub">${tr('Bodovi u kolu', 'Points in GW')} ${gw}</span><b data-n="${mine}">${mine}</b><span class="chg ${ev.finished ? 'nt' : 'up'}">${ev.finished ? tr('završeno', 'finished') : tr('uživo', 'live')}</span>${prov ? `<span class="sub">${tr('uklj. privremeni bonus', 'incl. provisional bonus')} +${prov}</span>` : ''}</div>
-          <div class="side-s"><div><span class="sub">${tr('Rang kola', 'GW rank')}</span><b>${hist?.rank ? int(hist.rank) : '–'}</b></div><div><span class="sub">${tr('Transferi', 'Transfers')}</span><b>${hist ? hist.event_transfers + (hist.event_transfers_cost ? ' (−' + hist.event_transfers_cost + ')' : '') : '–'}</b></div></div>
-        </section>
-        <section class="pitch" aria-label="${tr('Bodovi igrača', 'Player points')}"><div class="field">${[1, 2, 3, 4].map((pos) => `<div class="line-row">${S.xi.map((id) => ix.players.get(id)).filter((e) => e.element_type === pos).map((e) => pitchCard(ix, e, { cap: e.id === S.captain, vice: e.id === S.vice, attr: 'data-pid', tv: tvPlate(ix, e, lv.get(e.id), lb.get(e.id), ptsOf(lv, lb, e.id) * (e.id === S.captain ? 2 : 1), gw) })).join('')}</div>`).join('')}</div>
-          <div class="bench" aria-label="${tr('Klupa', 'Bench')}">${S.bench.map((id, i) => { const e = ix.players.get(id); return `<div class="bslot"><span class="sub">${i ? i + '.' : tr('GOL', 'GK')}</span>${pitchCard(ix, e, { bench: true, attr: 'data-pid', tv: tvPlate(ix, e, lv.get(id), lb.get(id), ptsOf(lv, lb, id), gw) })}</div>`; }).join('')}</div></section>
-        <p class="sub lx-legend">${tr('B je bonus po BPS-u (0 do 3, privremeno dok FPL ne potvrdi), DC je odbrambeni doprinos: odbrana treba 10, vezni i napadači 12 za +2 boda.', 'B is the bonus from BPS (0 to 3, provisional until FPL confirms), DC is the defensive contribution: defenders need 10, midfielders and forwards 12 for +2 points.')}</p>
-        <section class="g card"><h2 class="ct">${tr('Šta se desilo', 'What happened')}</h2><div class="feed" style="margin-top:12px">${feed.length ? feed.map(([k, t, e, txt, p]) => `<p><span class="ev ${k}">${t}</span><span>${esc(txt)} <span class="sub">${esc(ix.teams.get(e.team).short_name)}</span></span><b class="num" style="color:${p ? 'var(--green)' : 'var(--d)'}">${p ? '+' + p : tr('klupa', 'bench')}</b></p>`).join('') : `<p class="muted">${tr('Još nema golova ni asistencija tvojih igrača.', 'No goals or assists from your players yet.')}</p>`}</div></section>
+  const st = ev.finished ? tr('završeno', 'finished') : tr('uživo', 'live');
+  const left = toPlay(S.xi);
+  return `<div class="tmv lv${side ? ' side-open' : ''}">
+    <div class="tm-main">
+      <div class="tvbn"><h1>${tr('Uživo', 'Live')}</h1><div class="lv-gw"><b>${tr('Kolo', 'GW')} ${gw}</b><span class="${ev.finished ? '' : 'on'}">${ev.finished ? '' : '<i aria-hidden="true"></i>'}${st}</span></div></div>
+      <div class="tchips lvc" aria-label="${tr('Bodovi u kolu', 'Points in gameweek')} ${gw}">
+        <div class="hl big"><span class="sub">${tr('Tvoji bodovi', 'Your points')}</span><b data-n="${mine}">${mine}</b>${prov ? `<span class="sub">${tr('uklj. bonus', 'incl. bonus')} +${prov}</span>` : ''}</div>
+        <div><span class="sub">${tr('Prosjek', 'Average')}</span><b>${ev.average_entry_score ?? '–'}</b></div>
+        <div><span class="sub">${tr('Još igra', 'To play')}</span><b>${left}<small>/11</small></b></div>
+        <div><span class="sub">${tr('Rang kola', 'GW rank')}</span><b>${hist?.rank ? short(hist.rank) : '–'}</b></div>
       </div>
-      <div class="stack">${bpsCard}${dcCard}${duel}<details class="g card more-d"><summary class="ct">${tr('Minute i događaji po igraču', 'Minutes and events per player')}</summary><div class="list" style="margin-top:12px">${rows}</div></details></div>
+      <div class="pl-tools"><span class="sub lx-legend">${tr('B bonus po BPS-u, DC odbrambeni doprinos (10 odbrana, 12 ostali = +2)', 'B bonus from BPS, DC defensive contribution (10 defenders, 12 others = +2)')}</span><button type="button" class="btn sm ghost plan-open" data-side aria-expanded="${side}" aria-controls="tm-side">${tr('Detalji', 'Details')}</button></div>
+      <section class="pitch tvp lvp" aria-label="${tr('Bodovi igrača', 'Player points')}">${TVBG}<div class="field">${[1, 2, 3, 4].map((pos) => `<div class="line-row">${S.xi.map((id) => ix.players.get(id)).filter((e) => e.element_type === pos).map((e) => pitchCard(ix, e, { cap: e.id === S.captain, vice: e.id === S.vice, attr: 'data-pid', tv: tvPlate(ix, e, lv.get(e.id), lb.get(e.id), ptsOf(lv, lb, e.id) * (e.id === S.captain ? me.mult : 1), gw, lf) })).join('')}</div>`).join('')}</div>
+        <div class="bench" aria-label="${tr('Klupa', 'Bench')}"><span class="bench-l">${tr('Klupa', 'Bench')}</span>${S.bench.map((id, i) => { const e = ix.players.get(id); return `<div class="bslot"><span class="sub">${i ? i + '.' : tr('GOL', 'GK')}</span>${pitchCard(ix, e, { bench: true, attr: 'data-pid', tv: tvPlate(ix, e, lv.get(id), lb.get(id), ptsOf(lv, lb, id), gw, lf) })}</div>`; }).join('')}</div></section>
     </div>
-    <p class="sub mt">${tr('Automatske zamjene sa klupe FPL radi na kraju kola, pa ovdje još nisu uračunate.', 'FPL makes automatic substitutions at the end of the gameweek, so they are not counted here yet.')}</p>`;
+    <div class="tm-side" id="tm-side">
+      <div class="side-h"><h2 class="ct">${tr(`Kolo ${gw}: detalji`, `Gameweek ${gw}: details`)}</h2><button type="button" class="icon-btn" data-side aria-label="${tr('Zatvori detalje', 'Close details')}">${ic('close')}</button></div>
+      <p class="sub">${ev.finished ? tr('Kolo je završeno. Bonus bodovi su konačni kad ih FPL potvrdi.', 'The gameweek is finished. Bonus points are final once FPL confirms them.') : tr('Osvježava se svake minute dok traju utakmice. Bonus bodovi su privremeni.', 'Refreshes every minute while matches are on. Bonus points are provisional.')} ${tr('Automatske zamjene sa klupe FPL radi na kraju kola, pa ovdje još nisu uračunate.', 'FPL makes automatic substitutions at the end of the gameweek, so they are not counted here yet.')}</p>
+      <section class="g card"><h2 class="ct">${tr('Šta se desilo', 'What happened')}</h2><div class="feed" style="margin-top:12px">${feed.length ? feed.map(([k, t, e, txt, p]) => `<p><span class="ev ${k}">${t}</span><span>${esc(txt)} <span class="sub">${esc(ix.teams.get(e.team).short_name)}</span></span><b class="num" style="color:${p ? 'var(--green)' : 'var(--d)'}">${p ? '+' + p : tr('klupa', 'bench')}</b></p>`).join('') : `<p class="muted">${tr('Još nema golova ni asistencija tvojih igrača.', 'No goals or assists from your players yet.')}</p>`}</div></section>
+      ${duel}${bpsCard}${dcCard}
+      <details class="g card more-d"><summary class="ct">${tr('Minute i događaji po igraču', 'Minutes and events per player')}</summary><div class="list" style="margin-top:12px">${rows}</div></details>
+    </div>
+  </div>`;
 }
 
+const short = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1).replace('.0', '') + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'k' : int(n));
 export function bind(rerender) {
+  document.querySelectorAll('[data-side]').forEach((b) => { b.onclick = () => { side = !side; rerender(true); }; });
   const sel = document.getElementById('rival');
   if (sel) sel.onchange = () => { rivalId = +sel.value; rerender(); };
   const lg = document.getElementById('lg-sel');

@@ -2,8 +2,8 @@
 import { setDemo, isDemo, warm } from './api.js';
 import { enhance } from './dd.js';
 import { tr, langSwitch, bindLang } from './i18n.js';
-import { S, load, reset, element, warmCaptainHistory, ftLeft, live } from './state.js';
-import { xp, fixturesFor, reason, fmt, price, num, int, POS_BS, dayShort, dateShort, dateLong, alerts, liveBonus } from './model.js';
+import { S, load, reset, element, warmCaptainHistory, ftLeft, live, liveFix, refreshLive } from './state.js';
+import { xp, fixturesFor, reason, fmt, price, num, int, POS_BS, dayShort, dateShort, dateLong, alerts, liveBonus, playerState } from './model.js';
 import { $, esc, ic, ROUTES, TABS, shirt, photo, fdrChip } from './ui.js';
 import * as pregled from './views/pregled.js';
 import * as tim from './views/tim.js';
@@ -11,20 +11,19 @@ import * as kapiten from './views/kapiten.js';
 import * as transferi from './views/transferi.js';
 import * as raspored from './views/raspored.js';
 import * as uzivo from './views/uzivo.js';
-import * as rival from './views/rival.js';
 import * as liga from './views/liga.js';
-import * as karijera from './views/karijera.js';
-import * as vodic from './views/vodic.js';
 import * as kutak from './views/kutak.js';
 import * as trofeji from './views/trofeji.js';
 
-const VIEWS = { pregled, tim, kapiten, transferi, raspored, uzivo, kutak, rival, liga, karijera, trofeji, vodic };
+const VIEWS = { pregled, tim, kapiten, transferi, raspored, uzivo, kutak, liga, trofeji };
 const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* */ } }, del: (k) => { try { localStorage.removeItem(k); } catch { /* */ } } };
 const route = () => { const r = (location.hash.replace('#/', '') || 'pregled').split('?')[0]; return VIEWS[r] ? r : 'pregled'; };
 
 // ---------- meni ----------
+// znak: tri trake (crvena, srebrna, plava) i ime uskim slovima
+const brand = () => `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><span class="bm" aria-hidden="true"><u></u><u></u><u></u></span><span class="bw">SquadJury</span></a>`;
 function chrome() {
   const r = route(), side = $('#side'), tabs = $('#tabs'), more = $('#more');
   const mtop = $('#mtop');
@@ -32,19 +31,19 @@ function chrome() {
   document.querySelector('.shell').classList.toggle('noside', !S.ready);
   if (!S.ready) { more.hidden = true; return; }
   let grp = '';
-  side.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a><button type="button" class="search-btn" data-cmd>${ic('search')}<span>${tr('Pretraga', 'Search')}</span><kbd>${mac ? '⌘' : 'Ctrl'} K</kbd></button>` + ROUTES.map(([k, t, i, g]) => {
+  side.innerHTML = `${brand()}<button type="button" class="search-btn" data-cmd>${ic('search')}<span>${tr('Pretraga', 'Search')}</span><kbd>${mac ? '⌘' : 'Ctrl'} K</kbd></button>` + ROUTES.map(([k, t, i, g]) => {
     const head = g !== grp ? `<p class="grp">${g}</p>` : ''; grp = g;
     return head + `<a class="nv" href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}${t}</a>`;
   }).join('') + `<p class="grp">${tr('Zajednica', 'Community')}</p><a class="nv jury" href="/jury/">${ic('jury')}SquadJury<span class="new">${tr('ocijeni timove', 'rate squads')}</span></a><div class="me"><span class="av" aria-hidden="true">${esc((S.entry.player_first_name[0] || '') + (S.entry.player_last_name[0] || ''))}</span><div style="min-width:0;flex:1"><b>${esc(S.entry.name)}</b><span class="sub">${esc(S.entry.player_first_name)} ${esc(S.entry.player_last_name)}</span>${isDemo() ? `<br><span class="demo-badge">${tr('Primjer', 'Demo')}</span>` : ''}</div><div class="acts"><button class="btn ghost sm" type="button" data-share>${ic('link')}Link</button><button class="btn ghost sm" type="button" data-logout>${ic('out')}${tr('Promijeni', 'Switch')}</button></div></div><div class="side-lang"><span class="sub">${tr('Jezik', 'Language')}</span>${langSwitch()}</div>`;
   const al = alerts(S.ix, S.nextIds || S.ids);
-  mtop.innerHTML = `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><img src="/img/brand/mark.svg" alt="" width="38" height="38"><span>Squad<em>Jury</em></span></a>${hchip()}<span class="mtop-r">${al.length ? `<button type="button" class="icon-btn bell" id="bell-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="alerts" aria-label="${tr('Upozorenja', 'Alerts')}: ${al.length}">${ic('bell')}<i aria-hidden="true">${al.length}</i></button>` : ''}<button type="button" class="icon-btn" data-cmd aria-label="${tr('Traži igrača ili ekran', 'Find a player or screen')}">${ic('search')}</button><button type="button" class="av av-btn" id="acct-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="acct" aria-label="${initials()}, ${tr('tvoj tim i promjena tima', 'your team and switching team')}: ${esc(S.entry.name)}">${initials()}</button></span>`;
+  mtop.innerHTML = `${brand()}${hchip()}<span class="mtop-r">${al.length ? `<button type="button" class="icon-btn bell" id="bell-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="alerts" aria-label="${tr('Upozorenja', 'Alerts')}: ${al.length}">${ic('bell')}<i aria-hidden="true">${al.length}</i></button>` : ''}<button type="button" class="icon-btn" data-cmd aria-label="${tr('Traži igrača ili ekran', 'Find a player or screen')}">${ic('search')}</button><button type="button" class="av av-btn" id="acct-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="acct" aria-label="${initials()}, ${tr('tvoj tim i promjena tima', 'your team and switching team')}: ${esc(S.entry.name)}">${initials()}</button></span>`;
   bell(al); liveChip();
   acct();
   const inMore = !TABS.includes(r);
   tabs.innerHTML = TABS.map((k) => { const [, t, i] = ROUTES.find((x) => x[0] === k); return `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}<span>${t}</span></a>`; }).join('') + `<button type="button" id="more-btn" aria-expanded="${!more.hidden}" aria-controls="more"${inMore ? ' aria-current="page"' : ''}>${ic('more')}<span>${tr('Više', 'More')}</span></button>`;
-  // Više: jasne grupe kao u bočnom meniju, neprozirna podloga
-  const rest = ROUTES.filter(([k]) => !TABS.includes(k)), groups = [...new Set(rest.map((x) => x[3]))];
-  more.innerHTML = `<div class="ms-h"><b>${tr('Više', 'More')}</b><button type="button" class="icon-btn" data-close-more aria-label="${tr('Zatvori', 'Close')}">${ic('close')}</button></div>` + groups.map((g) => `<p class="ms-g">${g}</p><div class="ms-row">${rest.filter((x) => x[3] === g).map(([k, t, i]) => `<a href="#/${k}"${k === r ? ' aria-current="page"' : ''}>${ic(i)}<span>${t}</span></a>`).join('')}</div>`).join('') + `<p class="ms-g">${tr('Zajednica', 'Community')}</p><div class="ms-row"><a href="/jury/">${ic('jury')}<span>SquadJury</span></a><a href="#/" data-logout>${ic('out')}<span>${tr('Promijeni tim', 'Switch team')}</span></a></div><div class="more-lang"><span class="sub">${tr('Jezik', 'Language')}</span>${langSwitch()}</div>`;
+  // Više: pet velikih pločica (ikona, naziv, kratak opis), ispod SquadJury i promjena tima
+  const rest = ROUTES.filter(([k]) => !TABS.includes(k));
+  more.innerHTML = `<div class="ms-h"><b>${tr('Više', 'More')}</b><button type="button" class="icon-btn" data-close-more aria-label="${tr('Zatvori', 'Close')}">${ic('close')}</button></div><div class="ms-tiles">${rest.map(([k, t, i, , d]) => `<a class="ms-t" href="#/${k}"${k === r ? ' aria-current="page"' : ''}><span class="ms-i">${ic(i)}</span><b>${t}</b><span class="sub">${d}</span></a>`).join('')}</div><div class="ms-foot"><a class="ms-s" href="/jury/">${ic('jury')}<span><b>SquadJury</b><span class="sub">${tr('ocijeni tuđe timove', 'rate other squads')}</span></span></a><a class="ms-s" href="#/" data-logout>${ic('swap')}<span><b>${tr('Promijeni tim', 'Switch team')}</b><span class="sub">${esc(S.entry.name)}</span></span></a></div><div class="more-lang"><span class="sub">${tr('Jezik', 'Language')}</span>${langSwitch()}</div>`;
   bindLang();
   $('#more-btn').onclick = () => { more.hidden = !more.hidden; $('#acct').hidden = true; $('#more-btn').setAttribute('aria-expanded', String(!more.hidden)); };
   more.querySelector('[data-close-more]').onclick = () => { more.hidden = true; $('#more-btn').setAttribute('aria-expanded', 'false'); };
@@ -68,14 +67,16 @@ async function liveChip() {
   const gw = liveGw();
   if (!gw) return;
   try {
-    const lv = await live(gw), lb = liveBonus(lv), mult = S.picks?.active_chip === '3xc' ? 3 : 2;
+    const [lv, lf] = await Promise.all([live(gw), liveFix(gw).catch(() => null)]), lb = liveBonus(lv), mult = S.picks?.active_chip === '3xc' ? 3 : 2;
     const pts = S.xi.reduce((t, id) => t + ((lv.get(id)?.total_points || 0) + (lb.get(id)?.provisional || 0)) * (id === S.captain ? mult : 1), 0);
-    const left = S.xi.filter((id) => fixturesFor(S.ix, S.ix.players.get(id).team, gw, 1).some((f) => !f.finished)).length;
+    const left = S.xi.filter((id) => playerState(S.ix, S.ix.players.get(id), gw, lf).toPlay).length;
     const a = $('#hc-pts'), b = $('#hc-left');
     if (a) a.textContent = pts;
     if (b) b.textContent = left ? tr(`još ${left} igra`, `${left} to play`) : tr('svi odigrali', 'all played');
   } catch { /* bez uživo podataka čip ostaje sa tačkicama */ }
 }
+// čip uživo se osvježava svake minute i na drugim ekranima (Uživo se osvježava sam)
+setInterval(() => { const gw = S.ready && liveGw(); if (gw && !document.hidden && route() !== 'uzivo') { refreshLive(gw); liveChip(); } }, 60000);
 // zvonce: povrede, igrači bez utakmice i pad cijene
 function bell(al) {
   const box = $('#alerts'), btn = $('#bell-btn');
@@ -271,9 +272,9 @@ function start(msg = '') {
   const mob = matchMedia('(pointer: coarse)').matches;
   return `<div class="start">
     <section class="g card st-main">
-      <div class="st-top"><p class="st-brand"><img src="/img/brand/mark.svg" alt="" width="56" height="56"><span>Squad<em>Jury</em></span></p>${langSwitch()}</div>
+      <div class="st-top"><p class="st-brand"><span class="bm" aria-hidden="true"><u></u><u></u><u></u></span><span>SquadJury</span></p>${langSwitch()}</div>
       <h1>${tr('Tvoj FPL tim, <span>pregledno</span>', 'Your FPL team, <span>at a glance</span>')}</h1>
-      <p class="lead">${tr('Kapiten, transferi, raspored, bodovi uživo i rival iz lige, sa procjenom bodova za svako kolo. Uz to ocjenjuješ tuđe timove.', 'Captain, transfers, fixtures, live points and your league rival, with predicted points for every gameweek. Plus you get to rate other squads.')}</p>
+      <p class="lead">${tr('Kapiten, transferi, raspored, bodovi uživo i tvoja liga, sa procjenom bodova za svako kolo. Uz to ocjenjuješ tuđe timove.', 'Captain, transfers, fixtures, live points and your league, with predicted points for every gameweek. Plus you get to rate other squads.')}</p>
       <form id="login" novalidate><label class="field" for="fid">${tr('Tvoj FPL ID ili link tima', 'Your FPL ID or team link')}</label>
         <div class="st-row field"><input id="fid" inputmode="text" autocomplete="off" placeholder="${tr('npr. 1234567 ili zalijepi link', 'e.g. 1234567 or paste a link')}" aria-describedby="fhint lerr" required><button class="btn" type="submit">${tr('Otvori moj tim', 'Open my team')}</button></div>
         <p class="st-hint" id="fhint" aria-live="polite">${innerWidth > 980 ? tr('Ne znaš svoj ID? Uputstvo je desno, traje pola minute.', 'Don\'t know your ID? The steps are on the right, it takes half a minute.') : tr('Ne znaš svoj ID? Uputstvo je ispod, traje pola minute.', 'Don\'t know your ID? The steps are below, it takes half a minute.')}</p>

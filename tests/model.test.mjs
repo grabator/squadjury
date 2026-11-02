@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import * as demo from '../src/lib/demo.js';
-import { index, xp, captainOptions, transferIdeas, whatIf, alerts, fixturesFor, availability, leagueAwards } from '../public/js/model.js';
+import { index, xp, captainOptions, transferIdeas, whatIf, alerts, fixturesFor, availability, leagueAwards, fxStatus, playerState } from '../public/js/model.js';
 
 const ix = index(demo.bootstrap(), demo.fixtures());
 const p = demo.picks(1, 9).picks.map((x) => x.element);
@@ -197,4 +197,20 @@ test('trofeji u ligi: najviše bodova, skok, prvo mjesto, kapiten i neriješeno'
   assert.deepEqual(a, ['cap3', 'jump2', 'mgr2', 'top2', 'top3']);
   assert.deepEqual(leagueAwards(members.slice(0, 1), 1), []);
   assert.deepEqual(leagueAwards(members, 99), []);
+});
+
+test('uživo: stanje utakmice i igrača koji još igraju', () => {
+  const now = Date.parse('2026-10-31T16:00:00Z');
+  const f = { id: 1, kickoff: '2026-10-31T15:00:00Z', finished: false };
+  assert.equal(fxStatus(f, null, now), 'live');
+  assert.equal(fxStatus({ ...f, kickoff: '2026-10-31T17:30:00Z' }, null, now), 'pre');
+  assert.equal(fxStatus({ ...f, kickoff: '2026-10-31T11:00:00Z' }, null, now), 'done');
+  // svježi podaci imaju prednost: završena (privremeno) utakmica više nije "to play"
+  assert.equal(fxStatus(f, new Map([[1, { started: true, finished: false, finished_provisional: true }]]), now), 'done');
+  assert.equal(fxStatus(f, new Map([[1, { started: false, finished: false, finished_provisional: false }]]), now), 'pre');
+  const e = ix.players.get(xi[0]), fx = fixturesFor(ix, e.team, 9, 1);
+  const lf = new Map(fx.map((x) => [x.id, { started: true, finished: false, finished_provisional: true }]));
+  assert.deepEqual([playerState(ix, e, 9, lf).state, playerState(ix, e, 9, lf).toPlay], ['done', false]);
+  const lf2 = new Map(fx.map((x) => [x.id, { started: true, finished: false, finished_provisional: false }]));
+  assert.deepEqual([playerState(ix, e, 9, lf2).state, playerState(ix, e, 9, lf2).toPlay], ['live', true]);
 });
