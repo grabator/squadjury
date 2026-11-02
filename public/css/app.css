@@ -1379,8 +1379,6 @@ dialog.cmd { background: var(--tile); border: 0; }
 @media (max-width: 900px) { .tmv .pl-tools .btn[data-act='reset'][disabled] { display: none; } }
 /* Moj tim i Uživo na mobitelu: jedan ekran bez skrolanja; zatvoren plan je skriven (ne pravi prazan prostor ispod) */
 @media (max-width: 900px) {
-  html:has(main[data-v='tim']), html:has(main[data-v='uzivo']) { overflow: hidden; overscroll-behavior: none; }
-  html:has(main[data-v='tim']) body, html:has(main[data-v='uzivo']) body { overflow: hidden; }
   .tm-side { display: none; transform: none; visibility: visible; transition: none; }
   .tmv.side-open .tm-side { display: grid; }
   .tm-main { min-height: 0; }
@@ -1750,3 +1748,170 @@ body::after { background: rgba(13, 13, 15, .82); }
 .rp-pos { display: grid; gap: 4px; }
 .rp-pos .sub { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .rp-tools { align-items: flex-end; }
+
+/* Pregled: utakmice kao TV traka za rezultat (domaći lijevo, gost desno, boje klubova, kose pruge, vrijeme na jezičku) */
+.fcard.sb { display: flex; flex-direction: column; padding: 14px 8px 0; background: radial-gradient(120% 90% at 50% 0%, #1f1f25, var(--tile) 70%); }
+.sb .bug { display: grid; grid-template-columns: 1fr 34px 1fr; height: 34px; filter: drop-shadow(0 5px 8px rgba(0, 0, 0, .55)); }
+.sb .pl { position: relative; display: flex; align-items: center; gap: 3px; min-width: 0; overflow: hidden; background: var(--c); color: var(--ct); }
+.sb .pl b { position: relative; z-index: 1; font: 800 20px/1 var(--cond); letter-spacing: .01em; }
+.sb .pl.h { padding-left: 7px; border-radius: 4px 0 0 4px; clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+.sb .pl.a { justify-content: flex-end; padding-right: 7px; border-radius: 0 4px 4px 0; clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%); }
+.sb .pl::before, .sb .pl::after { content: ''; position: absolute; top: -2px; bottom: -2px; width: 5px; background: var(--a); transform: skewX(-13deg); }
+.sb .pl.h::before { right: 11px; } .sb .pl.h::after { right: 19px; width: 3px; opacity: .75; }
+.sb .pl.a::before { left: 11px; } .sb .pl.a::after { left: 19px; width: 3px; opacity: .75; }
+.sb .pl .cr { position: relative; z-index: 1; display: none; width: 16px; height: 16px; }
+.sb .pl .cr.has-ph { display: block; } .sb .pl .cr img { width: 16px; height: 16px; object-fit: contain; }
+.sb .pl.a .cr { order: 2; }
+.sb .mid { position: relative; z-index: 2; margin: 0 -8px; display: grid; place-items: center; background: #121215; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+.sb .mid img { width: 24px; height: 20px; }
+.sb .tab { align-self: center; margin-top: -1px; padding: 4px 11px 5px; border-radius: 0 0 7px 7px; background: #121215; color: #fff; font: 800 17px/1 var(--cond); letter-spacing: .03em; box-shadow: 0 4px 8px -4px rgba(0, 0, 0, .6); }
+.sb .fbt { padding: 8px 4px 12px; text-align: center; }
+.sb .fbt .sub { color: #e6bf8f; font-weight: 600; }
+@media (min-width: 901px) { .sb .bug { height: 40px; } .sb .pl b { font-size: 23px; } .sb .tab { font-size: 19px; } }
+.hscroll:has(.sb) { grid-auto-columns: 214px; }
+@media (min-width: 901px) { .hscroll:has(.sb) { grid-auto-columns: 250px; } }
+.sb .pl.h { padding-right: 26px; } .sb .pl.a { padding-left: 26px; }
+
+/* Moj tim i Uživo na mobitelu: teren nikad ne odsijeca redove; ako ne stane (iPhone sa trakama preglednika), stranica se skrola */
+@media (max-width: 900px) {
+  .tm-main { height: auto !important; min-height: calc(100dvh - 168px - env(safe-area-inset-bottom)); }
+  .tvp { flex: 1 0 auto; }
+}
+/* niski ekrani (iPhone sa trakama Safarija): manje kartice i sabijen gornji dio, da cijeli tim i klupa stanu iznad donjeg menija */
+@media (max-width: 900px) and (max-height: 760px) {
+  .tmv .tchips > div { padding: 3px 7px 4px; }
+  .tmv .tchips .sub { font-size: 9px; }
+  .tmv .tchips b { font-size: 18px; line-height: 1.05; }
+  .tmv .pl-tools { min-height: 0; }
+  .tmv .pl-tools button { padding-top: 6px; padding-bottom: 6px; }
+  .lvp .lc { grid-template-rows: 48px 18px; height: 66px; }
+  .lvp .lc-ph { height: 48px; }
+  .lvp .lc-ph .shirt { width: 40px; height: 40px; }
+  .lvp .lc-r { grid-template-rows: 22px 12px 12px; }
+  .lvp .lc-p { height: 22px; line-height: 22px; font-size: 21px; }
+  .lvp .lc.cap .lc-p { line-height: 22px; }
+  .lvp .lc-t { height: 12px; line-height: 12px; font-size: 9px; }
+  .lvp .lc-n { height: 18px; line-height: 18px; font-size: 11px; }
+  .tvp .bench { min-height: 0; padding-top: 4px; padding-bottom: 4px; }
+  .tvp .bslot > .sub { font-size: 8.5px; }
+  .tvp .field { padding-top: 18px; }
+}
+/* mobitel: polja od 16px da iPhone ne zumira stranicu kad se tapne pretraga */
+@media (max-width: 900px) { input, select, textarea, .field input, .field select, .st-find .field input { font-size: 16px; } }
+/* zamjena igrača na mobitelu: lista se skrola unutar prozora; sa otvorenom tastaturom prozor stane u vidljivi dio iznad nje */
+@media (max-width: 900px) {
+  .tmv .buy { display: flex; flex-direction: column; overflow: hidden; }
+  .tmv .buy .buy-list { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain; }
+  html.kb-open .tmv .buy { top: calc(var(--vvt, 0px) + 6px); bottom: auto; height: calc(var(--vvh, 100dvh) - 12px); padding-top: 10px; padding-bottom: 8px; }
+  html.kb-open .tmv .buy .ch p.sub { display: none; }
+  html.kb-open .tmv .buy .ch h2 { font-size: 18px; }
+}
+/* Transferi, tabela igrača: igrač (slika na SJ šari + ime) ostaje zalijepljen lijevo dok se tabela lista udesno */
+.tbl.mk .mk-pl { position: sticky; left: 0; z-index: 2; }
+.tbl.mk th.mk-pl { background: var(--bg); }
+.tbl.mk td.mk-pl { min-width: 150px; max-width: 190px; padding: 6px 10px 6px 6px; background: #19191d; box-shadow: 8px 0 12px -10px rgba(0, 0, 0, .9); }
+.tbl.mk tr.me td.mk-pl { background: #3a2c20; }
+.tbl.mk td.mk-pl { display: table-cell; }
+.mk-pl .mk-ph { float: left; position: relative; width: 40px; height: 44px; margin-right: 8px; border-radius: 8px; overflow: hidden; background-size: 60px 69px !important; }
+.mk-pl .mk-ph .shirt { position: absolute; left: 50%; bottom: -1px; width: 38px; height: 38px; transform: translateX(-50%); }
+.mk-pl .mk-ph .shirt .ph { height: 128%; }
+.mk-pl .mk-nm { display: grid; min-width: 0; padding-top: 3px; }
+.mk-pl .mk-nm .pbtn { justify-self: start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.mk-pl .mk-nm .sub { font-size: 11.5px; white-space: nowrap; }
+.tbl.mk tr.me .mk-ph { box-shadow: inset 0 0 0 2px var(--acc); }
+.tbl.mk tr.me .mk-ph::after { content: ''; position: absolute; right: 3px; top: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--acc); }
+/* DefCon i Bonus stranice */
+.dcv { display: grid; gap: 12px; }
+.dcv .lv-gw { justify-content: flex-start; gap: 6px; }
+.gwnav { width: 30px; height: 30px; border: 0; border-radius: 8px; background: rgba(255, 255, 255, .08); color: var(--t); font: 800 20px/1 var(--cond); cursor: pointer; }
+.gwnav:disabled { opacity: .3; cursor: default; }
+.gwnav:not(:disabled):hover { background: var(--acc); color: var(--acc-t); }
+.dc-info { margin: 0; font-size: 12.5px; }
+.dc-seg { justify-self: start; }
+.dc-h { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; font: 800 20px/1 var(--cond); text-transform: uppercase; letter-spacing: .02em; }
+.dc-h .sub { font: 600 12px 'Space Grotesk', sans-serif; text-transform: none; letter-spacing: 0; }
+.dc-dot { width: 10px; height: 10px; border-radius: 50%; background: #e6bf8f; } .dc-dot.ok { background: var(--up); }
+.dc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 8px; }
+.dc-c { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 14px; background: var(--tile); box-shadow: inset 0 0 0 1px #2c2620; }
+.dc-c.me { box-shadow: inset 0 0 0 1.5px var(--acc); background: linear-gradient(90deg, rgba(201, 147, 95, .16), var(--tile) 60%); }
+.dc-ph { position: relative; display: block; width: 52px; height: 56px; border-radius: 10px; overflow: hidden; background-size: 60px 69px !important; }
+.dc-ph .shirt { position: absolute; left: 50%; bottom: -1px; width: 46px; height: 46px; transform: translateX(-50%); }
+.dc-ph .shirt .ph { height: 128%; }
+.dc-b { display: grid; gap: 3px; min-width: 0; }
+.dc-nm .pbtn { font-weight: 700; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dc-b .sub { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dc-my { color: #e6bf8f; font-weight: 700; }
+.dc-bar { position: relative; display: block; height: 6px; margin-top: 3px; border-radius: 99px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.dc-bar i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: #e6bf8f; }
+.dc-c.hit .dc-bar i { background: var(--up); }
+.dc-v { display: grid; justify-items: end; gap: 2px; }
+.dc-v b { font: 800 26px/1 var(--cond); } .dc-v small { font: 700 13px/1 var(--cond); color: var(--d); }
+.dc-v b + small { margin-top: -2px; }
+.dc-v em { font-style: normal; font: 800 13px/1 var(--cond); padding: 3px 6px; border-radius: 6px; }
+.dc-ok { background: var(--up); color: #062414; } .dc-miss { background: #26262c; color: #e6bf8f; }
+.bx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 10px; }
+.bx.sb { display: flex; flex-direction: column; padding: 14px 10px 10px; border-radius: 18px; background: radial-gradient(120% 90% at 50% 0%, #1f1f25, var(--tile) 70%); box-shadow: inset 0 0 0 1px #2c2620; }
+.bx.sb.has-me { box-shadow: inset 0 0 0 1.5px rgba(201, 147, 95, .7); }
+.bx .bug { grid-template-columns: 1fr 64px 1fr; }
+.bx .mid.sc { margin: 0 -8px; color: #fff; font: 800 22px/1 var(--cond); display: flex; align-items: center; justify-content: center; gap: 4px; }
+.bx .mid.sc i { font-style: normal; color: var(--d); font-size: 16px; }
+.bx-pr { margin: 6px 0 0; text-align: center; font-size: 11px; color: #e6bf8f; }
+.bx-rows { display: grid; gap: 6px; margin-top: 10px; }
+.bx-r { display: grid; grid-template-columns: 30px 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 10px 6px 6px; border-radius: 12px; background: rgba(255, 255, 255, .04); }
+.bx-r.me { background: linear-gradient(90deg, rgba(201, 147, 95, .2), rgba(255, 255, 255, .04) 70%); box-shadow: inset 0 0 0 1px rgba(201, 147, 95, .6); }
+.bx-r .dc-ph { width: 44px; height: 46px; }
+.bx-r .dc-ph .shirt { width: 40px; height: 40px; }
+.bx-b { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 800 18px/1 var(--cond); color: #1a120a; background: #e6bf8f; }
+.bx-b.b3 { background: linear-gradient(145deg, #f3d9a8, #c9935f); box-shadow: 0 0 0 2px rgba(230, 191, 143, .35); }
+.bx-b.b2 { background: #d7d7dc; } .bx-b.b1 { background: #b07a52; color: #fff; }
+.bx-n { display: grid; min-width: 0; } .bx-n .pbtn { font-weight: 700; justify-self: start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bx-n .sub { font-size: 11.5px; }
+.bx-bps { display: grid; justify-items: end; } .bx-bps b { font: 800 20px/1 var(--cond); } .bx-bps small { font-size: 10px; color: var(--d); font-weight: 700; }
+.dc-segs { display: flex; flex-wrap: wrap; gap: 8px; }
+.dm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.dm { position: relative; display: grid; border-radius: 12px; overflow: hidden; background: #141416; box-shadow: 0 0 0 1px #2c2620, 0 8px 16px -10px #000; }
+.dm.me { box-shadow: 0 0 0 2px var(--acc); }
+.dm-ph { position: relative; display: block; height: 70px; overflow: hidden; background-size: 60px 69px !important; }
+.dm-ph .shirt { position: absolute; left: 10px; bottom: -1px; width: 56px; height: 56px; }
+.dm-ph .shirt .ph { height: 128%; }
+.dm-v { position: absolute; right: 6px; top: 5px; font: 700 12px/1 var(--cond); color: var(--d); }
+.dm-v b { font: 800 24px/1 var(--cond); color: #e6bf8f; }
+.dm.hit .dm-v b { color: var(--up); }
+.dm-ph em { position: absolute; right: 5px; bottom: 6px; font-style: normal; font: 800 12px/1 var(--cond); padding: 3px 5px; border-radius: 5px; }
+.dm-bar { display: block; height: 4px; background: rgba(255, 255, 255, .1); }
+.dm-bar i { display: block; height: 100%; background: #e6bf8f; }
+.dm.hit .dm-bar i { background: var(--up); }
+.dm-n { display: block; padding: 4px 6px 0; background: #f1ece4; }
+.dm-n .pbtn { display: block; width: 100%; color: #111; font: 800 13px/1.15 var(--cond); text-transform: uppercase; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dm-s { display: block; padding: 1px 6px 4px; background: #f1ece4; color: #4a4a4a; font: 600 10px/1.2 'Space Grotesk', sans-serif; text-align: center; white-space: nowrap; }
+@media (min-width: 901px) { .dm-grid { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); } .dm-ph { height: 84px; } .dm-ph .shirt { width: 66px; height: 66px; } }
+.sb .pl { width: auto; flex: none; justify-items: initial; text-align: left; cursor: default; transition: none; }
+.sb .pl:hover { transform: none; }
+.bx .bug { height: 40px; } .bx .pl b { font-size: 23px; }
+/* meni Više na mobitelu: kompaktne pločice (ikona lijevo), da svih 8 stane iznad donje trake */
+@media (max-width: 900px) {
+  .ms-t { min-height: 0; padding: 10px !important; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 10px !important; align-items: center; }
+  .ms-t:first-child { min-height: 0; }
+  .ms-t .ms-i { grid-row: span 2; width: 34px; height: 34px; margin: 0; }
+  .ms-t b { font-size: 17px; }
+  .ms-t .sub { font-size: 11px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .more-sheet { max-height: calc(100dvh - 110px - env(safe-area-inset-bottom)); }
+}
+@media (max-width: 900px) { .ms-t:last-child:nth-child(even) { min-height: 0; } }
+/* DefCon po utakmicama */
+.dc-sum { display: flex; gap: 16px; margin: 0; font-size: 13px; font-weight: 600; }
+.dc-sum > span { display: inline-flex; align-items: center; gap: 6px; }
+.dcx-h { display: flex; align-items: center; gap: 6px; margin: 12px 2px 6px; font: 800 14px/1 var(--cond); text-transform: uppercase; letter-spacing: .04em; color: var(--t); }
+.dcx-h > span:last-child { color: var(--d); }
+.dcx .dm-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.dcx .dm-grid.nr .dm { opacity: .85; }
+.dcx .dm-ph { height: 62px; } .dcx .dm-ph .shirt { width: 50px; height: 50px; left: 6px; }
+@media (min-width: 901px) { .dcx .dm-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); } .dcx .dm-ph { height: 66px; } }
+@media (max-width: 900px) {
+  .dcx .dm-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+  .dcx .dm-ph { height: 52px; } .dcx .dm-ph .shirt { width: 42px; height: 42px; left: 3px; }
+  .dcx .dm-v { right: 4px; top: 4px; font-size: 10px; } .dcx .dm-v b { font-size: 19px; }
+  .dcx .dm-ph em { right: 3px; bottom: 4px; font-size: 10.5px; padding: 2px 4px; }
+  .dcx .dm-n { padding: 3px 3px 0; } .dcx .dm-n .pbtn { font-size: 11.5px; }
+  .dcx .dm-s { padding: 0 3px 3px; font-size: 9px; }
+}

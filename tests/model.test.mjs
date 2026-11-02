@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import * as demo from '../src/lib/demo.js';
-import { index, xp, captainOptions, transferIdeas, whatIf, alerts, fixturesFor, availability, leagueAwards, fxStatus, playerState } from '../public/js/model.js';
+import { index, xp, captainOptions, transferIdeas, whatIf, alerts, fixturesFor, availability, leagueAwards, fxStatus, playerState, defConList, bonusByFixture, defConByFixture } from '../public/js/model.js';
 
 const ix = index(demo.bootstrap(), demo.fixtures());
 const p = demo.picks(1, 9).picks.map((x) => x.element);
@@ -229,4 +229,39 @@ test('rotacija: igra lakši protivnik, parovi iz različitih klubova i pozicija 
   for (let i = 1; i < best.length; i++) assert.ok(best[i - 1].green >= best[i].green);
   const mine = rotationPairs(ix, defs, defs, { mine: new Set([defs[0].id]), from: 9 });
   assert.ok(mine.every((x) => x.a.id === defs[0].id || x.b.id === defs[0].id));
+});
+
+test('defConList: dobili +2 i blizu (do 3), bez golmana i bez onih koji nisu igrali', () => {
+  const ix = { players: new Map([[1, { id: 1, element_type: 2 }], [2, { id: 2, element_type: 3 }], [3, { id: 3, element_type: 2 }], [4, { id: 4, element_type: 1 }], [5, { id: 5, element_type: 4 }], [6, { id: 6, element_type: 2 }]]) };
+  const lv = new Map([
+    [1, { minutes: 90, defensive_contribution: 13 }], // ODB pogodio
+    [2, { minutes: 90, defensive_contribution: 10 }], // VEZ fali 2 -> blizu
+    [3, { minutes: 90, defensive_contribution: 6 }],  // ODB fali 4 -> ne
+    [4, { minutes: 90, defensive_contribution: 20 }], // golman -> ne
+    [5, { minutes: 90, defensive_contribution: 12 }], // NAP pogodio
+    [6, { minutes: 0, defensive_contribution: 0 }],
+  ]);
+  const r = defConList(ix, lv);
+  assert.deepEqual(r.hit.map((x) => x.e.id), [1, 5]);
+  assert.deepEqual(r.near.map((x) => x.e.id), [2]);
+});
+
+test('bonusByFixture: potvrđen bonus iz FPL-a, inače procjena iz BPS-a; utakmice bez bonusa se ne vraćaju', () => {
+  const lv = new Map([
+    [1, { bonus: 3, fx: [[10, 40, 90]] }], [2, { bonus: 2, fx: [[10, 30, 90]] }], [3, { bonus: 1, fx: [[10, 25, 90]] }], [4, { bonus: 0, fx: [[10, 20, 90]] }],
+    [5, { bonus: 0, fx: [[11, 33, 60]] }], [6, { bonus: 0, fx: [[11, 33, 70]] }], [7, { bonus: 0, fx: [[11, 20, 90]] }], [8, { bonus: 0, fx: [[11, 10, 90]] }],
+    [9, { bonus: 0, fx: [[12, 0, 0]] }],
+  ]);
+  const r = bonusByFixture(lv), f10 = r.find((x) => x.fid === 10), f11 = r.find((x) => x.fid === 11);
+  assert.equal(r.length, 2);
+  assert.equal(f10.confirmed, true); assert.deepEqual(f10.rows.map((x) => [x.id, x.bonus]), [[1, 3], [2, 2], [3, 1]]);
+  assert.equal(f11.confirmed, false); assert.deepEqual(f11.rows.map((x) => [x.id, x.bonus]), [[5, 3], [6, 3], [7, 1]]);
+});
+
+test('defConByFixture: igrači grupisani po utakmici', () => {
+  const ix = { players: new Map([[1, { id: 1, element_type: 2 }], [2, { id: 2, element_type: 3 }], [3, { id: 3, element_type: 2 }]]) };
+  const lv = new Map([[1, { minutes: 90, defensive_contribution: 11, fx: [[10, 20, 90]] }], [2, { minutes: 90, defensive_contribution: 10, fx: [[10, 15, 90]] }], [3, { minutes: 90, defensive_contribution: 12, fx: [[11, 15, 90]] }]]);
+  const r = defConByFixture(ix, lv), f10 = r.find((x) => x.fid === 10), f11 = r.find((x) => x.fid === 11);
+  assert.deepEqual(f10.hit.map((x) => x.e.id), [1]); assert.deepEqual(f10.near.map((x) => x.e.id), [2]);
+  assert.deepEqual(f11.hit.map((x) => x.e.id), [3]);
 });
