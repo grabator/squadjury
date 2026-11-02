@@ -1042,3 +1042,49 @@ h1, h2, h3, .title { font-family: var(--cond); font-weight: 800; letter-spacing:
 .lang-row .seg-lang button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 9px; background: none; color: var(--ink-2); font-weight: 700; font-size: 13px; cursor: pointer; }
 .lang-row .seg-lang button[aria-pressed='true'] { background: linear-gradient(135deg, #7b2cf5, #b44dff); color: #fff; }
 @media (max-width: 400px) { .fm-back { padding: 7px 9px 7px 6px; font-size: 14px; } .topbar .clock { font-size: 12px; } }
+
+/* ===== Tim kao u FPL Manageru: crni teren u perspektivi, kartice sa slikom lijevo, protivnik desno, ime ispod ===== */
+@font-face { font-family: 'SJ Cond'; src: url('/fonts/barlow-condensed-800.woff2') format('woff2'); font-weight: 400 900; font-display: swap; unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: 'SJ Cond'; src: url('/fonts/barlow-condensed-800-ext.woff2') format('woff2'); font-weight: 400 900; font-display: swap; unicode-range: U+0100-024F; }
+.squad { gap: 0; }
+.squad .pitch { border-radius: 10px 10px 0 0; background: #0d0d0f; padding: 6.5cqi 0.6cqi 2cqi; justify-content: space-around; }
+.squad .pitch .lines.tv .grass { fill: #161618; stroke: none; }
+.squad .pitch .lines.tv .band { fill: rgba(255, 255, 255, .025); stroke: none; }
+.squad .pitch .lines.tv .ln * { fill: none; stroke: rgba(201, 147, 95, .55); stroke-width: 1.5; }
+.squad .pboard { position: absolute; left: 0; right: 0; top: 0.8cqi; display: flex; align-items: center; justify-content: center; gap: 46%; pointer-events: none; }
+.squad .pboard span { font: 800 clamp(8px, 2.4cqi, 12px)/1 'SJ Cond', sans-serif; letter-spacing: .32em; text-transform: uppercase; color: rgba(230, 191, 143, .6); }
+.squad .pboard img { position: absolute; left: 50%; top: 0; width: 7cqi; transform: translateX(-50%); opacity: .6; }
+.squad .pitch .line { gap: 1cqi; }
+.squad .bench { border-radius: 0 0 10px 10px; background: #08080a; border-top: 1px solid #2c2620; padding: 1.4cqi 1cqi 1.6cqi; }
+.squad .bench .bl { color: #c9935f; font: 800 clamp(9px, 2.6cqi, 12px) 'SJ Cond', sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+.squad .bench .brow { gap: 1cqi; }
+.squad .pl { width: 18.6cqi; }
+.sj-card { position: relative; display: grid; grid-template-columns: 46% 54%; grid-template-rows: 13cqi 4.8cqi; width: 100%; overflow: hidden; border-radius: 1.8cqi; background: rgba(20, 20, 22, .82); box-shadow: 0 0 0 1px rgba(201, 147, 95, .3), 0 6px 12px -6px rgba(0, 0, 0, .9); text-align: left; }
+.sj-ph { position: relative; overflow: hidden; background: #141416 url('/img/pattern.svg') 0 0 / 14cqi 16.1cqi; }
+.sj-ph .shirt { position: absolute !important; left: 50%; bottom: -1px; width: 11cqi !important; aspect-ratio: 1 !important; transform: translateX(-50%); filter: none !important; }
+.sj-ph .shirt .ph { position: absolute; left: 50%; bottom: 0; height: 125%; width: auto; transform: translateX(-50%); opacity: 0; }
+.sj-ph .shirt.has-ph .ph { opacity: 1; }
+.sj-ph .shirt.has-ph > svg { visibility: hidden; }
+.sj-ph .plus { position: absolute; inset: 0; display: grid; place-items: center; font-size: 7cqi; font-weight: 800; color: #fff; }
+.sj-r { display: grid; grid-template-rows: 4.6cqi 3.6cqi 3.6cqi; align-content: center; padding: 0.4cqi 0.8cqi; min-width: 0; }
+.sj-o { justify-self: start; padding: 0 0.8cqi; border-radius: 0.8cqi; font: 800 clamp(9px, 3.3cqi, 16px)/4.6cqi 'SJ Cond', sans-serif; color: #fff; background: rgba(255, 255, 255, .1); }
+.sj-o.d1, .sj-o.d2 { background: rgba(79, 214, 138, .22); color: #7fe3a9; }
+.sj-o.d4 { background: rgba(212, 31, 43, .35); color: #ffb3b7; }
+.sj-o.d5 { background: rgba(212, 31, 43, .6); color: #fff; }
+.sj-ha, .sj-pos { font-size: clamp(7.5px, 2.3cqi, 11px); line-height: 3.6cqi; color: rgba(241, 236, 228, .7); white-space: nowrap; overflow: hidden; }
+.sj-pos { color: #c9935f; font-weight: 700; }
+.sj-n { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 0.6cqi; padding: 0 0.6cqi; background: #f1ece4; color: #111; font: 800 clamp(9px, 3cqi, 15px)/4.8cqi 'SJ Cond', sans-serif; text-transform: uppercase; }
+.sj-nn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sj-b { flex: none; width: 3.2cqi; height: 3.2cqi; border-radius: 0.6cqi; display: grid; place-items: center; background: #c9935f; color: #1a120a; font: 800 clamp(8px, 2.4cqi, 12px)/1 'SJ Cond', sans-serif; font-style: normal; }
+.sj-b.v { background: #111; color: #f1ece4; }
+.pl.missing .sj-n { background: var(--red); color: #fff; }
+.pl.missing .sj-ph .shirt { opacity: .45; }
+.pl button.pick:focus-visible .sj-card { outline: 3px solid #c9935f; outline-offset: 1px; }
+.pl button.pick:hover .sj-card { box-shadow: 0 0 0 2px #c9935f; }
+/* objava po FPL ID-u */
+.by-id { display: grid; gap: 6px; margin: 4px 0 0; }
+.by-id label { font-weight: 700; }
+.by-id-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.by-id-row input { min-width: 0; height: 48px; padding: 0 14px; border-radius: var(--r); border: 1px solid var(--line); background: var(--card, transparent); color: var(--ink); font: inherit; font-size: 16px; }
+.by-id-err { min-height: 1em; margin: 0; color: var(--red); font-size: 13px; }
+.by-id-or { text-align: center; color: var(--ink-2); font-size: 13px; margin: 2px 0 6px; }

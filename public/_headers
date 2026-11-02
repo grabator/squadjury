@@ -13,7 +13,7 @@
 # SquadJury: Google prijava, čitanje slike tima (WebAssembly) i slike profila
 /jury/*
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client https://appleid.cdn-apple.com; connect-src 'self' https://accounts.google.com/gsi/ https://appleid.apple.com; frame-src https://accounts.google.com/gsi/ https://appleid.apple.com; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https://*.googleusercontent.com; font-src 'self'; worker-src 'self' blob:; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client https://appleid.cdn-apple.com; connect-src 'self' https://accounts.google.com/gsi/ https://appleid.apple.com; frame-src https://accounts.google.com/gsi/ https://appleid.apple.com; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https://*.googleusercontent.com https://resources.premierleague.com; font-src 'self'; worker-src 'self' blob:; base-uri 'self'; form-action 'self'
   X-Frame-Options: DENY
 
 /jury/fonts/*

@@ -46,10 +46,12 @@ function entryHtml(signedIn) {
   const gw = store.state.gw.id;
   return html`<div class="post-entry">
     <div class="page-head"><h1 class="title">${planB ? t('plan.postTitle') : replace ? t('squad.replace') : t('post.title')}</h1><p class="sub">${planB ? t('plan.postSub') : t('post.sub')}</p></div>
+    ${signedIn ? html`<form class="by-id" id="byid"><label for="fplid">${t('post.byId')}</label><div class="by-id-row"><input id="fplid" inputmode="numeric" autocomplete="off" placeholder="${t('post.idPh')}" value="${savedId()}" aria-describedby="byid-err"><button class="btn btn-go" type="submit">${t('post.idLoad')}</button></div><p class="by-id-err" id="byid-err" role="alert"></p></form>
+      <p class="by-id-or">${t('post.idOr')}</p>` : ''}
     <div class="example"><img src="/jury/img/example-pick-team.svg" alt="${t('post.exampleAlt')}"></div>
     <ol class="steps"><li>${t('post.step1')}</li><li>${t('post.step2', { gw })}</li><li>${t('post.step3')}</li></ol>
     ${signedIn
-      ? html`<label class="btn btn-go btn-block" for="file">${raw(ICONS.upload)}${t('post.choose')}</label>
+      ? html`<label class="btn btn-ghost btn-block" for="file">${raw(ICONS.upload)}${t('post.choose')}</label>
         <input type="file" id="file" accept="image/*" class="sr-only">
         <p class="drop-hint">${matchMedia('(hover: hover)').matches ? t('post.dropDesk') : t('post.dropHint')}</p>`
       : html`<button class="btn btn-go btn-block" id="signin">${t('auth.google')}</button>`}
@@ -61,6 +63,7 @@ function chooser() {
   // Start loading the reader early: most people pick a file within seconds.
   import('../ocr/client.js').then((m) => m.warmUp()).catch(() => {});
   $('#file', root).addEventListener('change', (e) => e.target.files[0] && read(e.target.files[0]));
+  $('#byid', root).addEventListener('submit', (e) => { e.preventDefault(); byId($('#fplid', root).value); });
   // Desktop: paste with Ctrl+V or drop a file on the page.
   unmount();
   onPaste = (e) => {
@@ -82,6 +85,41 @@ function chooser() {
   document.addEventListener('dragover', onDrag);
   document.addEventListener('dragleave', onDrag);
   document.addEventListener('drop', onDrag);
+}
+
+// FPL ID iz FPL Managera (isti preglednik), da se ne kuca ponovo
+const savedId = () => { try { const v = localStorage.getItem('fm-id'); return localStorage.getItem('fm-demo') === '1' ? '' : v && /^\d{1,9}$/.test(v) ? v : ''; } catch { return ''; } };
+
+/** Tim po FPL ID-u: zadnji tim sa FPL-a plus transferi već napravljeni za kolo koje se objavljuje. */
+async function byId(raw) {
+  const id = String(raw || '').trim().match(/(?:entry\/)?(\d{1,9})/)?.[1];
+  const err = $('#byid-err', root);
+  if (!id) { err.textContent = t('post.idBad'); return; }
+  err.textContent = '';
+  const btn = $('#byid button', root);
+  btn.disabled = true; btn.classList.add('loading');
+  try {
+    const r = await fetch('/api/team/' + id);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.picks) throw new Error(d.greska || t('err.generic'));
+    const gw = store.state.gw.id;
+    const ids = d.picks.picks.map((p) => p.element);
+    for (const tr of (d.transfers || []).filter((x) => x.event === gw && x.element_in && x.element_out)) {
+      const k = ids.indexOf(tr.element_out);
+      if (k >= 0 && !ids.includes(tr.element_in)) ids[k] = tr.element_in;
+    }
+    const cap = d.picks.picks.find((p) => p.is_captain)?.element, vice = d.picks.picks.find((p) => p.is_vice_captain)?.element;
+    draft = {
+      picks: ids.map((pid, i) => { const pl = fpl.byId.get(pid); return { id: pl ? pid : null, bench: i >= 11, pos: pl?.element_type ?? null, name: pl?.web_name ?? '', options: [] }; }),
+      captain: ids.includes(cap) ? cap : null, vice: ids.includes(vice) ? vice : null, seenGw: null, url: null, byId: true,
+    };
+    try { localStorage.setItem('fm-id', id); } catch { /* bez spremnika */ }
+    shotBitmap = null;
+    confirmView();
+  } catch (e) {
+    err.textContent = errText(e);
+    btn.disabled = false; btn.classList.remove('loading');
+  }
 }
 
 function setProgress(pct, label) {
@@ -192,7 +230,7 @@ function confirmView() {
   const missing = picks.filter((p) => !p.id).length;
   const ready = v.ok && !missing;
   root.innerHTML = html`<div class="confirm">
-    <div class="recog"><span class="num">${15 - missing}/15</span><b>${t('post.found')}</b></div>
+    <div class="recog"><span class="num">${15 - missing}/15</span><b>${draft.byId ? t('post.idFound') : t('post.found')}</b></div>
     <p class="sub" style="margin:0">${ready ? t('post.allGood') : t('post.fix')}</p>
     ${checks(picks)}
     ${draft.seenGw && draft.seenGw !== gw ? html`<p class="note">${t('post.gwNote', { seen: draft.seenGw, gw })}</p>` : ''}
@@ -282,26 +320,26 @@ async function send() {
     const ocr = await import('../ocr/client.js');
     const picks = draft.picks.map((p) => ({ id: p.id }));
     if (planB) {
-      const shot = await ocr.compress(shotBitmap);
+      const shot = shotBitmap ? await ocr.compress(shotBitmap) : null;
       const form = new FormData();
       form.set('picks', JSON.stringify(picks));
       if (draft.captain) form.set('captain', String(draft.captain));
       if (draft.vice) form.set('vice', String(draft.vice));
-      form.set('image', shot, 'plan.' + (shot.type === 'image/webp' ? 'webp' : 'jpg'));
+      if (shot) form.set('image', shot, 'plan.' + (shot.type === 'image/webp' ? 'webp' : 'jpg'));
       await api('/api/plans', { method: 'POST', form });
-      URL.revokeObjectURL(draft.url);
+      if (draft.url) URL.revokeObjectURL(draft.url);
       toast(t('plan.live'), { ms: 3500 });
       return navigate('/jury/squad');
     }
-    const [shot, og] = await Promise.all([ocr.compress(shotBitmap), renderShareImage('og', fpl, previewTeam(), null)]);
+    const [shot, og] = await Promise.all([shotBitmap ? ocr.compress(shotBitmap) : null, renderShareImage('og', fpl, previewTeam(), null)]);
     const form = new FormData();
     form.set('picks', JSON.stringify(picks));
     if (draft.captain) form.set('captain', String(draft.captain));
     if (draft.vice) form.set('vice', String(draft.vice));
-    form.set('image', shot, 'squad.' + (shot.type === 'image/webp' ? 'webp' : 'jpg'));
+    if (shot) form.set('image', shot, 'squad.' + (shot.type === 'image/webp' ? 'webp' : 'jpg'));
     form.set('og', og, 'card.jpg');
     await api(replace ? '/api/teams/mine' : '/api/teams', { method: replace ? 'PUT' : 'POST', form });
-    URL.revokeObjectURL(draft.url);
+    if (draft.url) URL.revokeObjectURL(draft.url);
     await refreshState();
     done();
   } catch (e) {

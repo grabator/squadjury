@@ -16,6 +16,7 @@ function slim(bootstrap, fixtures) {
     teams: bootstrap.teams.map((t) => ({ id: t.id, name: t.name, short_name: t.short_name })),
     players: bootstrap.elements.map((p) => ({
       id: p.id,
+      code: p.code,
       web_name: p.web_name,
       first_name: p.first_name,
       second_name: p.second_name,
@@ -25,7 +26,7 @@ function slim(bootstrap, fixtures) {
     events: bootstrap.events.map((e) => ({ id: e.id, deadline_time: e.deadline_time, finished: !!e.finished, data_checked: !!e.data_checked })),
     fixtures: fixtures
       .filter((f) => f.event)
-      .map((f) => ({ id: f.id, event: f.event, kickoff_time: f.kickoff_time, team_h: f.team_h, team_a: f.team_a })),
+      .map((f) => ({ id: f.id, event: f.event, kickoff_time: f.kickoff_time, team_h: f.team_h, team_a: f.team_a, dh: f.team_h_difficulty, da: f.team_a_difficulty })),
   };
 }
 
