@@ -2,7 +2,7 @@
 // sa predviđenim bodovima. Plan se čuva u pregledniku; u FPL-u ga korisnik potvrđuje sam.
 import { S, live } from '../state.js';
 import { xp, bestXI, fmt, price, num, POS_BS, freeTransfers, fixturesFor } from '../model.js';
-import { esc, fdrChip, ic, pitchCard, shirt, photo } from '../ui.js';
+import { esc, fdrChip, ic, shirt, photo, flagColor } from '../ui.js';
 import { tr } from '../i18n.js';
 
 export const title = tr('Moj tim', 'My team');
@@ -116,7 +116,15 @@ const formation = (ix, xi) => [2, 3, 4].map((t) => xi.filter((id) => ix.players.
 const m = (v) => '£' + fmt(v / 10) + 'm';
 const signed = (v) => (v >= 0 ? '+' : '−') + fmt(Math.abs(v));
 
-const card = (ix, e, { cap, vice, val, gw, bench, fresh }) => pitchCard(ix, e, { cap, vice, bench, attr: 'data-sel', pressed: sel === e.id, info: `${fdrChip(ix, e, gw)}<span class="xpv">${val}</span>`, extra: fresh ? `<span class="tin" aria-hidden="true">${tr('NOVI', 'NEW')}</span><span class="sr">, ${tr('novi igrač', 'new signing')}</span>` : '' });
+// kartica kao na Uživo: lijevo slika u okviru sa šarom, desno predviđeni bodovi i protivnik(ci), ime ispod; uvijek iste veličine
+const card = (ix, e, { cap, vice, val, gw, bench, fresh }) => {
+  const fx = fixturesFor(ix, e.team, gw, 1), fc = flagColor(e);
+  const opp = (f) => `<span class="lc-t lc-o d${f.fdr}">${ix.teams.get(f.opp).short_name}</span>`;
+  const ha = (f) => `<span class="lc-t lc-ha">${f.home ? tr('doma', 'home') : tr('gost', 'away')}</span>`;
+  const slots = fx.length ? opp(fx[0]) + (fx[1] ? opp(fx[1]) : ha(fx[0])) : `<span class="lc-t">${tr('ne igra', 'no game')}</span><span class="lc-t"></span>`;
+  const sr = `<span class="sr">${esc(e.web_name)}${cap ? ', ' + tr('kapiten', 'captain') : vice ? ', ' + tr('vice kapiten', 'vice captain') : ''}${bench ? ', ' + tr('na klupi', 'on the bench') : ''}${fresh ? ', ' + tr('novi igrač', 'new signing') : ''}${fc ? ', ' + tr('upitan', 'doubtful') : ''}: ${val} ${tr('predviđeno', 'predicted')}, ${fx.length ? fx.map((f) => `${ix.teams.get(f.opp).name} ${f.home ? tr('kod kuće', 'home') : tr('u gostima', 'away')}`).join(', ') : tr('ne igra', 'no game')}</span>`;
+  return `<button type="button" class="lc${bench ? ' out' : ''}${cap ? ' cap' : ''}" data-sel="${e.id}" aria-pressed="${sel === e.id}"${fc && e.news ? ` title="${esc(e.news)}"` : ''}><span class="lc-ph pat-bg" aria-hidden="true"><span class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}${photo(e)}</span>${cap ? '<i class="lc-c">C</i>' : vice ? '<i class="lc-c v">V</i>' : ''}${fc ? `<i class="lc-f" style="background:${fc}">!</i>` : ''}${fresh ? `<span class="lc-m lc-new">${tr('NOVI', 'NEW')}</span>` : ''}</span><span class="lc-r" aria-hidden="true"><b class="lc-p">${val}</b>${slots}</span><span class="lc-n" aria-hidden="true">${esc(e.web_name)}</span>${sr}</button>`;
+};
 
 const CHIPS = [['wildcard', 'Wildcard', tr('Neograničeni transferi u kolu bez minus bodova', 'Unlimited transfers in a gameweek with no hits')], ['freehit', 'Free Hit', tr('Tim samo za jedno kolo, pa se vraća stari', 'A team for one gameweek, then your old one returns')], ['bboost', 'Bench Boost', tr('Bodovi igrača sa klupe se računaju', 'Your bench players\' points count')], ['3xc', 'Triple Captain', tr('Kapiten donosi trostruke bodove', 'Your captain scores triple points')]];
 const chipsCard = () => {
@@ -185,7 +193,7 @@ export async function render() {
     <p class="sub" style="margin-top:8px">${tr('Minus bodovi su već oduzeti. Prodajna cijena u FPL-u može biti malo niža od trenutne, a ovdje računamo trenutnu.', 'Hits are already taken off. The FPL selling price can be a bit lower than the current price, here we use the current one.')}</p>
     <p style="margin-top:10px"><button type="button" class="btn sm ghost" data-act="wipe"${Object.keys(P.gws).length ? '' : ' disabled'}>${tr('Obriši cijeli plan', 'Clear the whole plan')}</button></p></section>`;
 
-  const pitchHtml = `<section class="pitch tvp" role="group" aria-label="${tr('Postava za kolo', 'Lineup for gameweek')} ${gw}">${TVBG}<div class="field">${rows}</div><div class="bench" role="group" aria-label="${tr('Klupa', 'Bench')}"><span class="bench-l">${tr('Klupa', 'Bench')}<span class="sr"> · ${fmt(T.bench.reduce((x, id) => x + score(ix.players.get(id)), 0))} ${tr('pred.', 'pred.')}</span></span>${benchRow}</div></section>`;
+  const pitchHtml = `<section class="pitch tvp lvp" role="group" aria-label="${tr('Postava za kolo', 'Lineup for gameweek')} ${gw}">${TVBG}<div class="pboard" aria-hidden="true"><span>Squad</span><img src="/img/brand/mark.svg" alt=""><span>Jury</span></div><div class="field">${rows}</div><div class="bench" role="group" aria-label="${tr('Klupa', 'Bench')}"><span class="bench-l">${tr('Klupa', 'Bench')}<span class="sr"> · ${fmt(T.bench.reduce((x, id) => x + score(ix.players.get(id)), 0))} ${tr('pred.', 'pred.')}</span></span>${benchRow}</div></section>`;
   return `<div class="tmv${side ? ' side-open' : ''}">
     <div class="tm-main">
       <div class="tvbn"><h1>${tr('Moj tim', 'My team')}</h1>${tabs}</div>
@@ -197,8 +205,8 @@ export async function render() {
       </div>
       <div class="pl-tools">
         <div class="seg" role="group" aria-label="${tr('Čip u kolu', 'Chip this GW')} ${gw}">${[['', tr('Bez čipa', 'No chip')], ['wildcard', 'WC'], ['freehit', 'FH']].map(([k, t]) => `<button type="button" data-chip="${k}" aria-pressed="${(r.chip || '') === k}"${k ? ` aria-label="${k === 'wildcard' ? 'Wildcard' : 'Free Hit'}"` : ''}>${t}</button>`).join('')}</div>
-        <button type="button" class="btn sm" data-act="best"${Math.abs(best - r.gross) < 0.05 ? ' disabled' : ''}>${tr('Najbolja', 'Best')} ${opt.formation}</button><button type="button" class="btn sm ghost" data-act="reset"${g.lineup ? '' : ' disabled'}>${tr('Vrati', 'Reset')}</button>
-        <button type="button" class="btn sm ghost plan-open" data-act="side" aria-expanded="${side}" aria-controls="tm-side">${tr('Plan', 'Plan')}${r.used ? ` <span class="pill">${r.used}</span>` : ''}</button>
+        <button type="button" class="tb" data-act="best"${Math.abs(best - r.gross) < 0.05 ? ' disabled' : ''}>${tr('Najbolja', 'Best')} ${opt.formation}</button><button type="button" class="tb" data-act="reset"${g.lineup ? '' : ' disabled'}>${tr('Vrati', 'Reset')}</button>
+        <button type="button" class="tb plan-open" data-act="side" aria-expanded="${side}" aria-controls="tm-side">${tr('Plan', 'Plan')}${r.used ? ` <span class="pill">${r.used}</span>` : ''}</button>
       </div>
       ${r.chip ? `<p class="sub pl-note">${r.chip === 'wildcard' ? tr('Wildcard: transferi bez minus bodova, tim ostaje.', 'Wildcard: transfers with no hits, the team stays.') : tr('Free Hit: transferi bez minus bodova samo za ovo kolo, poslije se vraća stari tim.', 'Free Hit: transfers with no hits for this gameweek only, then the old team returns.')}${chipNote(r.chip)}</p>` : ''}
       ${r.used > r.ft && !r.chip ? `<p class="alert"><span class="dot" aria-hidden="true"></span><span>${tr(`${r.used} transfera, a besplatnih je ${r.ft}: to je −${r.hits} bodova.`, `${r.used} transfers with ${r.ft} free: that is −${r.hits} points.`)}</span></p>` : ''}

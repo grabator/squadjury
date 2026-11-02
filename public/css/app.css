@@ -1591,3 +1591,110 @@ body::after { background: rgba(13, 13, 15, .82); }
   .tabs a span, .tabs button span { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0 0 0 0) !important; white-space: nowrap; }
 }
 .mini .up, .mini .dn, .mini .nt { background: none; padding: 0; }
+
+/* ---- Uživo: kartica igrača (lijevo slika u okviru sa šarom SJ, desno bodovi, DefCon i bonus, ime ispod) ---- */
+.lvp .line-row { gap: 4px; padding: 0 4px; }
+.lvp .bench { gap: 4px; }
+.lc { position: relative; flex: 1 1 0; min-width: 0; max-width: 132px; display: grid; grid-template-columns: 44% 1fr; grid-template-rows: auto auto; padding: 0; border: 0; border-radius: 10px; overflow: hidden; background: #141416; color: var(--t); font: inherit; text-align: left; cursor: pointer; box-shadow: 0 0 0 1px #2c2620, 0 8px 16px -8px rgba(0, 0, 0, .9); }
+.lc:hover, .lc:focus-visible { box-shadow: 0 0 0 1.5px var(--acc); }
+.lc-ph { position: relative; display: block; height: 58px; overflow: hidden; background-size: 60px 69px !important; border-right: 2px solid var(--acc); }
+.lc-ph .shirt { position: absolute; left: 50%; bottom: -1px; width: 46px; height: 46px; transform: translateX(-50%); }
+.lc-ph .shirt .ph { height: 128%; }
+.lc-c { position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; background: var(--acc); color: var(--acc-t); font: 800 10px/1 var(--cond); font-style: normal; }
+.lc-c.v { background: #f1ece4; color: #111; }
+.lc-f { position: absolute; right: 3px; top: 3px; width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; color: #111; font: 800 10px/1 var(--cond); font-style: normal; }
+.lc-r { display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 2px; padding: 3px 4px 3px 5px; min-width: 0; }
+.lc-p { font: 800 22px/1 var(--cond); color: #e6bf8f; }
+.lc.cap .lc-p { color: var(--acc-t); background: var(--acc); border-radius: 5px; padding: 0 4px; align-self: flex-start; }
+.lc-m { position: absolute; right: 4px; top: 4px; font-size: 9px; font-weight: 700; color: var(--d); }
+.lc-m.live { color: var(--up); }
+.lc-t { font: 700 9.5px/1.45 'Space Grotesk', sans-serif; padding: 0 3px; border-radius: 4px; background: #26262c; color: var(--d); white-space: nowrap; overflow: hidden; }
+.lc-t.on { background: var(--up); color: #062414; }
+.lc-t.gd { background: #e6bf8f; color: #1a120a; }
+.lc-t.pr { background: repeating-linear-gradient(135deg, rgba(230, 191, 143, .45) 0 4px, rgba(230, 191, 143, .25) 4px 8px); color: #f3e3cf; }
+.lc-k { font-size: 10px; font-weight: 700; line-height: 1.25; color: var(--t); }
+.lc-n { grid-column: 1 / -1; padding: 3px 5px 2px; background: #f1ece4; color: #111; font: 800 12.5px/1.15 var(--cond); text-transform: uppercase; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.lc.out { opacity: .92; }
+.lvp .bslot { flex: 1 1 0; min-width: 0; max-width: 132px; }
+.lvp .bslot .lc { max-width: none; width: 100%; }
+@media (min-width: 901px) { .lc-ph { height: 76px; } .lc-ph .shirt { width: 62px; height: 62px; } .lc-p { font-size: 28px; } .lc-t { font-size: 11px; } .lc-n { font-size: 15px; } }
+.lvp .bslot .lc { flex: none; }
+/* Uživo kartica: samo bodovi i ono što je donijelo bodove, prozirnije */
+.lc { background: rgba(20, 20, 22, .55); box-shadow: 0 0 0 1px rgba(201, 147, 95, .28); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.lc-ph { background-color: rgba(20, 20, 22, .4) !important; border-right: 0; }
+.lc-r { justify-content: center; gap: 3px; }
+.lc-p { font-size: 26px; }
+.lc-t { align-self: flex-start; background: none; padding: 0; font-size: 10.5px; }
+.lc-t.on { background: none; color: var(--up); }
+.lc-t.gd { background: none; color: #e6bf8f; }
+.lc-t.pr { background: none; color: #e6bf8f; opacity: .75; }
+.lc-n { background: rgba(241, 236, 228, .92); }
+/* Uživo kartica: ista veličina u svakoj formaciji (širina za 5 u redu), svaki podatak uvijek na istom mjestu */
+.lvp { --lcw: min(96px, calc((100vw - 28px) / 5)); }
+.lvp .line-row { justify-content: center; gap: 4px; }
+.lvp .line-row .lc, .lvp .bslot { flex: 0 0 var(--lcw); width: var(--lcw); max-width: none; }
+.lvp .bench { justify-content: center; gap: 4px; }
+.lc { grid-template-columns: 46% 54%; grid-template-rows: 56px 20px; height: 76px; }
+.lc-ph { height: 56px; }
+.lc-r { display: grid; grid-template-rows: 26px 14px 14px; align-content: start; justify-content: start; gap: 0; padding: 2px 3px 0 4px; }
+.lc-p { height: 26px; line-height: 26px; font-size: 24px; align-self: start; }
+.lc.cap .lc-p { padding: 0 3px; line-height: 26px; }
+.lc-t { height: 14px; line-height: 14px; font-size: 10px; white-space: nowrap; }
+.lc-m { top: 3px; right: 3px; }
+.lc-n { height: 20px; line-height: 20px; padding: 0 3px; font-size: 12px; }
+@media (min-width: 901px) {
+  .lvp { --lcw: 128px; }
+  .lc { grid-template-rows: 76px 24px; height: 100px; }
+  .lc-ph { height: 76px; }
+  .lc-r { grid-template-rows: 34px 18px 18px; padding-top: 4px; }
+  .lc-p { height: 34px; line-height: 34px; font-size: 30px; } .lc.cap .lc-p { line-height: 34px; }
+  .lc-t { height: 18px; line-height: 18px; font-size: 12px; }
+  .lc-n { height: 24px; line-height: 24px; font-size: 15px; }
+}
+/* minute na dnu slike (lijevo), da se ne sudaraju sa dvocifrenim bodovima */
+.lc-m { top: auto; right: auto; left: 2px; bottom: 23px; padding: 0 3px; border-radius: 4px; background: rgba(8, 8, 10, .82); font-size: 8.5px; line-height: 12px; }
+.lc.cap .lc-p { padding: 0 3px; }
+@media (min-width: 901px) { .lc-m { bottom: 28px; font-size: 10px; line-height: 14px; } }
+
+/* gornja traka: bez čipa sa transferima, bankom i rangom (čip ostaje samo dok traje kolo) */
+.hgap { flex: 1; }
+/* My team: alati u jednoj spojenoj traci, svi dijelovi iste širine */
+.tmv:not(.lv) .pl-tools { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; overflow: hidden; border-radius: 12px; background: var(--tile); box-shadow: inset 0 0 0 1px #2c2620; }
+.tmv:not(.lv) .pl-tools .seg { display: contents; }
+.tmv:not(.lv) .pl-tools .seg button, .tmv:not(.lv) .pl-tools .tb { min-height: 38px; min-width: 0; padding: 0 2px; margin: 0; border: 0; border-left: 1px solid #2c2620; border-radius: 0 !important; background: none; color: var(--t); font: 700 12px/1.1 'Space Grotesk', sans-serif; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.tmv:not(.lv) .pl-tools .seg button:first-child { border-left: 0; }
+.tmv:not(.lv) .pl-tools .seg button[aria-pressed='true'], .tmv:not(.lv) .pl-tools .tb:not([disabled]):hover { background: var(--acc) !important; color: var(--acc-t) !important; }
+.tmv:not(.lv) .pl-tools .tb[data-act='best']:not([disabled]) { color: #e6bf8f; }
+.tmv:not(.lv) .pl-tools .tb[disabled] { color: var(--d); opacity: .55; cursor: default; display: flex !important; }
+.tmv:not(.lv) .pl-tools .plan-open { margin: 0; }
+@media (min-width: 901px) { .tmv:not(.lv) .pl-tools { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+/* teren: znak iza gola, SQUAD lijevo i JURY desno sitnim slovima */
+.tvp .pboard { position: absolute; left: 0; right: 0; top: 4px; z-index: 0; display: flex; align-items: center; justify-content: center; gap: calc(22% + 6px); pointer-events: none; }
+.tvp .pboard span { font: 800 10px/1 var(--cond); letter-spacing: .32em; text-transform: uppercase; color: rgba(230, 191, 143, .55); }
+.tvp .pboard img { position: absolute; left: 50%; top: -2px; width: 34px; height: 26px; transform: translateX(-50%); opacity: .55; }
+.tvp .field { z-index: 1; }
+@media (min-width: 901px) { .tvp .pboard span { font-size: 13px; } .tvp .pboard img { width: 48px; height: 36px; } }
+/* utakmice na Pregledu: pravi grb kluba na boji kluba, skraćenica ispod */
+.ftp { height: 78px; }
+.ftp > span { display: grid !important; grid-template-rows: 1fr auto; justify-items: center; align-items: center; padding: 6px 0 5px; gap: 2px; }
+.ftp .cr { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .92); box-shadow: 0 4px 10px -4px rgba(0, 0, 0, .6); }
+.ftp .cr:not(.has-ph) { display: none; }
+.ftp .cr img { width: 30px; height: 30px; object-fit: contain; }
+.ftp b { font: 800 15px/1 var(--cond); }
+.ftp > span:not(:has(.has-ph)) b { font-size: 24px; }
+.tvp .pboard { top: 3px; gap: 46%; }
+.tvp .pboard img { top: 1px; width: 26px; height: 20px; opacity: .6; }
+.tvp .field { padding-top: 24px; }
+@media (min-width: 901px) { .tvp .pboard img { width: 40px; height: 30px; } .tvp .field { padding-top: 34px; } }
+/* My team: iste kartice kao Uživo; protivnik u boji težine, NOVI na slici, izabrani igrač zlatno uokviren */
+.lc-o { padding: 0 3px; border-radius: 3px; font-size: 9.5px; }
+.lc-o.d1, .lc-o.d2 { background: rgba(79, 214, 138, .2); color: #7fe3a9; }
+.lc-o.d3 { background: rgba(255, 255, 255, .1); color: var(--t); }
+.lc-o.d4 { background: rgba(212, 31, 43, .3); color: #ff9a9f; }
+.lc-o.d5 { background: rgba(212, 31, 43, .55); color: #fff; }
+.lc-new { background: var(--up) !important; color: #062414 !important; font-weight: 800; }
+.lc[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--acc), 0 0 18px rgba(201, 147, 95, .5); }
+.lc[aria-pressed='true'] .lc-n { background: var(--acc); color: var(--acc-t); }
+.tvp .lc .lc-p { font-size: 21px; }
+@media (min-width: 901px) { .tvp .lc .lc-p { font-size: 28px; } .lc-o { font-size: 11.5px; } }
+.lc-ha { color: var(--d); font-size: 9.5px; } @media (min-width: 901px) { .lc-ha { font-size: 11.5px; } }

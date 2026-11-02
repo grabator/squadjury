@@ -65,7 +65,7 @@ export function fromDemo(r) {
 const PF = ['id', 'code', 'web_name', 'first_name', 'second_name', 'team', 'element_type', 'now_cost', 'form', 'points_per_game', 'total_points', 'minutes', 'selected_by_percent', 'status', 'chance_of_playing_next_round', 'news', 'cost_change_event', 'ep_next', 'starts', 'event_points', 'goals_scored', 'assists', 'clean_sheets', 'bonus', 'expected_goals_per_90', 'expected_assists_per_90', 'ict_index', 'transfers_in_event', 'transfers_out_event'];
 export function slimBootstrap(b) {
   return {
-    teams: b.teams.map((t) => ({ id: t.id, name: t.name, short_name: t.short_name, strength: t.strength })),
+    teams: b.teams.map((t) => ({ id: t.id, code: t.code, name: t.name, short_name: t.short_name, strength: t.strength })),
     elements: b.elements.map((e) => Object.fromEntries(PF.map((k) => [k, e[k]]))),
     events: b.events.map((e) => ({ id: e.id, deadline_time: e.deadline_time, finished: e.finished, is_current: e.is_current, is_next: e.is_next, average_entry_score: e.average_entry_score, highest_score: e.highest_score })),
     element_types: b.element_types.map((t) => ({ id: t.id, singular_name_short: t.singular_name_short }))
