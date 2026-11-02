@@ -22,8 +22,8 @@ const store = { get: (k) => { try { return localStorage.getItem(k); } catch { re
 const route = () => { const r = (location.hash.replace('#/', '') || 'pregled').split('?')[0]; return VIEWS[r] ? r : 'pregled'; };
 
 // ---------- meni ----------
-// znak: tri trake (crvena, srebrna, plava) i ime uskim slovima
-const brand = () => `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><span class="bm" aria-hidden="true"><u></u><u></u><u></u></span><span class="bw">SquadJury</span></a>`;
+// znak: zlatno 3D SJ (kao slova na šari dresa) i ime uskim slovima
+const brand = () => `<a class="brand" href="#/pregled" aria-label="SquadJury, ${tr('pregled', 'overview')}"><img class="lgm" src="/img/brand/mark.svg" alt="" width="46" height="35"><span class="bw">SquadJury</span></a>`;
 function chrome() {
   const r = route(), side = $('#side'), tabs = $('#tabs'), more = $('#more');
   const mtop = $('#mtop');
@@ -272,7 +272,7 @@ function start(msg = '') {
   const mob = matchMedia('(pointer: coarse)').matches;
   return `<div class="start">
     <section class="g card st-main">
-      <div class="st-top"><p class="st-brand"><span class="bm" aria-hidden="true"><u></u><u></u><u></u></span><span>SquadJury</span></p>${langSwitch()}</div>
+      <div class="st-top"><p class="st-brand"><img class="lgm" src="/img/brand/mark.svg" alt="" width="46" height="35"><span>SquadJury</span></p>${langSwitch()}</div>
       <h1>${tr('Tvoj FPL tim, <span>pregledno</span>', 'Your FPL team, <span>at a glance</span>')}</h1>
       <p class="lead">${tr('Kapiten, transferi, raspored, bodovi uživo i tvoja liga, sa procjenom bodova za svako kolo. Uz to ocjenjuješ tuđe timove.', 'Captain, transfers, fixtures, live points and your league, with predicted points for every gameweek. Plus you get to rate other squads.')}</p>
       <form id="login" novalidate><label class="field" for="fid">${tr('Tvoj FPL ID ili link tima', 'Your FPL ID or team link')}</label>

@@ -16,7 +16,7 @@ const KINDS = {
 };
 
 // naš znak u jednoj boji, kao lav na PL valjcima
-const MARK = '<svg class="tro-mark" viewBox="0 0 100 100" aria-hidden="true"><g transform="skewX(-18) translate(16 0)"><rect x="18" y="24" width="64" height="14" fill="#d41f2b"/><rect x="18" y="43" width="64" height="14" fill="#c7ccd8"/><rect x="18" y="62" width="64" height="14" fill="#2448d8"/></g></svg>';
+const MARK = '<img class="tro-mark" src="/img/brand/mark.svg" alt="">';
 
 /** n poslova, najviše k istovremeno */
 async function pool(items, k, fn) {

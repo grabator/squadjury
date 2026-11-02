@@ -50,6 +50,13 @@ export async function render() {
   const lname = L?.league?.name || meta?.name || tr('Mini liga', 'Mini league');
 
   return `<h1 class="sr">${tr('Pregled', 'Overview')}: ${esc(entry.name)}</h1>
+    <nav class="stories" aria-label="${tr('Brzi pregled', 'Quick look')}">
+      <a class="story" href="#/kapiten"><span class="ring"><span>${cap ? `<span class="shirt">${shirt(ix.teams.get(cap.e.team), cap.e.element_type === 1)}${photo(cap.e)}</span>` : 'C'}</span></span>${tr('Kapiten', 'Captain')}</a>
+      <a class="story" href="#/transferi"><span class="ring"><span>${idea ? '+' + Math.round(idea.gain) : '–'}</span></span>${tr('Transfer', 'Transfer')}</a>
+      <a class="story" href="#/uzivo"><span class="ring"><span>${last.points}</span></span>${tr('Uživo', 'Live')}</a>
+      <a class="story" href="#/liga"><span class="ring"><span>${myL ? '#' + myL.rank : '–'}</span></span>${tr('Liga', 'League')}</a>
+      <a class="story" href="#/raspored"><span class="ring"><span>${tr('K', 'GW')}${gw}</span></span>${tr('Raspored', 'Fixtures')}</a>
+    </nav>
     <div class="bento">
       <section class="t s6 hero3" aria-label="${tr('Kolo', 'Gameweek')} ${gw}">
         <svg class="bolt" viewBox="0 0 120 200" aria-hidden="true"><path d="M70 0 20 110h38L36 200 104 74H64L92 0z"/></svg><span class="tri" aria-hidden="true"><u></u><u></u><u></u></span>
