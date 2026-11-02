@@ -237,3 +237,7 @@ addEventListener('pageshow', () => { leaving = false; });
   }
 })();
 
+
+// slike igrača na terenu: učitana slika zamijeni dres, neuspjela se makne pa ostaje dres
+document.addEventListener('load', (ev) => { if (ev.target.matches?.('img.ph')) ev.target.parentNode.classList.add('has-ph'); }, true);
+document.addEventListener('error', (ev) => { if (ev.target.matches?.('img.ph')) ev.target.remove(); }, true);
