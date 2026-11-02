@@ -1,6 +1,6 @@
 // Pregled: pločice (kolo i rok, rang, bodovi, kapiten, šansa za zelenu strelicu, transfer, vrijednost, liga) i utakmice kola.
 import { S, league } from '../state.js';
-import { captainOptions, transferIdeas, greenArrowOdds, fixturesFor, num, fmt, int, time, dayShort, dateLong, pct } from '../model.js';
+import { captainOptions, transferIdeas, greenArrowOdds, fixturesFor, num, fmt, int, time, dayLong, dayShort, dateLong, pct } from '../model.js';
 import { esc, kit, ink, shirt, photo, countUp } from '../ui.js';
 import { tr } from '../i18n.js';
 
@@ -34,12 +34,12 @@ export async function render() {
   for (const id of S.nextIds || S.ids) { const e = ix.players.get(id); for (const f of fixturesFor(ix, e.team, gw, 1)) { if (!byFix.has(f.id)) byFix.set(f.id, { f, team: e.team, ps: [] }); byFix.get(f.id).ps.push(e); } }
   const fxs = [...byFix.values()].sort((a, b) => String(a.f.kickoff).localeCompare(String(b.f.kickoff)));
   const side = (t, cls) => { const [c] = kit(t); return `<span class="${cls}" style="--c:${c};--ct:${ink(c)}">${esc(t.short_name)}</span>`; };
-  const fxHtml = fxs.map(({ f, team, ps }) => {
+  const fxCards = fxs.map(({ f, team, ps }) => {
     const d = new Date(f.kickoff), me = ix.teams.get(team), op = ix.teams.get(f.opp);
     const [hm, aw] = f.home ? [me, op] : [op, me];
-    const names = ps.map((e) => e.web_name).join(', ');
-    return `<a class="fxt" href="#/raspored" aria-label="${esc(hm.name)} ${tr('protiv', 'against')} ${esc(aw.name)}, ${dayShort(d)} ${time(d)}. ${tr('Tvoji igrači', 'Your players')}: ${esc(names)}">${side(hm, 'h')}${side(aw, 'a')}<span class="tm"><b>${time(d)}</b><small>${dayShort(d)}</small></span><span class="ps" aria-hidden="true">${ps.map((e) => esc(e.web_name)).join(' · ')}</span></a>`;
+    return `<a class="fcard" href="#/raspored" aria-label="${esc(hm.name)} ${tr('protiv', 'against')} ${esc(aw.name)}, ${dayLong(d)} ${time(d)}. ${tr('Tvoji igrači', 'Your players')}: ${esc(ps.map((e) => e.web_name).join(', '))}"><span class="ftp">${side(hm, '')}${side(aw, '')}</span><span class="fbt"><b>${time(d)}</b><span class="sub">${dayLong(d)}</span><span class="fps">${ps.map((e) => esc(e.web_name)).join(', ')}</span></span></a>`;
   }).join('');
+  const words = entry.name.trim().split(/\s+/);
 
   const cap = captainOptions(ix, S.xi)[0];
   const idea = transferIdeas(ix, S.nextIds, S.nextBank, { limit: 1 })[0];
@@ -57,28 +57,38 @@ export async function render() {
       <a class="story" href="#/liga"><span class="ring"><span>${myL ? '#' + myL.rank : '–'}</span></span>${tr('Liga', 'League')}</a>
       <a class="story" href="#/raspored"><span class="ring"><span>${tr('K', 'GW')}${gw}</span></span>${tr('Raspored', 'Fixtures')}</a>
     </nav>
-    <div class="bento">
-      <section class="t s6 hero3" aria-label="${tr('Kolo', 'Gameweek')} ${gw}">
-        <svg class="bolt" viewBox="0 0 120 200" aria-hidden="true"><path d="M70 0 20 110h38L36 200 104 74H64L92 0z"/></svg><span class="tri" aria-hidden="true"><u></u><u></u><u></u></span>
-        <div class="gwn"><small>${esc(entry.name)} · ${tr('kolo', 'gameweek')}</small><b>${gw}</b></div>
-        ${cd.parts ? `<div class="dlx" id="countdown" role="timer" aria-label="${tr('Rok za transfere', 'Transfer deadline')}: ${dateLong(new Date(cd.ev.deadline_time))}"><b>${cd.big}</b><span><span class="dl-min">${cd.min}</span> ${tr('do roka', 'to deadline')}</span><span>${dateLong(new Date(cd.ev.deadline_time))}</span></div>` : cd.ev ? `<div class="dlx"><b>${tr('Rok je prošao', 'Deadline passed')}</b></div>` : ''}
-      </section>
-      <a class="t s3" href="#/liga"><small>${tr('Ukupni rang', 'Overall rank')}</small><span class="v" data-n="${last.overall_rank}" data-f="int">${int(last.overall_rank)}</span>${rankChg ? `<span class="${rankChg > 0 ? 'up' : 'dn'}">${rankChg > 0 ? '▲' : '▼'} ${int(rankChg)}</span>` : `<span class="nt">${tr('bez promjene', 'no change')}</span>`}</a>
-      <a class="t s3 red" href="#/uzivo"><small>${tr('Bodovi u kolu', 'Points in GW')} ${last.event}</small><span class="v" data-n="${last.points}" data-f="int">${last.points}</span><span>${last.points >= avg ? '+' : '−'}${int(last.points - avg)} ${tr('od prosjeka', 'vs average')}</span></a>
-      <a class="t s3 capt" href="#/kapiten" aria-label="${tr('Kapiten', 'Captain')}: ${esc(cap?.e.web_name || '–')}${cap ? `, ${fmt(cap.xp)} ${tr('predviđeno', 'predicted')}, ${esc(capFx)}` : ''}"><small>${tr('Kapiten', 'Captain')}</small>${cap ? `<span class="pp">${fmt(cap.xp)}</span><span class="shirt">${shirt(ix.teams.get(cap.e.team), cap.e.element_type === 1)}${photo(cap.e)}</span><span class="cpl" aria-hidden="true"><b style="font-size:${cap.e.web_name.length <= 8 ? 22 : cap.e.web_name.length <= 11 ? 18 : 15}px">${esc(cap.e.web_name)}</b><span>${esc(capFx)}</span></span>` : '<span class="v">–</span>'}</a>
-      <section class="t s3 odds2" aria-label="${tr('Šansa za zelenu strelicu', 'Green arrow chance')}: ${pct(odds.p)}"><small>${tr('Zelena strelica', 'Green arrow')}</small><span class="v">${pct(odds.p)}</span><span class="obar" aria-hidden="true"><i style="width:${on}%"></i></span><span class="sub">${tr(`Najvjerovatnije ${odds.low} do ${odds.high} bod., prosjek ${Math.round(recentAvg)}`, `Likely ${odds.low} to ${odds.high} pts, average ${Math.round(recentAvg)}`)}</span></section>
-      ${idea ? `<a class="t s6 trn" href="#/transferi"><span class="o"><small>${tr('Prodaj', 'Out')}</small><b>${esc(idea.out.web_name)}</b></span><span class="ar" aria-hidden="true">→</span><span class="sr">${tr('za', 'for')}</span><span class="in"><small>${tr('Kupi', 'In')}</small><b>${esc(idea.inn.web_name)}</b></span><span class="gain"><b>+${fmt(idea.gain)}</b><small>${tr('5 kola', '5 GWs')}</small></span></a>` : `<a class="t s6 trn" href="#/transferi"><span class="in"><small>${tr('Transfer', 'Transfer')}</small><b>${tr('Ništa se jasno ne isplati', 'Nothing clearly pays off')}</b></span></a>`}
-      <a class="t s3" href="#/transferi"><small>${tr('Vrijednost tima', 'Team value')}</small><span class="v sm" data-n="${last.value / 10}" data-f="m">£${fmt(last.value / 10)}m</span><span class="nt">${tr('banka', 'bank')} £${fmt(last.bank / 10)}m</span></a>
-      <a class="t s3" href="#/liga"><small>${esc(lname)}</small><span class="v sm">${myL ? (tr('', '#') + int(myL.rank) + tr('.', '')) : '–'}</span>${myL && myL.rank === 1 ? `<span class="up">${tr('vodiš ligu', 'you lead')}</span>` : myL && lead && lead.entry !== S.id && myL.total != null ? `<span class="dn">${int(lead.total - myL.total)} ${tr('bod. do prvog', 'pts behind 1st')}</span>` : `<span class="nt">${tr('tabela', 'table')}</span>`}</a>
+    <div class="cards" id="ov-cards" aria-roledescription="${tr('vrtuljak', 'carousel')}" aria-label="${tr('Glavne kartice', 'Main cards')}">
+      <section class="ocard pat-bg" aria-label="${tr('Kolo', 'Gameweek')} ${gw}"><span class="oslash" aria-hidden="true"><i></i><i></i><i></i></span><span class="otag">${tr('Kolo', 'Gameweek')} ${gw}</span>
+        <h2 class="oname">${words.length > 1 ? `${esc(words.slice(0, -1).join(' '))}<br><em>${esc(words.at(-1))}</em>` : `<em>${esc(entry.name)}</em>`}</h2>
+        <div class="obot">${cd.parts ? `<div id="countdown" role="timer" aria-label="${tr('Rok za transfere', 'Transfer deadline')}: ${dateLong(new Date(cd.ev.deadline_time))}"><b>${cd.big}</b><span class="sub"><span class="dl-min">${cd.min}</span> ${tr('do roka', 'to deadline')} · ${dayShort(new Date(cd.ev.deadline_time))} ${time(new Date(cd.ev.deadline_time))}</span></div>` : `<div><b>${tr('Rok je prošao', 'Deadline passed')}</b></div>`}<a class="btn" href="#/tim">${tr('Moj tim', 'My team')}</a></div></section>
+      <section class="ocard" aria-label="${tr('Kapiten', 'Captain')}"><span class="otag">${tr('Kapiten', 'Captain')}</span>${cap ? `<span class="shirt ocap">${shirt(ix.teams.get(cap.e.team), cap.e.element_type === 1)}${photo(cap.e)}</span><h2 class="oname sm">${esc(cap.e.web_name)}</h2>` : ''}
+        <div class="obot"><div><b>${cap ? fmt(cap.xp) : '–'}</b><span class="sub">${tr('predviđeno', 'predicted')}${capFx ? ' · ' + esc(capFx) : ''}</span></div><a class="btn" href="#/kapiten">${tr('Kapiten', 'Captain')}</a></div></section>
+      <section class="ocard" aria-label="${tr('Najbolji transfer', 'Best transfer')}"><span class="otag">${tr('Najbolji transfer', 'Best transfer')}</span>${idea ? `<div class="otr"><span><small>${tr('Prodaj', 'Out')}</small><s>${esc(idea.out.web_name)}</s></span><span class="ar" aria-hidden="true">→</span><span><small>${tr('Kupi', 'In')}</small><b>${esc(idea.inn.web_name)}</b></span></div>` : `<h2 class="oname sm">${tr('Ništa se jasno ne isplati', 'Nothing clearly pays off')}</h2>`}
+        <div class="obot"><div><b class="g">${idea ? '+' + fmt(idea.gain) : '–'}</b><span class="sub">${tr('bodova kroz 5 kola', 'points over 5 gameweeks')}</span></div><a class="btn" href="#/transferi">${tr('Transferi', 'Transfers')}</a></div></section>
+      <section class="ocard" aria-label="${tr('Bodovi u kolu', 'Points in gameweek')} ${last.event}"><span class="otag">${tr('Kolo', 'Gameweek')} ${last.event}</span><h2 class="oname big" data-n="${last.points}" data-f="int">${last.points}</h2>
+        <div class="obot"><div><b class="${last.points >= avg ? 'g' : 'r'}">${last.points >= avg ? '+' : '−'}${int(last.points - avg)}</b><span class="sub">${tr('od prosjeka', 'vs average')} (${Math.round(avg)})</span></div><a class="btn" href="#/uzivo">${tr('Uživo', 'Live')}</a></div></section>
     </div>
-    <div class="lbl"><h2 class="ct">${tr('Kolo', 'Gameweek')} ${gw}</h2><span class="sub">${tr('utakmice tvojih igrača', 'your players’ matches')}</span></div>
-    <div class="bento fxg">${fxHtml || `<p class="muted s6">${tr('Nijedan tvoj igrač nema utakmicu u ovom kolu.', 'None of your players has a match this gameweek.')}</p>`}
-      <a class="t s${fxs.length % 3 === 1 ? 4 : fxs.length % 3 === 2 ? 2 : 6} jury2" href="/jury/post"><span><b>${tr('Ocijeni moj tim', 'Rate my team')}</b><span class="sub">${tr(`Objavi kolo ${gw} na SquadJury`, `Post GW ${gw} on SquadJury`)}</span></span><span class="go">${tr('Objavi', 'Post')}</span></a>
-    </div>`;
+    <div class="odots" role="group" aria-label="${tr('Kartice', 'Cards')}">${[tr('Kolo', 'Gameweek'), tr('Kapiten', 'Captain'), tr('Transfer', 'Transfer'), tr('Bodovi', 'Points')].map((t, i) => `<button type="button" data-card="${i}" aria-label="${t}"${i ? '' : ' aria-current="true"'}></button>`).join('')}</div>
+    <div class="minis">
+      <a class="mini" href="#/liga"><small>${tr('Ukupni rang', 'Overall rank')}</small><b data-n="${last.overall_rank}" data-f="int">${int(last.overall_rank)}</b>${rankChg ? `<span class="${rankChg > 0 ? 'up' : 'dn'}">${rankChg > 0 ? '▲' : '▼'} ${int(rankChg)}</span>` : `<span class="nt">${tr('bez promjene', 'no change')}</span>`}</a>
+      <a class="mini" href="#/kapiten"><small>${tr('Zelena strelica', 'Green arrow')}</small><b class="gd">${pct(odds.p)}</b><span class="nt">${odds.low}–${odds.high} ${tr('bod. vjerovatno', 'pts likely')}</span></a>
+      <a class="mini" href="#/transferi"><small>${tr('Vrijednost tima', 'Team value')}</small><b data-n="${last.value / 10}" data-f="m">£${fmt(last.value / 10)}m</b><span class="nt">${tr('banka', 'bank')} £${fmt(last.bank / 10)}m</span></a>
+      <a class="mini" href="#/liga"><small>${esc(lname)}</small><b>${myL ? '#' + int(myL.rank) : '–'}</b>${myL && myL.rank === 1 ? `<span class="up">${tr('vodiš ligu', 'you lead')}</span>` : myL && lead && lead.entry !== S.id && myL.total != null ? `<span class="dn">${int(lead.total - myL.total)} ${tr('bod. do prvog', 'pts behind 1st')}</span>` : `<span class="nt">${tr('tabela', 'table')}</span>`}</a>
+    </div>
+    <div class="lbl"><h2 class="ct">${tr('Kolo', 'Gameweek')} ${gw}</h2><a class="sub" href="#/raspored">${tr('Sve utakmice', 'See all')}</a></div>
+    <div class="hscroll">${fxCards || `<p class="muted">${tr('Nijedan tvoj igrač nema utakmicu u ovom kolu.', 'None of your players has a match this gameweek.')}</p>`}</div>
+    <a class="jury3" href="/jury/post"><span><b>${tr('Ocijeni moj tim', 'Rate my team')}</b><span class="sub">${tr(`Objavi kolo ${gw} na SquadJury`, `Post GW ${gw} on SquadJury`)}</span></span><span class="go">${tr('Objavi', 'Post')}</span></a>`;
 }
 
 export function bind() {
   countUp(document.getElementById('main'));
+  // vrtuljak: tačke prate karticu na ekranu, dodir na tačku je vodi na tu karticu
+  const box = document.getElementById('ov-cards'), dots = [...document.querySelectorAll('.odots button')];
+  if (box && dots.length) {
+    const cur = () => Math.round(box.scrollLeft / Math.max(1, box.firstElementChild.offsetWidth + 10));
+    box.addEventListener('scroll', () => { const i = cur(); dots.forEach((d, k) => (k === i ? d.setAttribute('aria-current', 'true') : d.removeAttribute('aria-current'))); }, { passive: true });
+    dots.forEach((d, k) => { d.onclick = () => box.children[k].scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest', inline: 'start' }); });
+  }
   const el = document.getElementById('countdown');
   if (!el) return;
   const t = setInterval(() => {

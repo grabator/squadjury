@@ -1531,3 +1531,63 @@ dialog.cmd { background: var(--tile); border: 0; }
 .st-brand > span:last-child { font: 800 34px/1 var(--cond); }
 .tro-mark { object-fit: contain; }
 @media (max-width: 900px) { .tabs { z-index: 46; } .more-sheet { z-index: 45; } }
+
+/* ---- Pregled kao na slici 3: priče, vrtuljak velikih kartica, male pločice, utakmice u stranu ---- */
+html { background: #0d0d0f url('/img/pattern.svg') 0 0 / 120px 138px; }
+body::after { background: rgba(13, 13, 15, .82); }
+.cards { display: grid; grid-auto-flow: column; grid-auto-columns: 100%; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.cards::-webkit-scrollbar { display: none; }
+.ocard { position: relative; scroll-snap-align: start; min-height: 290px; display: flex; flex-direction: column; padding: 20px; border-radius: 26px; overflow: hidden; background-color: #141416; box-shadow: inset 0 0 0 1px #2c2620; }
+.ocard.pat-bg { background-size: 120px 138px; }
+.oslash { position: absolute; right: -34px; top: -24px; width: 130px; height: 380px; display: flex; gap: 9px; transform: rotate(18deg); pointer-events: none; }
+.oslash i { flex: 1; background: linear-gradient(rgba(139, 142, 149, .28), transparent); }
+.otag { align-self: flex-start; position: relative; padding: 5px 11px; border-radius: 99px; background: rgba(201, 147, 95, .16); color: #e6bf8f; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.oname { position: relative; margin: 14px 0 0; font: 800 70px/.86 var(--cond); text-transform: uppercase; color: var(--t); word-break: break-word; }
+.oname em { font-style: normal; color: #e6bf8f; }
+.oname.sm { font-size: 46px; } .oname.big { font-size: 110px; color: #e6bf8f; }
+.obot { position: relative; margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-top: 14px; }
+.obot b { display: block; font: 800 42px/1 var(--cond); }
+.obot b.g { color: var(--up); } .obot b.r { color: var(--dn); }
+.obot .sub { display: block; margin-top: 4px; font-size: 12.5px; }
+.obot .btn { flex: none; min-height: 46px; padding: 0 20px; font-size: 15px; }
+.ocap { position: absolute !important; right: 14px; top: 26px; width: 150px !important; height: 150px !important; filter: drop-shadow(0 0 34px rgba(201, 147, 95, .35)); }
+.otr { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin-top: 22px; }
+.otr span { display: grid; min-width: 0; } .otr small { color: var(--d); font-size: 12px; }
+.otr s, .otr b { font: 800 30px/1.05 var(--cond); text-transform: uppercase; overflow-wrap: anywhere; }
+.otr s { color: var(--d); } .otr b { color: #e6bf8f; }
+.otr .ar { width: 38px; height: 38px; border-radius: 50%; display: grid !important; place-items: center; background: var(--acc); color: var(--acc-t); font-weight: 800; }
+.odots { display: flex; justify-content: center; gap: 4px; margin: 6px 0 2px; }
+.odots button { width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+.odots button::before { content: ''; width: 6px; height: 6px; border-radius: 3px; background: #3a3a40; transition: width .2s; }
+.odots button[aria-current='true']::before { width: 18px; background: var(--acc); }
+.minis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.mini { display: grid; align-content: start; gap: 2px; padding: 14px; border-radius: 20px; background: var(--tile); color: var(--t); text-decoration: none; }
+.mini:hover { background: var(--tile2); }
+.mini small { color: var(--d); font-size: 12px; }
+.mini b { font: 800 30px/1.1 var(--cond); } .mini b.gd { color: #e6bf8f; }
+.mini .up { color: var(--up); font-weight: 700; font-size: 12.5px; } .mini .dn { color: var(--dn); font-weight: 700; font-size: 12.5px; } .mini .nt { color: var(--d); font-size: 12px; }
+.lbl a.sub { color: var(--acc); font-weight: 600; text-decoration: none; }
+.hscroll { display: grid; grid-auto-flow: column; grid-auto-columns: 152px; gap: 10px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scroll-snap-type: x proximity; scrollbar-width: none; }
+.hscroll::-webkit-scrollbar { display: none; }
+.fcard { scroll-snap-align: start; border-radius: 20px; overflow: hidden; background: var(--tile); color: var(--t); text-decoration: none; }
+.ftp { display: grid; grid-template-columns: 1fr 1fr; height: 56px; }
+.ftp span { display: grid; place-items: center; background: var(--c); color: var(--ct); font: 800 23px var(--cond); }
+.fbt { display: grid; padding: 10px 12px 12px; }
+.fbt b { font: 800 22px/1 var(--cond); color: #e6bf8f; } .fbt .sub { font-size: 11.5px; text-transform: capitalize; }
+.fps { margin-top: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jury3 { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 16px; border-radius: 20px; background: var(--tile); color: var(--t); text-decoration: none; box-shadow: inset 0 0 0 1px #2c2620; }
+.jury3 b { display: block; font: 800 22px var(--cond); text-transform: uppercase; } .jury3 .sub { font-size: 12.5px; }
+.jury3 .go { flex: none; padding: 10px 16px; border-radius: 99px; background: var(--acc); color: var(--acc-t); font-weight: 700; font-size: 13px; }
+@media (min-width: 901px) {
+  .cards { grid-auto-columns: calc(50% - 5px); }
+  .minis { grid-template-columns: repeat(4, 1fr); }
+  .hscroll { margin: 0; padding: 0 0 4px; grid-auto-columns: 190px; }
+}
+/* donji meni samo sa ikonama na mobitelu, aktivna u zlatnom krugu (natpis ostaje za čitače ekrana) */
+@media (max-width: 900px) {
+  .tabs { left: 50%; right: auto; transform: translateX(-50%); display: flex; gap: 6px; width: auto; padding: 8px 10px; }
+  .tabs a, .tabs button { width: 48px; height: 48px; padding: 0; border-radius: 50%; justify-content: center; }
+  .tabs .ico { width: 22px; height: 22px; }
+  .tabs a span, .tabs button span { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0 0 0 0) !important; white-space: nowrap; }
+}
+.mini .up, .mini .dn, .mini .nt { background: none; padding: 0; }
