@@ -7,7 +7,9 @@ import { tr } from '../i18n.js';
 
 export const title = tr('Moj tim', 'My team');
 const N = 3;
-let gwSel = null, sel = null, pick = null, focusId = null, note = '';
+// teren u perspektivi kao TV grafika postave (trake trave, šesnaesterac, polukrug na dnu)
+export const TVBG = `<svg class="tvbg" viewBox="0 0 390 478" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="tvg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16246a"/><stop offset="1" stop-color="#1d3196"/></linearGradient></defs><polygon points="52,0 338,0 390,478 0,478" fill="url(#tvg)"/>${[0, 1, 2, 3, 4].map((k) => { const y1 = k * 95.6, y2 = (k + 0.5) * 95.6, w1 = 52 * (1 - y1 / 478), w2 = 52 * (1 - y2 / 478); return `<polygon points="${w1.toFixed(1)},${y1.toFixed(1)} ${(390 - w1).toFixed(1)},${y1.toFixed(1)} ${(390 - w2).toFixed(1)},${y2.toFixed(1)} ${w2.toFixed(1)},${y2.toFixed(1)}" fill="rgba(255,255,255,.035)"/>`; }).join('')}<g fill="none" stroke="rgba(120,148,255,.6)" stroke-width="1.5" vector-effect="non-scaling-stroke"><polygon points="52,0 338,0 390,478 0,478"/><polygon points="122,0 268,0 272,66 118,66"/><polygon points="160,0 230,0 231,24 159,24"/><path d="M140 478 Q195 420 250 478"/></g></svg>`;
+let gwSel = null, sel = null, pick = null, focusId = null, note = '', side = false;
 
 const store = { get: (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* */ } }, del: (k) => { try { localStorage.removeItem(k); } catch { /* */ } } };
 const key = () => `fm-plan2-${S.id}-${S.ix.nextGw}`;
@@ -159,7 +161,7 @@ export async function render() {
       ${se.news ? `<p class="alert"><span class="dot" aria-hidden="true"></span><span>${esc(se.news)}</span></p>` : ''}
       <div class="acts"><button type="button" class="btn sm" data-act="sell">${ic('swap')}${tr('Prodaj', 'Sell')}</button>${selXI ? `<button type="button" class="btn sm ghost" data-act="cap"${T.captain === sel ? ' disabled' : ''}>${tr('Kapiten', 'Captain')}</button><button type="button" class="btn sm ghost" data-act="vice"${T.vice === sel ? ' disabled' : ''}>Vice</button>` : ''}<button type="button" class="btn sm ghost" data-pid="${sel}">${tr('Detalji', 'Details')}</button></div>
       <p class="sub">${selXI ? tr('Klikni igrača na klupi da ga ubaciš u postavu.', 'Click a bench player to swap them in.') : tr('Klikni igrača u postavi da ga zamijeniš.', 'Click a lineup player to swap them.')}</p></div>`
-    : `<p class="sub planhint">${tr('Klikni igrača: vidiš njegove protivnike i bodove za 3 kola, pa ga prodaš, staviš za kapitena ili zamijeniš sa klupom. Plan se čuva u ovom pregledniku, a u FPL-u ga potvrđuješ sam.', 'Click a player to see their next 3 opponents and points, then sell, captain or swap them with the bench. The plan is saved in this browser, you confirm it on FPL yourself.')}</p>`;
+    : '';
 
   // kupovina: lista se crta u bind (pretraga bez ponovnog crtanja cijele stranice)
   const pe = pick && ix.players.get(pick);
@@ -183,40 +185,40 @@ export async function render() {
     <p class="sub" style="margin-top:8px">${tr('Minus bodovi su već oduzeti. Prodajna cijena u FPL-u može biti malo niža od trenutne, a ovdje računamo trenutnu.', 'Hits are already taken off. The FPL selling price can be a bit lower than the current price, here we use the current one.')}</p>
     <p style="margin-top:10px"><button type="button" class="btn sm ghost" data-act="wipe"${Object.keys(P.gws).length ? '' : ' disabled'}>${tr('Obriši cijeli plan', 'Clear the whole plan')}</button></p></section>`;
 
-  return `<div class="head"><div><h1>${tr('Moj tim', 'My team')}</h1><p class="sub">${tr(`Planer za ${sim.length} kola: transferi, minus 4, čipovi, postava i kapiten za svako kolo`, `Planner for ${sim.length} gameweeks: transfers, hits, chips, lineup and captain for each gameweek`)}</p></div></div>
-    <div class="grid2">
-      <div class="stack">
-        <div class="plan-strip g">
-          <div class="ps-main"><span class="sub">${tr('Predviđeno, kolo', 'Predicted, GW')} ${gw}</span><b id="plan-total">${fmt(r.net)}</b>${r.hits ? `<span class="sub">${fmt(r.gross)} − ${r.hits}</span>` : ''}</div>
-          <div><span class="sub">${tr('Besplatni transferi', 'Free transfers')}</span><b>${r.chip ? '∞' : Math.max(0, r.ft - r.used)}<small>/${r.chip ? '∞' : r.ft}</small></b><span class="sub">${tr('ostalo', 'left')}${made ? tr(`, ${made} već na FPL-u`, `, ${made} made on FPL`) : ''}</span></div>
-          <div><span class="sub">${tr('Minus', 'Hits')}</span><b class="${r.hits ? 'neg' : ''}">${r.hits ? '−' + r.hits : '0'}</b><span class="sub">${r.used} ${tr('transfera', 'transfers')}</span></div>
-          <div><span class="sub">${tr('Banka', 'Bank')}</span><b class="${r.bank < 0 ? 'neg' : ''}">${m(r.bank)}</b><span class="sub">${tr('tim', 'team')} ${m(value)}</span></div>
-        </div>
-        <section class="planner g" aria-label="${tr('Planer tima', 'Team planner')}">
-          ${tabs}
-          <div class="pl-tools">
-            <div class="seg" role="group" aria-label="${tr('Čip u kolu', 'Chip this GW')} ${gw}">${[['', tr('Bez čipa', 'No chip')], ['wildcard', 'Wildcard'], ['freehit', 'Free Hit']].map(([k, t]) => `<button type="button" data-chip="${k}" aria-pressed="${(r.chip || '') === k}">${t}</button>`).join('')}</div>
-            <div class="acts"><button type="button" class="btn sm" data-act="best"${Math.abs(best - r.gross) < 0.05 ? ' disabled' : ''}>${tr('Najbolja postava', 'Best lineup')} (${opt.formation})</button><button type="button" class="btn sm ghost" data-act="reset"${g.lineup ? '' : ' disabled'}>${tr('Vrati', 'Reset')}</button></div>
-          </div>
-          ${r.chip ? `<p class="sub pl-note">${r.chip === 'wildcard' ? tr('Wildcard: transferi bez minus bodova, tim ostaje.', 'Wildcard: transfers with no hits, the team stays.') : tr('Free Hit: transferi bez minus bodova samo za ovo kolo, poslije se vraća stari tim.', 'Free Hit: transfers with no hits for this gameweek only, then the old team returns.')}${chipNote(r.chip)}</p>` : ''}
-          ${r.used > r.ft && !r.chip ? `<p class="alert"><span class="dot" aria-hidden="true"></span><span>${tr(`${r.used} transfera, a besplatnih je ${r.ft}: to je −${r.hits} bodova.`, `${r.used} transfers with ${r.ft} free: that is −${r.hits} points.`)}</span></p>` : ''}
-          ${warn.map((w) => `<p class="alert"><span class="dot" aria-hidden="true"></span><span>${w}</span></p>`).join('')}
-          <p class="err" id="plan-err" role="alert">${esc(note)}</p>
-          <div class="pitch" role="group" aria-label="${tr('Postava za kolo', 'Lineup for gameweek')} ${gw}"><div class="field">${rows}</div><div class="bench" role="group" aria-label="${tr('Klupa', 'Bench')}"><span class="bench-l">${tr('Klupa', 'Bench')} · ${fmt(T.bench.reduce((x, id) => x + score(ix.players.get(id)), 0))} ${tr('pred.', 'pred.')}</span>${benchRow}</div></div>
-        </section>
-        ${bar}
-        ${picker}
+  const pitchHtml = `<section class="pitch tvp" role="group" aria-label="${tr('Postava za kolo', 'Lineup for gameweek')} ${gw}">${TVBG}<div class="field">${rows}</div><div class="bench" role="group" aria-label="${tr('Klupa', 'Bench')}"><span class="bench-l">${tr('Klupa', 'Bench')}<span class="sr"> · ${fmt(T.bench.reduce((x, id) => x + score(ix.players.get(id)), 0))} ${tr('pred.', 'pred.')}</span></span>${benchRow}</div></section>`;
+  return `<div class="tmv${side ? ' side-open' : ''}">
+    <div class="tm-main">
+      <div class="tvbn"><h1>${tr('Moj tim', 'My team')}</h1>${tabs}</div>
+      <div class="tchips">
+        <div class="hl"><span class="sub">${tr('Predviđeno', 'Predicted')}</span><b id="plan-total">${fmt(r.net)}</b>${r.hits ? `<span class="sub">${fmt(r.gross)} − ${r.hits}</span>` : ''}</div>
+        <div><span class="sub">${tr('Besplatni', 'Free tr.')}</span><b>${r.chip ? '∞' : Math.max(0, r.ft - r.used)}<small>/${r.chip ? '∞' : r.ft}</small></b>${made ? `<span class="sr">${tr(`, ${made} već na FPL-u`, `, ${made} made on FPL`)}</span>` : ''}</div>
+        <div><span class="sub">${tr('Minus', 'Hits')}</span><b class="${r.hits ? 'neg' : ''}">${r.hits ? '−' + r.hits : '0'}</b></div>
+        <div><span class="sub">${tr('Banka', 'Bank')}</span><b class="${r.bank < 0 ? 'neg' : ''}">${m(r.bank)}</b></div>
       </div>
-      <div class="stack">
-        <section class="g card" aria-labelledby="h-trs"><div class="ch"><h2 id="h-trs" class="ct">${tr('Transferi u kolu', 'Transfers in gameweek')} ${gw}</h2>${r.used ? `<span class="chg ${r.hits ? 'dn' : 'up'}">${r.hits ? '−' + r.hits : tr('besplatno', 'free')}</span>` : ''}</div>${trList}</section>
-        <section class="g card"><h2 class="ct">${tr('Prijedlozi', 'Suggestions')}</h2><p class="sub">${tr(`Najbolji pojedinačni transferi za kola ${gw} do ${list.at(-1)}`, `Best single transfers for gameweeks ${gw} to ${list.at(-1)}`)}</p>${ideaHtml}</section>
-        ${summary}
-        <section class="g card"><h2 class="ct">${tr('Predložena postava', 'Suggested lineup')}</h2><p class="muted" style="margin-top:6px">${best - r.gross > 0.05 ? tr(`Po procjeni je najbolja formacija ${opt.formation} sa kapitenom <b>${esc(opt.captain.web_name)}</b>, oko ${fmt(best - r.gross)} bodova više od tvog plana.`, `The model's best is ${opt.formation} with <b>${esc(opt.captain.web_name)}</b> as captain, about ${fmt(best - r.gross)} points more than your plan.`) : tr('Tvoja postava je već najbolja po procjeni.', 'Your lineup is already the best by the model.')}</p></section>
-        ${past}
-        ${chipsCard()}
-        <section class="g card"><h2 class="ct">${tr('Kako čitati', 'How to read')}</h2><p class="legend" style="margin-top:8px"><span><span class="fdr d2">${tr('lako', 'easy')}</span></span><span><span class="fdr d3">${tr('srednje', 'medium')}</span></span><span><span class="fdr d4">${tr('teško', 'hard')}</span></span><span><span class="fdr d5">${tr('vrlo teško', 'very hard')}</span></span></p><p class="sub" style="margin-top:8px">${tr(`(D) znači da tim igra kod kuće, (G) u gostima. Broj desno su predviđeni bodovi za kolo ${gw}. Uzvičnik je upitan igrač: žut 75%, narandžast 50%, tamnonarandžast 25%, crven ne igra. C je kapiten, V vice kapiten.`, `(H) means the team plays at home, (A) away. The number on the right is predicted points for gameweek ${gw}. The exclamation mark is a doubtful player: yellow 75%, orange 50%, dark orange 25%, red is out. C is captain, V vice captain.`)}</p></section>
+      <div class="pl-tools">
+        <div class="seg" role="group" aria-label="${tr('Čip u kolu', 'Chip this GW')} ${gw}">${[['', tr('Bez čipa', 'No chip')], ['wildcard', 'WC'], ['freehit', 'FH']].map(([k, t]) => `<button type="button" data-chip="${k}" aria-pressed="${(r.chip || '') === k}"${k ? ` aria-label="${k === 'wildcard' ? 'Wildcard' : 'Free Hit'}"` : ''}>${t}</button>`).join('')}</div>
+        <button type="button" class="btn sm" data-act="best"${Math.abs(best - r.gross) < 0.05 ? ' disabled' : ''}>${tr('Najbolja', 'Best')} ${opt.formation}</button><button type="button" class="btn sm ghost" data-act="reset"${g.lineup ? '' : ' disabled'}>${tr('Vrati', 'Reset')}</button>
+        <button type="button" class="btn sm ghost plan-open" data-act="side" aria-expanded="${side}" aria-controls="tm-side">${tr('Plan', 'Plan')}${r.used ? ` <span class="pill">${r.used}</span>` : ''}</button>
       </div>
-    </div>`;
+      ${r.chip ? `<p class="sub pl-note">${r.chip === 'wildcard' ? tr('Wildcard: transferi bez minus bodova, tim ostaje.', 'Wildcard: transfers with no hits, the team stays.') : tr('Free Hit: transferi bez minus bodova samo za ovo kolo, poslije se vraća stari tim.', 'Free Hit: transfers with no hits for this gameweek only, then the old team returns.')}${chipNote(r.chip)}</p>` : ''}
+      ${r.used > r.ft && !r.chip ? `<p class="alert"><span class="dot" aria-hidden="true"></span><span>${tr(`${r.used} transfera, a besplatnih je ${r.ft}: to je −${r.hits} bodova.`, `${r.used} transfers with ${r.ft} free: that is −${r.hits} points.`)}</span></p>` : ''}
+      ${warn.map((w) => `<p class="alert"><span class="dot" aria-hidden="true"></span><span>${w}</span></p>`).join('')}
+      <p class="err" id="plan-err" role="alert">${esc(note)}</p>
+      ${pitchHtml}
+    </div>
+    ${bar}
+    ${picker}
+    <div class="tm-side" id="tm-side">
+      <div class="side-h"><h2 class="ct">${tr('Plan i savjeti', 'Plan and tips')}</h2><button type="button" class="icon-btn" data-act="side" aria-label="${tr('Zatvori plan', 'Close plan')}">${ic('close')}</button></div>
+      <section class="g card" aria-labelledby="h-trs"><div class="ch"><h2 id="h-trs" class="ct">${tr('Transferi u kolu', 'Transfers in gameweek')} ${gw}</h2>${r.used ? `<span class="chg ${r.hits ? 'dn' : 'up'}">${r.hits ? '−' + r.hits : tr('besplatno', 'free')}</span>` : ''}</div>${trList}</section>
+      <section class="g card"><h2 class="ct">${tr('Prijedlozi', 'Suggestions')}</h2><p class="sub">${tr(`Najbolji pojedinačni transferi za kola ${gw} do ${list.at(-1)}`, `Best single transfers for gameweeks ${gw} to ${list.at(-1)}`)}</p>${ideaHtml}</section>
+      ${summary}
+      <section class="g card"><h2 class="ct">${tr('Predložena postava', 'Suggested lineup')}</h2><p class="muted" style="margin-top:6px">${best - r.gross > 0.05 ? tr(`Po procjeni je najbolja formacija ${opt.formation} sa kapitenom <b>${esc(opt.captain.web_name)}</b>, oko ${fmt(best - r.gross)} bodova više od tvog plana.`, `The model's best is ${opt.formation} with <b>${esc(opt.captain.web_name)}</b> as captain, about ${fmt(best - r.gross)} points more than your plan.`) : tr('Tvoja postava je već najbolja po procjeni.', 'Your lineup is already the best by the model.')}</p></section>
+      ${past}
+      ${chipsCard()}
+      <section class="g card"><h2 class="ct">${tr('Kako čitati', 'How to read')}</h2><p class="legend" style="margin-top:8px"><span><span class="fdr d2">${tr('lako', 'easy')}</span></span><span><span class="fdr d3">${tr('srednje', 'medium')}</span></span><span><span class="fdr d4">${tr('teško', 'hard')}</span></span><span><span class="fdr d5">${tr('vrlo teško', 'very hard')}</span></span></p><p class="sub" style="margin-top:8px">${tr(`(D) znači da tim igra kod kuće, (G) u gostima. Broj desno su predviđeni bodovi za kolo ${gw}. Uzvičnik je upitan igrač: žut 75%, narandžast 50%, tamnonarandžast 25%, crven ne igra. C je kapiten, V vice kapiten. Klikni igrača da ga prodaš, staviš za kapitena ili zamijeniš sa klupom. Plan se čuva u ovom pregledniku, a u FPL-u ga potvrđuješ sam.`, `(H) means the team plays at home, (A) away. The number on the right is predicted points for gameweek ${gw}. The exclamation mark is a doubtful player: yellow 75%, orange 50%, dark orange 25%, red is out. C is captain, V vice captain. Click a player to sell, captain or swap them with the bench. The plan is saved in this browser, you confirm it on FPL yourself.`)}</p></section>
+    </div>
+  </div>`;
 }
 
 function drawBuy() {
@@ -266,6 +268,7 @@ export function bind(rerender) {
     b.onclick = () => {
       const p = P(), a = b.dataset.act, T = simulate(p).find((x) => x.gw === gwSel).team, g = rec(p, gwSel);
       note = '';
+      if (a === 'side') { side = !side; rerender(true); if (side) document.querySelector('#tm-side .side-h button')?.focus(); else document.querySelector('.plan-open')?.focus(); return; }
       if (a === 'sell') { pick = sel; sel = null; focusId = null; rerender(true); return; }
       if (a === 'nopick') { pick = null; return redraw(null); }
       if (a === 'cap') { const L = { ...T }; if (L.vice === sel) L.vice = L.captain; L.captain = sel; g.lineup = L; save(p); }

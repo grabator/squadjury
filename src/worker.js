@@ -2,6 +2,7 @@
 // FPL API ne dozvoljava pozive direktno iz preglednika (CORS), pa idu preko ovog Workera, uz keš.
 //   GET /api/bootstrap              igrači, klubovi, kola
 //   GET /api/fixtures               sve utakmice sa težinom
+//   GET /api/fixtures/:gw           utakmice jednog kola uživo (počela, završena, minute)
 //   GET /api/entry/:id              menadžer
 //   GET /api/entry/:id/history      bodovi i rang po kolima
 //   GET /api/entry/:id/picks/:gw    tim u kolu
@@ -20,7 +21,7 @@ const FPL = 'https://fantasy.premierleague.com/api';
 const UA = { 'user-agent': 'FPL-Manager/0.1', accept: 'application/json' };
 
 // koliko dugo čuvati odgovor (sekunde)
-const TTL = { bootstrap: 900, fixtures: 900, entry: 300, history: 300, picks: 300, transfers: 120, live: 60, league: 300, lpage: 300, element: 900, team: 300, find: 60 };
+const TTL = { bootstrap: 900, fixtures: 900, gwfix: 60, entry: 300, history: 300, picks: 300, transfers: 120, live: 60, league: 300, lpage: 300, element: 900, team: 300, find: 60 };
 
 const SEC = { 'x-content-type-options': 'nosniff', 'referrer-policy': 'strict-origin-when-cross-origin' };
 const json = (data, status = 200, ttl = 0) => new Response(JSON.stringify(data), {
@@ -31,6 +32,7 @@ export function route(path) {
   let m;
   if (path === '/api/bootstrap') return { kind: 'bootstrap', up: '/bootstrap-static/' };
   if (path === '/api/fixtures') return { kind: 'fixtures', up: '/fixtures/' };
+  if ((m = path.match(/^\/api\/fixtures\/(\d{1,2})$/))) return { kind: 'gwfix', gw: +m[1], up: `/fixtures/?event=${m[1]}` };
   if ((m = path.match(/^\/api\/entry\/(\d{1,9})$/))) return { kind: 'entry', id: +m[1], up: `/entry/${m[1]}/` };
   if ((m = path.match(/^\/api\/entry\/(\d{1,9})\/history$/))) return { kind: 'history', id: +m[1], up: `/entry/${m[1]}/history/` };
   if ((m = path.match(/^\/api\/entry\/(\d{1,9})\/transfers$/))) return { kind: 'transfers', id: +m[1], up: `/entry/${m[1]}/transfers/` };
@@ -47,6 +49,7 @@ export function fromDemo(r) {
   switch (r.kind) {
     case 'bootstrap': return demo.bootstrap();
     case 'fixtures': return demo.fixtures();
+    case 'gwfix': return demo.fixtures().filter((f) => f.event === r.gw).map(slimFix);
     case 'entry': return demo.entry(r.id);
     case 'history': return demo.history(r.id);
     case 'picks': return demo.picks(r.id, r.gw);
@@ -75,6 +78,9 @@ const LF = ['minutes', 'goals_scored', 'assists', 'clean_sheets', 'goals_concede
 const val = (x, id) => (x.stats || []).find((s) => s.identifier === id)?.value ?? 0;
 export const slimLive = (d) => ({ elements: d.elements.map((e) => ({ id: e.id, stats: Object.fromEntries(LF.map((k) => [k, e.stats?.[k] ?? 0])), fx: (e.explain || []).map((x) => [x.fixture, val(x, 'bps'), val(x, 'minutes')]) })) });
 
+// utakmice jednog kola uživo: počela, završena (finished_provisional stiže odmah po završetku, finished tek kad FPL potvrdi bonus)
+export const slimFix = (f) => ({ id: f.id, event: f.event, kickoff_time: f.kickoff_time, team_h: f.team_h, team_a: f.team_a, started: !!f.started, finished: !!f.finished, finished_provisional: !!f.finished_provisional, minutes: f.minutes || 0, team_h_score: f.team_h_score ?? null, team_a_score: f.team_a_score ?? null });
+
 async function fromFpl(r, ctx) {
   const cache = caches.default, key = new Request('https://fpl-cache.local' + r.up);
   const hit = await cache.match(key);
@@ -85,6 +91,7 @@ async function fromFpl(r, ctx) {
   let data = await res.json();
   if (r.kind === 'bootstrap') data = slimBootstrap(data);
   if (r.kind === 'live') data = slimLive(data);
+  if (r.kind === 'gwfix') data = data.map(slimFix);
   ctx.waitUntil(cache.put(key, new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json', 'cache-control': `public, max-age=${TTL[r.kind]}` } })));
   return data;
 }

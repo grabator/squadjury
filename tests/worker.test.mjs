@@ -6,6 +6,7 @@ test('rute', () => {
   assert.deepEqual(route('/api/entry/123/picks/9'), { kind: 'picks', id: 123, gw: 9, up: '/entry/123/event/9/picks/' });
   assert.equal(route('/api/entry/abc'), null);
   assert.equal(route('/api/live/9').up, '/event/9/live/');
+  assert.deepEqual(route('/api/fixtures/9'), { kind: 'gwfix', gw: 9, up: '/fixtures/?event=9' });
   assert.equal(route('/api/league/1').up, '/leagues-classic/1/standings/');
   assert.equal(route('/api/../secret'), null);
 });

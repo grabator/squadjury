@@ -9,7 +9,7 @@ const ICON = {
   home: '<path d="M4 11l8-7 8 7v9H4z"/>', team: '<path d="M8 4l-4 2 1.5 4L8 9v11h8V9l2.5 1L20 6l-4-2c-.5 1.5-2 2.5-4 2.5S8.5 5.5 8 4z"/>',
   cap: '<circle cx="12" cy="12" r="8"/><path d="M14.5 9.5a3.5 3.5 0 1 0 0 5"/>', swap: '<path d="M7 7h11l-3-3M17 17H6l3 3"/>',
   cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', live: '<circle cx="12" cy="12" r="2.5"/><path d="M7 7a7 7 0 0 0 0 10M17 7a7 7 0 0 1 0 10M4.5 4.5a10.5 10.5 0 0 0 0 15M19.5 4.5a10.5 10.5 0 0 1 0 15"/>',
-  vs: '<path d="M5 5l6 14M11 5L5 19M14 9.5c0-1.5 1.2-2.5 3-2.5s3 1 3 2.2c0 3-6 2-6 5.3 0 1.4 1.3 2.5 3 2.5s3-1 3-2.5"/>',
+  table: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9.5h16M4 14h16M9 5v14"/>',
   cup: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/>', star: '<path d="M12 4l2.4 5 5.4.7-4 3.8 1 5.4L12 16.3 7.2 18.9l1-5.4-4-3.8 5.4-.7z"/>',
   book: '<path d="M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h9"/>', out: '<path d="M10 6H6v12h4M14 8l4 4-4 4M18 12H9"/>',
   more: '<circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>', close: '<path d="M6 6l12 12M18 6L6 18"/>',
@@ -22,12 +22,13 @@ const ICON = {
 };
 export const ic = (k) => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + ICON[k] + '</svg>';
 
-// meni: [ruta, naziv, ikona, grupa]
-const G = { tim: tr('Tim', 'Team'), kolo: tr('Kolo', 'Gameweek'), ti: tr('Ti', 'You') };
+// meni: [ruta, naziv, ikona, grupa, kratki opis za pločicu u Više]
+const G = { tim: tr('Tim', 'Team'), vise: tr('Više', 'More') };
 export const ROUTES = [
-  ['pregled', tr('Pregled', 'Overview'), 'home', G.tim], ['tim', tr('Moj tim', 'My team'), 'team', G.tim], ['kapiten', tr('Kapiten', 'Captain'), 'cap', G.tim], ['transferi', tr('Transferi', 'Transfers'), 'swap', G.tim], ['raspored', tr('Raspored', 'Fixtures'), 'cal', G.tim],
-  ['uzivo', tr('Uživo', 'Live'), 'live', G.kolo], ['kutak', tr('Zanimljivosti', 'Records'), 'spark', G.kolo], ['rival', 'Rival', 'vs', G.kolo], ['liga', tr('Liga', 'League'), 'cup', G.kolo],
-  ['karijera', tr('Karijera', 'Career'), 'star', G.ti], ['trofeji', tr('Trofeji', 'Trophies'), 'trophy', G.ti], ['vodic', tr('Vodič', 'Guide'), 'book', G.ti]
+  ['pregled', tr('Pregled', 'Overview'), 'home', G.tim], ['tim', tr('Moj tim', 'My team'), 'team', G.tim], ['uzivo', tr('Uživo', 'Live'), 'live', G.tim], ['transferi', tr('Transferi', 'Transfers'), 'swap', G.tim],
+  ['kapiten', tr('Kapiten', 'Captain'), 'cap', G.vise, tr('Ko nosi traku ovog kola', 'Who wears the armband this week')], ['raspored', tr('Raspored', 'Fixtures'), 'cal', G.vise, tr('Sljedećih pet kola za svaki klub', 'Next five gameweeks for every club')],
+  ['liga', tr('Liga', 'League'), 'table', G.vise, tr('Tabela tvoje mini lige i dueli', 'Your mini league table and duels')], ['kutak', tr('Zanimljivosti', 'Records'), 'spark', G.vise, tr('Rekordi sezone i igrači koji se ističu', 'Season records and stand-out players')],
+  ['trofeji', tr('Trofeji', 'Trophies'), 'trophy', G.vise, tr('Nagrade kola iz tvojih liga', 'Weekly awards from your leagues')]
 ];
 export const TABS = ['pregled', 'tim', 'uzivo', 'transferi'];
 
@@ -68,7 +69,7 @@ export function fdrChip(ix, e, gw, teamId) {
 }
 
 /** Tekst koji se čita na boji dresa: tamni na svijetloj, bijeli na tamnoj. */
-const ink = (hex) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)); const L = 0.2126 * r + 0.7152 * g + 0.0722 * b; return (L + 0.05) / 0.058 > 1.05 / (L + 0.05) ? '#2b0030' : '#fff'; };
+export const ink = (hex) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)); const L = 0.2126 * r + 0.7152 * g + 0.0722 * b; return (L + 0.05) / 0.058 > 1.05 / (L + 0.05) ? '#0c1330' : '#fff'; };
 /** Srednje tamne boje dresa malo potamni da bijeli tekst ima dovoljan kontrast. */
 const deep = (hex) => ink(hex) === '#fff' ? '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.85).toString(16).padStart(2, '0')).join('') : hex;
 export const chip = (ix, e) => { const [a] = kit(ix.teams.get(e.team)); return `<button type="button" class="chip" data-pid="${e.id}" style="--c:${deep(a)};--ci:${ink(a)}"><i>${esc(e.web_name.slice(0, 2).toUpperCase())}</i>${esc(e.web_name)}</button>`; };

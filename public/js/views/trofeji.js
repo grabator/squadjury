@@ -16,7 +16,7 @@ const KINDS = {
 };
 
 // naš znak u jednoj boji, kao lav na PL valjcima
-const MARK = '<svg class="tro-mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M33 50A13 13 0 0 1 33 76H25" stroke-width="9"/><path d="M28 68.5L20 76L28 83.5" stroke-width="7"/><path d="M33 50A13 13 0 0 1 33 24H44" stroke-width="9"/><path d="M41 16.5L49 24L41 31.5" stroke-width="7"/><path d="M60 60L68 74L84 24" stroke-width="9.5"/></g></svg>';
+const MARK = '<svg class="tro-mark" viewBox="0 0 100 100" aria-hidden="true"><g transform="skewX(-18) translate(16 0)"><rect x="18" y="24" width="64" height="14" fill="#d41f2b"/><rect x="18" y="43" width="64" height="14" fill="#c7ccd8"/><rect x="18" y="62" width="64" height="14" fill="#2448d8"/></g></svg>';
 
 /** n poslova, najviše k istovremeno */
 async function pool(items, k, fn) {

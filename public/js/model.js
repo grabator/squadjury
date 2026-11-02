@@ -22,7 +22,7 @@ export function index(boot, fixtures) {
     if (!f.event) continue;
     for (const [team, opp, home, fdr] of [[f.team_h, f.team_a, true, f.team_h_difficulty], [f.team_a, f.team_h, false, f.team_a_difficulty]]) {
       if (!byTeam.has(team)) byTeam.set(team, []);
-      byTeam.get(team).push({ gw: f.event, opp, home, fdr, kickoff: f.kickoff_time, id: f.id, finished: f.finished, hs: f.team_h_score, as: f.team_a_score });
+      byTeam.get(team).push({ gw: f.event, opp, home, fdr, kickoff: f.kickoff_time, id: f.id, finished: !!(f.finished || f.finished_provisional), hs: f.team_h_score, as: f.team_a_score });
     }
   }
   for (const list of byTeam.values()) list.sort((a, b) => a.gw - b.gw || String(a.kickoff).localeCompare(String(b.kickoff)));
@@ -34,6 +34,25 @@ export function index(boot, fixtures) {
 /** Utakmice kluba u kolima od..do (može ih biti 0, 1 ili 2 u jednom kolu). */
 export function fixturesFor(ix, teamId, fromGw, n = 1) {
   return (ix.byTeam.get(teamId) || []).filter((f) => f.gw >= fromGw && f.gw < fromGw + n);
+}
+
+/**
+ * Stanje utakmice uživo: 'pre' (nije počela), 'live' (traje) ili 'done' (završena).
+ * lf su svježe utakmice kola (/api/fixtures/:gw); bez njih procjena po vremenu početka.
+ */
+export function fxStatus(f, lf, now = Date.now()) {
+  const x = lf?.get(f.id);
+  if (x) return x.finished || x.finished_provisional ? 'done' : x.started ? 'live' : 'pre';
+  if (f.finished) return 'done';
+  const k = f.kickoff ? Date.parse(f.kickoff) : NaN;
+  if (Number.isNaN(k) || k > now) return 'pre';
+  return now - k > 2.5 * 3600e3 ? 'done' : 'live';
+}
+/** Igrač u kolu: 'none' (klub ne igra), 'pre', 'live' ili 'done'; toPlay je true dok mu bar jedna utakmica nije završena. */
+export function playerState(ix, e, gw, lf, now = Date.now()) {
+  const fx = fixturesFor(ix, e.team, gw, 1), st = fx.map((f) => fxStatus(f, lf, now));
+  const state = !fx.length ? 'none' : st.includes('live') ? 'live' : st.every((x) => x === 'pre') ? 'pre' : st.every((x) => x === 'done') ? 'done' : 'part';
+  return { fx, state, toPlay: st.some((x) => x !== 'done') };
 }
 
 /** Šansa da igra sljedeće kolo, od 0 do 1. */

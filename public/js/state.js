@@ -42,8 +42,10 @@ export async function league() {
   if (!S.league) S.league = await get('/league/' + S.leagueId);
   return S.league;
 }
-const lives = new Map();
-export const refreshLive = (gw) => forget('/live/' + gw);
+const lives = new Map(), fixes = new Map();
+export const refreshLive = (gw) => { forget('/live/' + gw); forget('/fixtures/' + gw); };
+/** Svježe utakmice kola (počela, završena), kao Map po id-u. */
+export const liveFix = (gw) => { const k = get('/fixtures/' + gw); if (!fixes.has(gw) || fixes.get(gw).src !== k) { const m = k.then((d) => new Map(d.map((f) => [f.id, f]))); m.src = k; fixes.set(gw, m); } return fixes.get(gw); };
 export const live = (gw) => { const k = get('/live/' + gw); if (!lives.has(gw) || lives.get(gw).src !== k) { const m = k.then((d) => new Map(d.elements.map((e) => [e.id, { ...e.stats, fx: e.fx || [] }]))); m.src = k; lives.set(gw, m); } return lives.get(gw); };
 export const picksOf = (entryId, gw) => get('/entry/' + entryId + '/picks/' + gw);
 export const historyOf = (entryId) => get('/entry/' + entryId + '/history');
