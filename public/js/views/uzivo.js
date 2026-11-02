@@ -24,8 +24,10 @@ function liveCard(ix, e, s = {}, b = {}, pts, gw, lf, { cap, vice, bench }) {
   if (none) right = `<b class="lc-p">–</b><span class="lc-k">${tr('ne igra', 'no game')}</span>`;
   else if (pre) { const d = ko.find((x) => x > now) || ko[0]; right = `<b class="lc-p">–</b><span class="lc-k">${dayShort(d)}<br>${time(d)}</span>`; }
   else {
-    const dcT = gk ? `<span class="lc-t${Math.floor(sv / 3) ? ' on' : ''}">${Math.floor(sv / 3) ? '+' + Math.floor(sv / 3) : sv} ${tr('OD', 'SV')}</span>` : dc ? `<span class="lc-t${dc.hit ? ' on' : ''}">${dc.hit ? '+2' : `${dc.v}/${dc.need}`} DC</span>` : '';
-    const bT = `<span class="lc-t${b.bonus ? ' gd' + (b.provisional ? ' pr' : '') : ''}">${b.bonus ? '+' + b.bonus : 0} B</span>`;
+    // samo ono što je donijelo bodove: DefCon (golman: odbrane) i bonus
+    const plus = gk ? Math.floor(sv / 3) : dc?.hit ? 2 : 0;
+    const dcT = plus ? `<span class="lc-t on">+${plus} ${gk ? tr('OD', 'SV') : 'DC'}</span>` : '';
+    const bT = b.bonus ? `<span class="lc-t gd${b.provisional ? ' pr' : ''}">+${b.bonus} B</span>` : '';
     right = `<b class="lc-p">${pts}</b><span class="lc-m${state === 'live' ? ' live' : ''}">${mins}'</span>${dcT}${bT}`;
   }
   const sr = `<span class="sr">${esc(e.web_name)}${cap ? ', ' + tr('kapiten', 'captain') : vice ? ', ' + tr('vice kapiten', 'vice captain') : ''}${bench ? ', ' + tr('na klupi', 'on the bench') : ''}: ${none ? tr('ne igra', 'no game') : pre ? tr('utakmica još nije počela', 'match not started') : `${pts} ${tr('bodova', 'points')}, ${mins} ${tr('minuta', 'minutes')}, BPS ${b.bps || 0}, bonus ${b.bonus || 0}${b.provisional ? tr(' (nije konačan)', ' (not final)') : ''}${dc ? `, DefCon ${dc.v} ${tr('od', 'of')} ${dc.need}` : ''}${gk ? `, ${tr('odbrane', 'saves')} ${sv}` : ''}`}</span>`;

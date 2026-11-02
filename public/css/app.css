@@ -1619,3 +1619,13 @@ body::after { background: rgba(13, 13, 15, .82); }
 .lvp .bslot .lc { max-width: none; width: 100%; }
 @media (min-width: 901px) { .lc-ph { height: 76px; } .lc-ph .shirt { width: 62px; height: 62px; } .lc-p { font-size: 28px; } .lc-t { font-size: 11px; } .lc-n { font-size: 15px; } }
 .lvp .bslot .lc { flex: none; }
+/* Uživo kartica: samo bodovi i ono što je donijelo bodove, prozirnije */
+.lc { background: rgba(20, 20, 22, .55); box-shadow: 0 0 0 1px rgba(201, 147, 95, .28); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.lc-ph { background-color: rgba(20, 20, 22, .4) !important; border-right: 0; }
+.lc-r { justify-content: center; gap: 3px; }
+.lc-p { font-size: 26px; }
+.lc-t { align-self: flex-start; background: none; padding: 0; font-size: 10.5px; }
+.lc-t.on { background: none; color: var(--up); }
+.lc-t.gd { background: none; color: #e6bf8f; }
+.lc-t.pr { background: none; color: #e6bf8f; opacity: .75; }
+.lc-n { background: rgba(241, 236, 228, .92); }
