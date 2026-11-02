@@ -503,6 +503,42 @@ export function defCon(e, s = {}) {
 }
 
 /**
+ * DefCon stranica: igrači koji su dobili +2 i oni koji su bili blizu (fali im najviše `near` akcija).
+ * Računaju se samo igrači koji su igrali; golmani ne dobijaju DefCon.
+ */
+export function defConList(ix, lv, near = 3) {
+  const rows = [];
+  for (const [id, s] of lv) {
+    if (!(s.minutes > 0)) continue;
+    const e = ix.players.get(id); if (!e) continue;
+    const d = defCon(e, s); if (!d) continue;
+    if (d.hit || d.v >= d.need - near) rows.push({ e, v: d.v, need: d.need, hit: d.hit, mins: s.minutes });
+  }
+  return {
+    hit: rows.filter((r) => r.hit).sort((a, b) => b.v - a.v || b.v / b.need - a.v / a.need),
+    near: rows.filter((r) => !r.hit).sort((a, b) => (b.v - b.need) - (a.v - a.need) || b.v - a.v),
+  };
+}
+
+/**
+ * Bonus po utakmicama: za svaku utakmicu igrači sa bonusom (3, 2, 1). Ako FPL još nije potvrdio bonus
+ * u utakmici, bonus je procjena iz BPS-a (confirmed: false). Utakmice bez bonusa se ne vraćaju.
+ */
+export function bonusByFixture(lv) {
+  const byFix = new Map();
+  for (const [id, s] of lv) for (const [f, bps, mins] of s.fx || []) { if (!byFix.has(f)) byFix.set(f, []); byFix.get(f).push({ id, bps, mins }); }
+  const out = [];
+  for (const [fid, rows] of byFix) {
+    const confirmed = rows.some((r) => (lv.get(r.id)?.bonus || 0) > 0);
+    const proj = bonusFromBps(rows);
+    const list = rows.map((r) => ({ id: r.id, bps: r.bps, mins: r.mins, bonus: confirmed ? lv.get(r.id)?.bonus || 0 : proj.get(r.id) || 0 }))
+      .filter((r) => r.bonus > 0).sort((a, b) => b.bonus - a.bonus || b.bps - a.bps);
+    if (list.length) out.push({ fid, confirmed, rows: list });
+  }
+  return out;
+}
+
+/**
  * Trofeji u ligi. members: [{ entry, hist: history.current }], caps: Map(kolo -> Map(entry -> bodovi kapitena)).
  * mgr: najviše bodova u kolu, cap: najbolji kapiten kola, jump: najveći skok na tabeli, top: prvo mjesto poslije kola.
  * Neriješeno se računa kao pobjeda svih sa istim rezultatom.

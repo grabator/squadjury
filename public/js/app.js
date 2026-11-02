@@ -15,8 +15,10 @@ import * as liga from './views/liga.js';
 import * as kutak from './views/kutak.js';
 import * as trofeji from './views/trofeji.js';
 import * as rotacija from './views/rotacija.js';
+import * as defcon from './views/defcon.js';
+import * as bonus from './views/bonus.js';
 
-const VIEWS = { pregled, tim, kapiten, transferi, raspored, uzivo, kutak, liga, trofeji, rotacija };
+const VIEWS = { pregled, tim, kapiten, transferi, raspored, uzivo, kutak, liga, trofeji, rotacija, defcon, bonus };
 const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* */ } }, del: (k) => { try { localStorage.removeItem(k); } catch { /* */ } } };
@@ -402,3 +404,14 @@ if (q.get('id') && /^\d{1,9}$/.test(q.get('id'))) { store.set('fm-id', q.get('id
 else if (q.get('demo') === '1') { store.set('fm-id', '1'); store.set('fm-demo', '1'); history.replaceState(null, '', location.pathname + location.hash); }
 render();
 if ('serviceWorker' in navigator && location.hostname !== 'localhost') navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+// iPhone/Android: kad se otvori tastatura, vidljivi dio ekrana se smanji; prozori sa pretragom se drže unutar njega
+const vv = window.visualViewport;
+if (vv) {
+  const fit = () => {
+    const root = document.documentElement, open = vv.height < window.innerHeight * 0.8;
+    root.style.setProperty('--vvh', vv.height + 'px'); root.style.setProperty('--vvt', vv.offsetTop + 'px');
+    root.classList.toggle('kb-open', open);
+  };
+  vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); fit();
+}

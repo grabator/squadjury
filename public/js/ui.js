@@ -17,6 +17,8 @@ const ICON = {
   spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
   jury: '<rect x="6" y="3.5" width="12" height="17" rx="2"/><path d="M9.5 8.5h5M9.5 12h5M9.5 15.5h3"/>',
   trophy: '<path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4.5a2.5 2.5 0 0 0 2.8 3.3M17 6h2.5a2.5 2.5 0 0 1-2.8 3.3M12 13v3M8 20h8l-1-4H9z"/>', user: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>', chev: '<path d="M10 6l6 6-6 6"/>',
+  shield: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',
+  star: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
   share: '<path d="M12 4v11M8 8l4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>', link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
@@ -30,7 +32,9 @@ export const ROUTES = [
   ['kapiten', tr('Kapiten', 'Captain'), 'cap', G.vise, tr('Ko nosi traku ovog kola', 'Who wears the armband this week')], ['raspored', tr('Raspored', 'Fixtures'), 'cal', G.vise, tr('Sljedećih pet kola za svaki klub', 'Next five gameweeks for every club')],
   ['liga', tr('Liga', 'League'), 'table', G.vise, tr('Tabela tvoje mini lige i dueli', 'Your mini league table and duels')], ['kutak', tr('Zanimljivosti', 'Records'), 'spark', G.vise, tr('Rekordi sezone i igrači koji se ističu', 'Season records and stand-out players')],
   ['trofeji', tr('Trofeji', 'Trophies'), 'trophy', G.vise, tr('Nagrade kola iz tvojih liga', 'Weekly awards from your leagues')],
-  ['rotacija', tr('Rotacija', 'Rotation pairs'), 'rot', G.vise, tr('Dva igrača koji se smjenjuju kroz 6 kola', 'Two players who swap over 6 gameweeks')]
+  ['rotacija', tr('Rotacija', 'Rotation pairs'), 'rot', G.vise, tr('Dva igrača koji se smjenjuju kroz 6 kola', 'Two players who swap over 6 gameweeks')],
+  ['defcon', 'DefCon', 'shield', G.vise, tr('Ko je dobio +2 za odbranu i ko je bio blizu', 'Who got +2 for defending and who came close')],
+  ['bonus', tr('Bonus', 'Bonus'), 'star', G.vise, tr('Bonus bodovi po utakmicama', 'Bonus points match by match')]
 ];
 export const TABS = ['pregled', 'tim', 'uzivo', 'transferi'];
 
@@ -50,6 +54,8 @@ const CODE = { ARS: 3, AVL: 7, BOU: 91, BRE: 94, BHA: 36, CHE: 8, CRY: 31, EVE: 
 export const crest = (t) => { const c = t?.code || CODE[t?.short_name]; return c ? `<img class="crest" src="https://resources.premierleague.com/premierleague25/badges/t${c}.svg" data-alt="https://resources.premierleague.com/premierleague/badges/70/t${c}@x2.png" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ''; };
 /** Boje kluba za TV traku: osnovna boja i druga boja (pruge, rukavi ili detalji). */
 export const kit2 = (t) => { const k = KIT[t?.short_name] || { b: '#8a8a9a' }; return { b: k.b, a: k.st || k.s || k.t || '#fff' }; };
+/** Pločica kluba za TV traku (domaći 'h' lijevo, gost 'a' desno): boja kluba, kose pruge u drugoj boji, grb i skraćenica. */
+export const scorePlate = (t, cls) => { const { b, a } = kit2(t); const acc = a.toLowerCase() === b.toLowerCase() ? ink(b) : a; return `<span class="pl ${cls}" style="--c:${b};--ct:${ink(b)};--a:${acc}"><span class="cr">${crest(t)}</span><b>${esc(t.short_name)}</b></span>`; };
 export const kit = (t) => { const k = KIT[t?.short_name] || { b: '#8a8a9a' }; return [k.b, k.t || k.s || '#fff']; };
 export const shirt = (t, gk = false) => {
   const k = KIT[t?.short_name] || { b: '#8a8a9a' };
