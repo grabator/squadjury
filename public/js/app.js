@@ -14,8 +14,9 @@ import * as uzivo from './views/uzivo.js';
 import * as liga from './views/liga.js';
 import * as kutak from './views/kutak.js';
 import * as trofeji from './views/trofeji.js';
+import * as rotacija from './views/rotacija.js';
 
-const VIEWS = { pregled, tim, kapiten, transferi, raspored, uzivo, kutak, liga, trofeji };
+const VIEWS = { pregled, tim, kapiten, transferi, raspored, uzivo, kutak, liga, trofeji, rotacija };
 const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* */ } }, del: (k) => { try { localStorage.removeItem(k); } catch { /* */ } } };
@@ -228,7 +229,7 @@ document.addEventListener('keydown', (ev) => { if ((ev.ctrlKey || ev.metaKey) &&
 document.addEventListener('click', (ev) => { if (ev.target.closest('[data-cmd]')) openCmd(); });
 // slike igrača: učitana slika zamijeni dres, neuspjela se makne pa ostaje dres
 document.addEventListener('load', (ev) => { if (ev.target.matches?.('img.ph, img.crest')) ev.target.parentNode.classList.add('has-ph'); }, true);
-document.addEventListener('error', (ev) => { if (ev.target.matches?.('img.ph, img.crest')) ev.target.remove(); }, true);
+document.addEventListener('error', (ev) => { const t = ev.target; if (!t.matches?.('img.ph, img.crest')) return; if (t.dataset.alt) { t.src = t.dataset.alt; delete t.dataset.alt; } else t.remove(); }, true);
 document.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Escape') return;
   if (!$('#acct').hidden) { $('#acct').hidden = true; $('#acct-btn')?.setAttribute('aria-expanded', 'false'); $('#acct-btn')?.focus(); }

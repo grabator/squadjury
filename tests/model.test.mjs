@@ -214,3 +214,16 @@ test('uživo: stanje utakmice i igrača koji još igraju', () => {
   const lf2 = new Map(fx.map((x) => [x.id, { started: true, finished: false, finished_provisional: false }]));
   assert.deepEqual([playerState(ix, e, 9, lf2).state, playerState(ix, e, 9, lf2).toPlay], ['live', true]);
 });
+
+test('rotacija: svako kolo igra bolji od dvojice, parovi iz različitih klubova', async () => {
+  const { rotationPair, rotationPairs, xp } = await import('../public/js/model.js');
+  const defs = [...ix.players.values()].filter((e) => e.element_type === 2 && e.minutes > 0).slice(0, 12);
+  const r = rotationPair(ix, defs[0], defs[1], 9, 6);
+  assert.equal(r.pick.length, 6);
+  for (const p of r.pick) assert.equal(p.use, p.xa >= p.xb ? defs[0].id : defs[1].id);
+  assert.ok(Math.abs(r.total - r.pick.reduce((s, p) => s + Math.max(p.xa, p.xb), 0)) < 1e-9);
+  assert.ok(r.total >= Math.max(xp(ix, defs[0], 9, 6), xp(ix, defs[1], 9, 6)) - 1e-9);
+  const best = rotationPairs(ix, defs, { mine: new Set([defs[0].id]), from: 9 });
+  assert.ok(best.length > 0 && best.every((x) => x.a.team !== x.b.team && (x.a.id === defs[0].id || x.b.id === defs[0].id)));
+  for (let i = 1; i < best.length; i++) assert.ok(best[i - 1].total >= best[i].total);
+});

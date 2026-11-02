@@ -1698,3 +1698,48 @@ body::after { background: rgba(13, 13, 15, .82); }
 .tvp .lc .lc-p { font-size: 21px; }
 @media (min-width: 901px) { .tvp .lc .lc-p { font-size: 28px; } .lc-o { font-size: 11.5px; } }
 .lc-ha { color: var(--d); font-size: 9.5px; } @media (min-width: 901px) { .lc-ha { font-size: 11.5px; } }
+/* oznake C, V, N (novi) i ! na traci sa imenom, slika ostaje čista */
+.lc-n { display: flex; align-items: center; justify-content: center; gap: 2px; }
+.lc-nn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc-n .lc-c { position: static; flex: none; width: 13px; height: 13px; border-radius: 3px; font: 800 9.5px/13px var(--cond); }
+.lc-n .lc-c.nw { background: var(--up); color: #062414; }
+@media (min-width: 901px) { .lc-n .lc-c { width: 16px; height: 16px; font-size: 11px; line-height: 16px; } }
+.ms-t:last-child:nth-child(even) { grid-column: span 2; min-height: 84px; }
+/* Rotacija: par igrača kroz 6 kola */
+.rp-pick { margin: 10px 0 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rp-pick .field { min-width: 0; }
+.rp-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.rp-tools .seg { flex-wrap: wrap; }
+.rp-list { display: grid; gap: 10px; }
+@media (min-width: 1100px) { .rp-list { grid-template-columns: 1fr 1fr; } }
+.rp { position: relative; padding: 12px; border-radius: 20px; background: var(--tile); }
+.card .rp { padding: 0; background: none; }
+.rp-n { position: absolute; right: 12px; top: 10px; font: 800 18px/1 var(--cond); color: #e6bf8f; }
+.rp-head, .rp-row { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(6, minmax(0, 1fr)); gap: 3px; align-items: center; }
+.rp-head { margin-bottom: 4px; padding-right: 24px; }
+.rp-head span { font-size: 10px; font-weight: 700; color: var(--d); text-align: center; }
+.rp-row + .rp-row { margin-top: 4px; }
+.rp-pl { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.rp-pl .shirt { width: 30px; height: 30px; flex: none; }
+.rp-pl > span:last-child { display: grid; min-width: 0; }
+.rp-pl b { font: 800 15px/1.1 var(--cond); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-pl .sub { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-c { display: grid; justify-items: center; align-content: center; height: 40px; border-radius: 8px; opacity: .55; }
+.rp-c b { font: 800 11px/1.1 var(--cond); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-c small { font-size: 9.5px; font-weight: 700; }
+.rp-c.d1, .rp-c.d2 { background: #3fbf77; color: #062414; }
+.rp-c.d3 { background: #d9d6cf; color: #111; }
+.rp-c.d4 { background: #d41f2b; color: #fff; }
+.rp-c.d5 { background: #7d0d22; color: #fff; }
+.rp-c.dx { background: #26262c; color: var(--d); }
+.rp-c.on { opacity: 1; box-shadow: 0 0 0 2px #e6bf8f, 0 0 12px rgba(230, 191, 143, .45); }
+.rp-f { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12.5px; color: var(--d); }
+.rp-f b { font: 800 18px var(--cond); color: var(--t); } .rp-f b.g { color: var(--up); }
+@media (max-width: 700px) {
+  .rp-head, .rp-row { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .rp-head .rp-sp { display: none; }
+  .rp-pl { grid-column: 1 / -1; margin: 4px 0 2px; }
+  .rp-pl b { font-size: 16px; }
+  .rp-pl .sub { font-size: 11px; }
+  .rp-row + .rp-row { margin-top: 8px; }
+}
