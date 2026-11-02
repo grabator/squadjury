@@ -520,6 +520,15 @@ export function defConList(ix, lv, near = 3) {
   };
 }
 
+/** DefCon po utakmicama: igrači iz defConList grupisani po utakmici u kojoj su igrali (dvostruko kolo: prva utakmica sa minutama). */
+export function defConByFixture(ix, lv, near = 3) {
+  const { hit, near: nr } = defConList(ix, lv, near), out = new Map();
+  const fidOf = (id) => { const fx = lv.get(id)?.fx || []; return (fx.find((x) => x[2] > 0) || fx[0] || [0])[0]; };
+  const add = (r, k) => { const f = fidOf(r.e.id); if (!out.has(f)) out.set(f, { fid: f, hit: [], near: [] }); out.get(f)[k].push(r); };
+  hit.forEach((r) => add(r, 'hit')); nr.forEach((r) => add(r, 'near'));
+  return [...out.values()];
+}
+
 /**
  * Bonus po utakmicama: za svaku utakmicu igrači sa bonusom (3, 2, 1). Ako FPL još nije potvrdio bonus
  * u utakmici, bonus je procjena iz BPS-a (confirmed: false). Utakmice bez bonusa se ne vraćaju.

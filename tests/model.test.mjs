@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import * as demo from '../src/lib/demo.js';
-import { index, xp, captainOptions, transferIdeas, whatIf, alerts, fixturesFor, availability, leagueAwards, fxStatus, playerState, defConList, bonusByFixture } from '../public/js/model.js';
+import { index, xp, captainOptions, transferIdeas, whatIf, alerts, fixturesFor, availability, leagueAwards, fxStatus, playerState, defConList, bonusByFixture, defConByFixture } from '../public/js/model.js';
 
 const ix = index(demo.bootstrap(), demo.fixtures());
 const p = demo.picks(1, 9).picks.map((x) => x.element);
@@ -256,4 +256,12 @@ test('bonusByFixture: potvrđen bonus iz FPL-a, inače procjena iz BPS-a; utakmi
   assert.equal(r.length, 2);
   assert.equal(f10.confirmed, true); assert.deepEqual(f10.rows.map((x) => [x.id, x.bonus]), [[1, 3], [2, 2], [3, 1]]);
   assert.equal(f11.confirmed, false); assert.deepEqual(f11.rows.map((x) => [x.id, x.bonus]), [[5, 3], [6, 3], [7, 1]]);
+});
+
+test('defConByFixture: igrači grupisani po utakmici', () => {
+  const ix = { players: new Map([[1, { id: 1, element_type: 2 }], [2, { id: 2, element_type: 3 }], [3, { id: 3, element_type: 2 }]]) };
+  const lv = new Map([[1, { minutes: 90, defensive_contribution: 11, fx: [[10, 20, 90]] }], [2, { minutes: 90, defensive_contribution: 10, fx: [[10, 15, 90]] }], [3, { minutes: 90, defensive_contribution: 12, fx: [[11, 15, 90]] }]]);
+  const r = defConByFixture(ix, lv), f10 = r.find((x) => x.fid === 10), f11 = r.find((x) => x.fid === 11);
+  assert.deepEqual(f10.hit.map((x) => x.e.id), [1]); assert.deepEqual(f10.near.map((x) => x.e.id), [2]);
+  assert.deepEqual(f11.hit.map((x) => x.e.id), [3]);
 });
