@@ -1750,3 +1750,26 @@ body::after { background: rgba(13, 13, 15, .82); }
 .rp-pos { display: grid; gap: 4px; }
 .rp-pos .sub { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .rp-tools { align-items: flex-end; }
+
+/* Pregled: utakmice kao TV traka za rezultat (domaći lijevo, gost desno, boje klubova, kose pruge, vrijeme na jezičku) */
+.fcard.sb { display: flex; flex-direction: column; padding: 14px 8px 0; background: radial-gradient(120% 90% at 50% 0%, #1f1f25, var(--tile) 70%); }
+.sb .bug { display: grid; grid-template-columns: 1fr 34px 1fr; height: 34px; filter: drop-shadow(0 5px 8px rgba(0, 0, 0, .55)); }
+.sb .pl { position: relative; display: flex; align-items: center; gap: 3px; min-width: 0; overflow: hidden; background: var(--c); color: var(--ct); }
+.sb .pl b { position: relative; z-index: 1; font: 800 20px/1 var(--cond); letter-spacing: .01em; }
+.sb .pl.h { padding-left: 7px; border-radius: 4px 0 0 4px; clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+.sb .pl.a { justify-content: flex-end; padding-right: 7px; border-radius: 0 4px 4px 0; clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%); }
+.sb .pl::before, .sb .pl::after { content: ''; position: absolute; top: -2px; bottom: -2px; width: 5px; background: var(--a); transform: skewX(-13deg); }
+.sb .pl.h::before { right: 11px; } .sb .pl.h::after { right: 19px; width: 3px; opacity: .75; }
+.sb .pl.a::before { left: 11px; } .sb .pl.a::after { left: 19px; width: 3px; opacity: .75; }
+.sb .pl .cr { position: relative; z-index: 1; display: none; width: 16px; height: 16px; }
+.sb .pl .cr.has-ph { display: block; } .sb .pl .cr img { width: 16px; height: 16px; object-fit: contain; }
+.sb .pl.a .cr { order: 2; }
+.sb .mid { position: relative; z-index: 2; margin: 0 -8px; display: grid; place-items: center; background: #121215; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+.sb .mid img { width: 24px; height: 20px; }
+.sb .tab { align-self: center; margin-top: -1px; padding: 4px 11px 5px; border-radius: 0 0 7px 7px; background: #121215; color: #fff; font: 800 17px/1 var(--cond); letter-spacing: .03em; box-shadow: 0 4px 8px -4px rgba(0, 0, 0, .6); }
+.sb .fbt { padding: 8px 4px 12px; text-align: center; }
+.sb .fbt .sub { color: #e6bf8f; font-weight: 600; }
+@media (min-width: 901px) { .sb .bug { height: 40px; } .sb .pl b { font-size: 23px; } .sb .tab { font-size: 19px; } }
+.hscroll:has(.sb) { grid-auto-columns: 214px; }
+@media (min-width: 901px) { .hscroll:has(.sb) { grid-auto-columns: 250px; } }
+.sb .pl.h { padding-right: 26px; } .sb .pl.a { padding-left: 26px; }

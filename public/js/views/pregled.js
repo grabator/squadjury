@@ -1,7 +1,7 @@
 // Pregled: pločice (kolo i rok, rang, bodovi, kapiten, šansa za zelenu strelicu, transfer, vrijednost, liga) i utakmice kola.
 import { S, league } from '../state.js';
 import { captainOptions, transferIdeas, greenArrowOdds, fixturesFor, num, fmt, int, time, dayLong, dayShort, dateLong, pct } from '../model.js';
-import { esc, kit, ink, shirt, photo, crest, countUp } from '../ui.js';
+import { esc, kit, kit2, ink, shirt, photo, crest, countUp } from '../ui.js';
 import { tr } from '../i18n.js';
 
 export const title = tr('Pregled', 'Overview');
@@ -33,11 +33,12 @@ export async function render() {
   const gw = ix.nextGw, byFix = new Map();
   for (const id of S.nextIds || S.ids) { const e = ix.players.get(id); for (const f of fixturesFor(ix, e.team, gw, 1)) { if (!byFix.has(f.id)) byFix.set(f.id, { f, team: e.team, ps: [] }); byFix.get(f.id).ps.push(e); } }
   const fxs = [...byFix.values()].sort((a, b) => String(a.f.kickoff).localeCompare(String(b.f.kickoff)));
-  const side = (t, cls) => { const [c] = kit(t); return `<span class="${cls}" style="--c:${c};--ct:${ink(c)}"><span class="cr">${crest(t)}</span><b>${esc(t.short_name)}</b></span>`; };
+  // TV traka za rezultat: domaći lijevo, gost desno, svaki u boji svog kluba, u sredini naš znak, ispod vrijeme početka
+  const plate = (t, cls) => { const { b, a } = kit2(t); const acc = a.toLowerCase() === b.toLowerCase() ? ink(b) : a; return `<span class="pl ${cls}" style="--c:${b};--ct:${ink(b)};--a:${acc}"><span class="cr">${crest(t)}</span><b>${esc(t.short_name)}</b></span>`; };
   const fxCards = fxs.map(({ f, team, ps }) => {
     const d = new Date(f.kickoff), me = ix.teams.get(team), op = ix.teams.get(f.opp);
     const [hm, aw] = f.home ? [me, op] : [op, me];
-    return `<a class="fcard" href="#/raspored" aria-label="${esc(hm.name)} ${tr('protiv', 'against')} ${esc(aw.name)}, ${dayLong(d)} ${time(d)}. ${tr('Tvoji igrači', 'Your players')}: ${esc(ps.map((e) => e.web_name).join(', '))}"><span class="ftp">${side(hm, '')}${side(aw, '')}</span><span class="fbt"><b>${time(d)}</b><span class="sub">${dayLong(d)}</span><span class="fps">${ps.map((e) => esc(e.web_name)).join(', ')}</span></span></a>`;
+    return `<a class="fcard sb" href="#/raspored" aria-label="${esc(hm.name)} ${tr('protiv', 'against')} ${esc(aw.name)}, ${dayLong(d)} ${time(d)}. ${tr('Tvoji igrači', 'Your players')}: ${esc(ps.map((e) => e.web_name).join(', '))}"><span class="bug" aria-hidden="true">${plate(hm, 'h')}<span class="mid"><img src="/img/brand/mark.svg" alt=""></span>${plate(aw, 'a')}</span><span class="tab" aria-hidden="true">${time(d)}</span><span class="fbt"><span class="sub">${dayLong(d)}</span><span class="fps">${ps.map((e) => esc(e.web_name)).join(', ')}</span></span></a>`;
   }).join('');
   const words = entry.name.trim().split(/\s+/);
 
