@@ -57,6 +57,7 @@ const short = (n) => (n >= 1e6 ? fmt(n / 1e6, 1) + 'M' : n >= 1e3 ? Math.round(n
 // kolo je uživo: rok je prošao, a FPL ga još nije završio
 const liveGw = () => { const ev = S.ix.events.find((e) => e.id === S.lastGw); return ev && !ev.finished && new Date(ev.deadline_time) < Date.now() ? ev.id : null; };
 function hchip() {
+  if (!liveGw()) return '<span class="hgap"></span>';
   if (liveGw()) return `<a class="hchip live" id="hchip" href="#/uzivo"><span class="hs"><span class="dot" aria-hidden="true"></span><span class="lv">${tr('UŽIVO', 'LIVE')}</span><b id="hc-pts">…</b></span><span class="hs" id="hc-left"></span></a>`;
   const h = S.history.current, last = h[h.length - 1], prev = h[h.length - 2], chg = last && prev ? prev.overall_rank - last.overall_rank : 0, ft = ftLeft();
   const bank = fmt((S.nextBank ?? S.bank) / 10);
@@ -226,8 +227,8 @@ function openCmd() {
 document.addEventListener('keydown', (ev) => { if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') { ev.preventDefault(); if ($('#cmd').open) $('#cmd').close(); else { $('#pd').open && $('#pd').close(); openCmd(); } } });
 document.addEventListener('click', (ev) => { if (ev.target.closest('[data-cmd]')) openCmd(); });
 // slike igrača: učitana slika zamijeni dres, neuspjela se makne pa ostaje dres
-document.addEventListener('load', (ev) => { if (ev.target.matches?.('img.ph')) ev.target.parentNode.classList.add('has-ph'); }, true);
-document.addEventListener('error', (ev) => { if (ev.target.matches?.('img.ph')) ev.target.remove(); }, true);
+document.addEventListener('load', (ev) => { if (ev.target.matches?.('img.ph, img.crest')) ev.target.parentNode.classList.add('has-ph'); }, true);
+document.addEventListener('error', (ev) => { if (ev.target.matches?.('img.ph, img.crest')) ev.target.remove(); }, true);
 document.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Escape') return;
   if (!$('#acct').hidden) { $('#acct').hidden = true; $('#acct-btn')?.setAttribute('aria-expanded', 'false'); $('#acct-btn')?.focus(); }

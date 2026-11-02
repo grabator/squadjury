@@ -43,6 +43,9 @@ const KIT = {
 };
 // golmani nose drugačiji dres, kao u FPL-u (boje su izmišljene, ne pravi golmanski dresovi)
 const GK = ['#22d39a', '#f2e600', '#ff8a1f', '#3cb4ff', '#b4ff00', '#ff5fa2', '#9b7bff'];
+// grb kluba sa servera Premier lige (code iz FPL-a); demo podaci nemaju code, pa poznati klubovi po skraćenici
+const CODE = { ARS: 3, AVL: 7, BOU: 91, BRE: 94, BHA: 36, CHE: 8, CRY: 31, EVE: 11, FUL: 54, LIV: 14, MCI: 43, MUN: 1, NEW: 4, NFO: 17, TOT: 6, WHU: 21, WOL: 39, LEE: 2, BUR: 90, SUN: 56, LEI: 13, IPS: 40, SOU: 20 };
+export const crest = (t) => { const c = t?.code || CODE[t?.short_name]; return c ? `<img class="crest" src="https://resources.premierleague.com/premierleague/badges/70/t${c}@x2.png" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ''; };
 export const kit = (t) => { const k = KIT[t?.short_name] || { b: '#8a8a9a' }; return [k.b, k.t || k.s || '#fff']; };
 export const shirt = (t, gk = false) => {
   const k = KIT[t?.short_name] || { b: '#8a8a9a' };
