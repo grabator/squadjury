@@ -1747,3 +1747,6 @@ body::after { background: rgba(13, 13, 15, .82); }
 .rp-c { opacity: 1; }
 .rp-c.d1, .rp-c.d2 { --fc: #3fbf77; } .rp-c.d3 { --fc: #d9d6cf; } .rp-c.d4 { --fc: #d41f2b; } .rp-c.d5 { --fc: #b0142f; } .rp-c.dx { --fc: #3a3a40; }
 .rp-c:not(.on) { background: #1f1f24 !important; color: var(--m) !important; box-shadow: inset 0 -4px 0 var(--fc); }
+.rp-pos { display: grid; gap: 4px; }
+.rp-pos .sub { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.rp-tools { align-items: flex-end; }

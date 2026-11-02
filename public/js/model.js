@@ -530,30 +530,34 @@ export function leagueAwards(members, me, caps = new Map()) {
 }
 
 /**
- * Rotacija dva igrača kroz n kola: svako kolo igra onaj sa više predviđenih bodova.
- * Vraća zbir tih bodova, broj kola sa lakim protivnikom (težina 2 ili manje) i ko igra po kolu.
+ * Rotacija dva igrača kroz n kola: svako kolo igra onaj sa lakšim protivnikom (pri istoj težini onaj sa više predviđenih bodova).
+ * green je broj kola u kojima igrač koji igra ima lakog protivnika (težina 2 ili manje); fdr je zbir težina igrača koji igraju (manje je bolje).
  */
 export function rotationPair(ix, a, b, from = ix.nextGw, n = 6) {
   const gws = [];
   for (let g = from; g < from + n && g <= ix.lastGw; g++) gws.push(g);
-  const easy = (e, g) => fixturesFor(ix, e.team, g, 1).some((f) => f.fdr <= 2);
-  let total = 0, green = 0;
+  const hard = (e, g) => { const fx = fixturesFor(ix, e.team, g, 1); return fx.length ? Math.min(...fx.map((f) => f.fdr)) : 6; };
+  let total = 0, green = 0, fdr = 0;
   const pick = gws.map((g) => {
-    const xa = xp(ix, a, g, 1), xb = xp(ix, b, g, 1), use = xa >= xb ? a : b;
-    total += Math.max(xa, xb);
-    if (easy(use, g)) green++;
-    return { gw: g, use: use.id, xa, xb };
+    const xa = xp(ix, a, g, 1), xb = xp(ix, b, g, 1), ha = hard(a, g), hb = hard(b, g);
+    const useA = ha !== hb ? ha < hb : xa >= xb, h = useA ? ha : hb;
+    total += useA ? xa : xb; fdr += h; if (h <= 2) green++;
+    return { gw: g, use: useA ? a.id : b.id, xa, xb };
   });
-  return { a, b, gws, pick, total, green };
+  return { a, b, gws, pick, total, green, fdr };
 }
-/** Najbolji parovi za rotaciju: različiti klubovi; uz mine bar jedan igrač mora biti iz tima. */
-export function rotationPairs(ix, pool, { mine = null, from = ix.nextGw, n = 6, limit = 8 } = {}) {
-  const out = [];
-  for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) {
-    const a = pool[i], b = pool[j];
-    if (a.team === b.team) continue;
+/**
+ * Najbolji parovi za rotaciju: prvi igrač iz poolA, drugi iz poolB, različiti klubovi.
+ * Poredano po broju lakih kola, pa po zbiru težina, pa po predviđenim bodovima. Uz mine bar jedan igrač mora biti iz tima.
+ */
+export function rotationPairs(ix, poolA, poolB = poolA, { mine = null, from = ix.nextGw, n = 6, limit = 8 } = {}) {
+  const out = [], seen = new Set();
+  for (const a of poolA) for (const b of poolB) {
+    if (a.id === b.id || a.team === b.team) continue;
+    const k = a.id < b.id ? a.id + ':' + b.id : b.id + ':' + a.id;
+    if (seen.has(k)) continue; seen.add(k);
     if (mine && !mine.has(a.id) && !mine.has(b.id)) continue;
     out.push(rotationPair(ix, a, b, from, n));
   }
-  return out.sort((x, y) => y.total - x.total || y.green - x.green).slice(0, limit);
+  return out.sort((x, y) => y.green - x.green || x.fdr - y.fdr || y.total - x.total).slice(0, limit);
 }
