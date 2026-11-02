@@ -449,6 +449,7 @@ const pad = (n) => String(n).padStart(2, '0');
 export const int = (v) => String(Math.round(Math.abs(v))).replace(/\B(?=(\d{3})+(?!\d))/g, tr('.', ','));
 export const time = (d) => pad(d.getHours()) + ':' + pad(d.getMinutes());
 export const dayShort = (d) => DAYS_SHORT[d.getDay()];
+export const dayLong = (d) => DAYS[d.getDay()];
 export const dateShort = (d) => tr(d.getDate() + '.' + (d.getMonth() + 1) + '.', d.getDate() + ' ' + MONTHS[d.getMonth()]);
 export const dateLong = (d) => DAYS[d.getDay()] + ', ' + dateShort(d) + tr(' u ', ' at ') + time(d);
 export const pct = (p) => Math.round(p * 100) + '%';
