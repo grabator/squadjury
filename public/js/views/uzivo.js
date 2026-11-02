@@ -21,13 +21,13 @@ function liveCard(ix, e, s = {}, b = {}, pts, gw, lf, { cap, vice, bench }) {
   const ko = fx.map((f) => f.kickoff && new Date(f.kickoff)).filter(Boolean).sort((x, y) => x - y);
   const pre = state === 'pre', none = !fx.length, gk = e.element_type === 1, dc = defCon(e, s), sv = s.saves || 0, fc = flagColor(e);
   let right;
-  if (none) right = `<b class="lc-p">–</b><span class="lc-k">${tr('ne igra', 'no game')}</span>`;
-  else if (pre) { const d = ko.find((x) => x > now) || ko[0]; right = `<b class="lc-p">–</b><span class="lc-k">${dayShort(d)}<br>${time(d)}</span>`; }
+  if (none) right = `<b class="lc-p">–</b><span class="lc-t">${tr('ne igra', 'no game')}</span><span class="lc-t"></span>`;
+  else if (pre) { const d = ko.find((x) => x > now) || ko[0]; right = `<b class="lc-p">–</b><span class="lc-t">${dayShort(d)}</span><span class="lc-t">${time(d)}</span>`; }
   else {
     // samo ono što je donijelo bodove: DefCon (golman: odbrane) i bonus
     const plus = gk ? Math.floor(sv / 3) : dc?.hit ? 2 : 0;
-    const dcT = plus ? `<span class="lc-t on">+${plus} ${gk ? tr('OD', 'SV') : 'DC'}</span>` : '';
-    const bT = b.bonus ? `<span class="lc-t gd${b.provisional ? ' pr' : ''}">+${b.bonus} B</span>` : '';
+    const dcT = plus ? `<span class="lc-t on">+${plus} ${gk ? tr('OD', 'SV') : 'DC'}</span>` : '<span class="lc-t"></span>';
+    const bT = b.bonus ? `<span class="lc-t gd${b.provisional ? ' pr' : ''}">+${b.bonus} B</span>` : '<span class="lc-t"></span>';
     right = `<b class="lc-p">${pts}</b><span class="lc-m${state === 'live' ? ' live' : ''}">${mins}'</span>${dcT}${bT}`;
   }
   const sr = `<span class="sr">${esc(e.web_name)}${cap ? ', ' + tr('kapiten', 'captain') : vice ? ', ' + tr('vice kapiten', 'vice captain') : ''}${bench ? ', ' + tr('na klupi', 'on the bench') : ''}: ${none ? tr('ne igra', 'no game') : pre ? tr('utakmica još nije počela', 'match not started') : `${pts} ${tr('bodova', 'points')}, ${mins} ${tr('minuta', 'minutes')}, BPS ${b.bps || 0}, bonus ${b.bonus || 0}${b.provisional ? tr(' (nije konačan)', ' (not final)') : ''}${dc ? `, DefCon ${dc.v} ${tr('od', 'of')} ${dc.need}` : ''}${gk ? `, ${tr('odbrane', 'saves')} ${sv}` : ''}`}</span>`;

@@ -1629,3 +1629,29 @@ body::after { background: rgba(13, 13, 15, .82); }
 .lc-t.gd { background: none; color: #e6bf8f; }
 .lc-t.pr { background: none; color: #e6bf8f; opacity: .75; }
 .lc-n { background: rgba(241, 236, 228, .92); }
+/* Uživo kartica: ista veličina u svakoj formaciji (širina za 5 u redu), svaki podatak uvijek na istom mjestu */
+.lvp { --lcw: min(96px, calc((100vw - 28px) / 5)); }
+.lvp .line-row { justify-content: center; gap: 4px; }
+.lvp .line-row .lc, .lvp .bslot { flex: 0 0 var(--lcw); width: var(--lcw); max-width: none; }
+.lvp .bench { justify-content: center; gap: 4px; }
+.lc { grid-template-columns: 46% 54%; grid-template-rows: 56px 20px; height: 76px; }
+.lc-ph { height: 56px; }
+.lc-r { display: grid; grid-template-rows: 26px 14px 14px; align-content: start; justify-content: start; gap: 0; padding: 2px 3px 0 4px; }
+.lc-p { height: 26px; line-height: 26px; font-size: 24px; align-self: start; }
+.lc.cap .lc-p { padding: 0 3px; line-height: 26px; }
+.lc-t { height: 14px; line-height: 14px; font-size: 10px; white-space: nowrap; }
+.lc-m { top: 3px; right: 3px; }
+.lc-n { height: 20px; line-height: 20px; padding: 0 3px; font-size: 12px; }
+@media (min-width: 901px) {
+  .lvp { --lcw: 128px; }
+  .lc { grid-template-rows: 76px 24px; height: 100px; }
+  .lc-ph { height: 76px; }
+  .lc-r { grid-template-rows: 34px 18px 18px; padding-top: 4px; }
+  .lc-p { height: 34px; line-height: 34px; font-size: 30px; } .lc.cap .lc-p { line-height: 34px; }
+  .lc-t { height: 18px; line-height: 18px; font-size: 12px; }
+  .lc-n { height: 24px; line-height: 24px; font-size: 15px; }
+}
+/* minute na dnu slike (lijevo), da se ne sudaraju sa dvocifrenim bodovima */
+.lc-m { top: auto; right: auto; left: 2px; bottom: 23px; padding: 0 3px; border-radius: 4px; background: rgba(8, 8, 10, .82); font-size: 8.5px; line-height: 12px; }
+.lc.cap .lc-p { padding: 0 3px; }
+@media (min-width: 901px) { .lc-m { bottom: 28px; font-size: 10px; line-height: 14px; } }
