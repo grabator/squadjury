@@ -24,7 +24,7 @@ export async function load(id) {
   let nextBank = last.bank ?? entry.last_deadline_bank ?? 0;
   for (const t of pending) { const k = nextIds.indexOf(t.element_out); if (k >= 0 && !nextIds.includes(t.element_in)) { nextIds[k] = t.element_in; nextBank += t.element_out_cost - t.element_in_cost; } }
   Object.assign(S, {
-    ready: true, id, ix, entry, history, picks, ids, xi: ids.slice(0, 11), bench: ids.slice(11), lastGw,
+    ready: true, loadedAt: Date.now(), id, ix, entry, history, picks, ids, xi: ids.slice(0, 11), bench: ids.slice(11), lastGw,
     captain: picks.picks.find((p) => p.is_captain)?.element, vice: picks.picks.find((p) => p.is_vice_captain)?.element,
     bank: last.bank ?? entry.last_deadline_bank ?? 0, league: null,
     // transferi koje je menadžer već napravio na FPL-u za sljedeće kolo (FPL ih javno pokazuje odmah)

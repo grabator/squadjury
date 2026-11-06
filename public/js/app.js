@@ -1,5 +1,5 @@
 // SquadJury (FPL dio): meni, rute, kartica igrača i početni ekran. Ekrani su u js/views/.
-import { setDemo, isDemo, warm } from './api.js';
+import { setDemo, isDemo, warm, forgetAll } from './api.js';
 import { enhance } from './dd.js';
 import { tr, langSwitch, bindLang } from './i18n.js';
 import { S, load, reset, element, warmCaptainHistory, ftLeft, live, liveFix, refreshLive } from './state.js';
@@ -403,6 +403,29 @@ const q = new URLSearchParams(location.search);
 if (q.get('id') && /^\d{1,9}$/.test(q.get('id'))) { store.set('fm-id', q.get('id')); store.set('fm-demo', q.get('demo') === '1' ? '1' : '0'); history.replaceState(null, '', location.pathname + location.hash); }
 else if (q.get('demo') === '1') { store.set('fm-id', '1'); store.set('fm-demo', '1'); history.replaceState(null, '', location.pathname + location.hash); }
 render();
+
+// Podaci se učitaju jednom, a na telefonu aplikacija zna danima stajati otvorena u pozadini (pa Uživo pokaže staro kolo).
+// Kad se vrati na ekran sa podacima starijim od 10 minuta, ili kad je u međuvremenu prošao rok za transfere, učitaj ih ponovo.
+const STALE_MS = 10 * 60 * 1000;
+const newGwStarted = () => {
+  const ev = S.ix?.events.find((e) => e.id === S.ix.nextGw), t = ev && new Date(ev.deadline_time).getTime();
+  return !!t && t < Date.now() && t > S.loadedAt;
+};
+let refreshing = null;
+function refreshData(onlyNewGw) {
+  if (!S.ready || busy || refreshing || document.hidden) return;
+  if (!newGwStarted() && (onlyNewGw || Date.now() - S.loadedAt < STALE_MS)) return;
+  const id = S.id;
+  refreshing = (async () => {
+    forgetAll();
+    try { await load(id); } catch { return; } // bez mreže ostaju stari podaci
+    if (S.id === id) render(true);
+  })().finally(() => { refreshing = null; });
+}
+document.addEventListener('visibilitychange', () => refreshData(false));
+addEventListener('pageshow', (e) => { if (e.persisted) refreshData(false); });
+// dok je aplikacija otvorena na ekranu, samo novo kolo pokreće ponovno učitavanje (da ne smeta usred rada)
+setInterval(() => refreshData(true), 60000);
 if ('serviceWorker' in navigator && location.hostname !== 'localhost') navigator.serviceWorker.register('/sw.js').catch(() => {});
 
 // iPhone/Android: kad se otvori tastatura, vidljivi dio ekrana se smanji; prozori sa pretragom se drže unutar njega
