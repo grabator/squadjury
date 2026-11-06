@@ -8,6 +8,8 @@ export const isDemo = () => demo;
 /** Učitaj u pozadini (greške se ignorišu, rezultat ostaje u kešu). */
 /** Zaboravi keširani odgovor (npr. uživo bodovi), pa sljedeći get ide na mrežu. */
 export const forget = (path) => { memo.delete('/api' + path + (demo ? '?demo=1' : '')); };
+/** Zaboravi sve keširane odgovore (ponovno učitavanje kad se aplikacija vrati iz pozadine). */
+export const forgetAll = () => { memo.clear(); };
 export const warm = (...paths) => { for (const p of paths) get(p).catch(() => {}); };
 
 export async function get(path) {
