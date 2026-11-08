@@ -2,7 +2,7 @@
 import { S, live, liveFix } from '../state.js';
 import { matchSheets } from '../model.js';
 import { tr } from '../i18n.js';
-import { byDay, dayHead, matchHead, nm, moreList } from './match.js';
+import { byDay, dayHead, matchCard, nm, moreList } from './match.js';
 
 export const title = 'DefCon';
 let gwSel = null, scope = 'all';
@@ -31,14 +31,15 @@ export async function render() {
       .map((r) => { const pts = Math.floor(r.sv / 3); return `<p class="mc-dc${pts ? ' hit' : ''}">${pts ? OK('+' + pts) : NO}${nm(r.e, mine)}<span class="mc-v">(${r.sv})</span><span class="sr">${r.sv} ${tr('odbrana', 'saves')}${pts ? ', +' + pts : ''}</span></p>`; });
     const has = x.rows.some((r) => mine.has(r.e.id) && (r.dc?.hit || (r.e.element_type === 1 && r.sv >= 3)));
     const list = (items) => moreList(items, n, 'mc-list');
-    return `<article class="mc dcm${has ? ' has-me' : ''}">${matchHead(ix, f)}
+    const hits = x.rows.filter((r) => r.dc?.hit).length, sv = x.rows.filter((r) => r.e.element_type === 1 && r.sv >= 3).length;
+    const hint = `<span class="mc-hb"><b class="mc-pt ok">+2</b>× ${hits}</span>${sv ? `<span class="mc-hb"><b class="mc-pt ok">+1</b>${tr('odbrane', 'saves')}</span>` : ''}`;
+    return matchCard(ix, f, { cls: 'dcm' + (has ? ' has-me' : ''), hint, body: `
       <div class="mc-body">
         <div class="mc-dcs"><h3>${tr('Odbrambeni doprinos', 'Defensive contributions')}</h3>
           <div class="mc-evs"><div class="mc-side h">${list(h)}</div><div class="mc-side a">${list(a)}</div>${!h.length && !a.length ? `<p class="mc-none">${tr('Niko nije bio blizu', 'Nobody came close')}</p>` : ''}</div>
         </div>
         <aside class="mc-pan"><h3>${tr('Odbrane', 'Saves')}</h3>${gks.length ? `<div class="mc-list">${gks.join('')}</div>` : `<p class="mc-none">-</p>`}</aside>
-      </div>
-    </article>`;
+      </div>` });
   };
   const seg = `<div class="seg dc-seg" role="group" aria-label="${tr('Prikaz', 'Show')}"><button type="button" data-scope="all" aria-pressed="${scope === 'all'}">${tr('Sve utakmice', 'All matches')}</button><button type="button" data-scope="mine" aria-pressed="${scope === 'mine'}">${tr('Sa mojim igračima', 'With my players')}</button></div>`;
   return `<div class="dcv">

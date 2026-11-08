@@ -2,7 +2,8 @@
 import { S, live, liveFix } from '../state.js';
 import { bonusByFixture, matchSheets } from '../model.js';
 import { tr } from '../i18n.js';
-import { byDay, dayHead, matchHead, nm, moreList } from './match.js';
+import { byDay, dayHead, matchCard, nm, moreList } from './match.js';
+import { esc } from '../ui.js';
 
 export const title = tr('Bonus', 'Bonus');
 let gwSel = null, scope = 'all';
@@ -37,14 +38,14 @@ export async function render() {
       .map((r) => `<p class="mc-br"><b class="bx-b b0" aria-hidden="true"></b>${nm(r.e, mine)}<span class="mc-v">${r.bps}</span></p>`);
     const has = x.rows.some((r) => mine.has(r.e.id) && (bonusIds.has(r.e.id) || r.g || r.a));
     const evH = events(home, mine), evA = events(away, mine);
-    return `<article class="mc${has ? ' has-me' : ''}">${matchHead(ix, f)}
+    const top = (x.b?.rows || []).map((r) => { const e = ix.players.get(r.id); return e ? `<span class="mc-hb${mine.has(r.id) ? ' me' : ''}"><b class="bx-b b${r.bonus}">${r.bonus}</b>${esc(e.web_name)}</span>` : ''; }).join('');
+    return matchCard(ix, f, { cls: has ? 'has-me' : '', hint: top || `<span class="mc-hb">${tr('Bez bonusa', 'No bonus yet')}</span>`, body: `
       <div class="mc-body">
         <div class="mc-evs"><div class="mc-side h">${evH}</div><div class="mc-side a">${evA}</div>${!evH && !evA ? `<p class="mc-none">${f.started ? tr('Bez golova', 'No goals') : tr('Još nije počela', 'Not started yet')}</p>` : ''}</div>
         <aside class="mc-pan"><h3><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/></svg>Bonus${x.b && !x.b.confirmed ? `<em title="${tr('Procjena iz BPS-a, FPL još nije potvrdio', 'Projected from BPS, not yet confirmed by FPL')}">${tr('procjena', 'live')}</em>` : ''}</h3>
           ${bRows.length || rest.length ? moreList([...bRows, ...rest], Math.max(bRows.length, 3), 'mc-list') : `<p class="mc-none">${tr('Još nema', 'None yet')}</p>`}
         </aside>
-      </div>
-    </article>`;
+      </div>` });
   };
   const seg = `<div class="seg dc-seg" role="group" aria-label="${tr('Prikaz', 'Show')}"><button type="button" data-scope="all" aria-pressed="${scope === 'all'}">${tr('Sve utakmice', 'All matches')}</button><button type="button" data-scope="mine" aria-pressed="${scope === 'mine'}">${tr('Sa mojim igračima', 'With my players')}</button></div>`;
   return `<div class="dcv bxv">

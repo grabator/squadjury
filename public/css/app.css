@@ -2022,3 +2022,54 @@ body::after { background: rgba(13, 13, 15, .82); }
   .dcm .mc-pan .mc-list { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .dcm .mc-nm .pbtn { font-size: 13px; }
 }
+
+/* sklopive utakmice (Bonus, DefCon): zatvorene pokazuju samo traku i sažetak */
+details.mc { display: block; }
+details.mc > .mc-body { margin-top: 8px; }
+.mc-sum { display: grid; gap: 8px; list-style: none; cursor: pointer; border-radius: 14px; -webkit-tap-highlight-color: transparent; }
+.mc-sum::-webkit-details-marker { display: none; }
+.mc-sum:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.mc-hint { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; padding: 2px 6px 0; font-size: 12.5px; font-weight: 600; color: var(--m); }
+.mc-hb { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.mc-hb .bx-b { width: 20px; height: 20px; font-size: 12px; border-radius: 6px; }
+.mc-hb .mc-pt { min-width: 24px; height: 19px; font-size: 11px; }
+.mc-hb.me { color: var(--acc); }
+.mc-chev { width: 18px; height: 18px; margin-left: 2px; fill: none; stroke: var(--d); stroke-width: 2; transition: transform .2s; }
+details.mc[open] .mc-chev { transform: rotate(180deg); }
+@media (hover: hover) { .mc-sum:hover .mc-top { background: #26262c; } }
+
+/* "Više" u utakmici: sve poravnato lijevo, kao i ostale stavke */
+.mc-more { width: 100%; text-align: left; }
+.mc-more summary { justify-content: flex-start; }
+.mc-more .mc-list { width: 100%; justify-items: start !important; }
+.mc-dcs .mc-side.h { justify-items: start; text-align: left; }
+.mc-dcs .mc-side .mc-more summary { padding-left: 2px; }
+
+/* meni Više: trenutna stranica jasno istaknuta */
+.ms-tiles .ms-t[aria-current='page'] { background: var(--acc) !important; color: var(--acc-t) !important; }
+.ms-tiles .ms-t[aria-current='page'] b { color: var(--acc-t) !important; }
+.ms-tiles .ms-t[aria-current='page'] .sub { color: rgba(26, 18, 10, .72) !important; }
+.ms-tiles .ms-t[aria-current='page'] .ms-i { background: rgba(26, 18, 10, .14) !important; }
+.ms-tiles .ms-t[aria-current='page'] .ms-i .ico { color: var(--acc-t) !important; }
+
+/* padajuće liste, oblačići i skrol u bojama aplikacije (bez ljubičaste) */
+* { scrollbar-color: rgba(201, 147, 95, .45) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(201, 147, 95, .4); border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+.dd-btn { background: var(--tile2) !important; }
+.dd-btn:hover { background: #26262c !important; }
+.dd.on .dd-btn { border-color: var(--acc); }
+.dd-list { background: var(--tile2) !important; border-color: #2f2a24 !important; }
+.dd-list [role='option'].act { background: rgba(201, 147, 95, .22); }
+.dd-list::-webkit-scrollbar-thumb { background: rgba(201, 147, 95, .4); }
+.tip { background: var(--tile2) !important; }
+.planbar { background: var(--tile2); border-color: #2f2a24; }
+
+/* Kapiten: lista svih iz prvih 11 se otvara na klik */
+.xp-more { margin-top: 8px; }
+.xp-more summary { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; border-radius: 12px; list-style: none; cursor: pointer; background: var(--tile2); font-weight: 700; font-size: 14px; color: var(--t); }
+.xp-more summary::-webkit-details-marker { display: none; }
+.xp-more summary .ico { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; transition: transform .2s; }
+.xp-more[open] summary .ico { transform: rotate(180deg); }
+.xp-more[open] summary { margin-bottom: 8px; }

@@ -1,5 +1,5 @@
 // Service worker: aplikacija radi i bez mreže (zadnja učitana verzija), podaci uvijek prvo sa mreže.
-const V = 'fm-v27';
+const V = 'fm-v28';
 const VIEWS = ['pregled', 'tim', 'kapiten', 'transferi', 'raspored', 'uzivo', 'liga', 'trofeji', 'kutak', 'rotacija', 'defcon', 'bonus', 'match'].map((v) => '/js/views/' + v + '.js');
 const SHELL = ['/', '/css/app.css', '/js/boot.js', '/js/app.js', '/js/api.js', '/js/model.js', '/js/state.js', '/js/ui.js', '/js/dd.js', '/js/i18n.js', '/img/brand/mark.svg', '/img/pattern.svg', ...VIEWS, '/fonts/space-grotesk-latin.woff2', '/fonts/barlow-condensed-800.woff2'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(V).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
