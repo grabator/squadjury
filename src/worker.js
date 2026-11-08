@@ -74,9 +74,11 @@ export function slimBootstrap(b) {
 
 // event/live ima i detaljna objašnjenja bodova (velik odgovor): šaljemo samo statistike koje aplikacija koristi
 const LF = ['minutes', 'goals_scored', 'assists', 'clean_sheets', 'goals_conceded', 'own_goals', 'penalties_saved', 'penalties_missed', 'yellow_cards', 'red_cards', 'saves', 'bonus', 'bps', 'defensive_contribution', 'clearances_blocks_interceptions', 'recoveries', 'tackles', 'total_points'];
-// fx: po utakmici [id utakmice, BPS, minute] iz objašnjenja bodova (u duplom kolu svaka utakmica posebno)
+// fx: po utakmici [id utakmice, BPS, minute, golovi, asistencije, odbrane, autogolovi, crveni] iz objašnjenja bodova
+// (u duplom kolu svaka utakmica posebno)
 const val = (x, id) => (x.stats || []).find((s) => s.identifier === id)?.value ?? 0;
-export const slimLive = (d) => ({ elements: d.elements.map((e) => ({ id: e.id, stats: Object.fromEntries(LF.map((k) => [k, e.stats?.[k] ?? 0])), fx: (e.explain || []).map((x) => [x.fixture, val(x, 'bps'), val(x, 'minutes')]) })) });
+const FXS = ['bps', 'minutes', 'goals_scored', 'assists', 'saves', 'own_goals', 'red_cards'];
+export const slimLive = (d) => ({ elements: d.elements.map((e) => ({ id: e.id, stats: Object.fromEntries(LF.map((k) => [k, e.stats?.[k] ?? 0])), fx: (e.explain || []).map((x) => [x.fixture, ...FXS.map((k) => val(x, k))]) })) });
 
 // utakmice jednog kola uživo: počela, završena (finished_provisional stiže odmah po završetku, finished tek kad FPL potvrdi bonus)
 export const slimFix = (f) => ({ id: f.id, event: f.event, kickoff_time: f.kickoff_time, team_h: f.team_h, team_a: f.team_a, started: !!f.started, finished: !!f.finished, finished_provisional: !!f.finished_provisional, minutes: f.minutes || 0, team_h_score: f.team_h_score ?? null, team_a_score: f.team_a_score ?? null });

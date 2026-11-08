@@ -38,9 +38,10 @@ test('team: menadžer, historija i tim zadnjeg kola u jednom', async () => {
 });
 
 test('slimLive zadržava samo statistike', () => {
-  const d = slimLive({ elements: [{ id: 7, stats: { minutes: 90, total_points: 9, influence: '30.2', bps: 31 }, explain: [{ fixture: 1, stats: [{ identifier: 'minutes', value: 90 }, { identifier: 'bps', value: 31 }] }] }] });
+  const d = slimLive({ elements: [{ id: 7, stats: { minutes: 90, total_points: 9, influence: '30.2', bps: 31 }, explain: [{ fixture: 1, stats: [{ identifier: 'minutes', value: 90 }, { identifier: 'bps', value: 31 }, { identifier: 'goals_scored', value: 2 }, { identifier: 'assists', value: 1 }] }] }] });
   assert.deepEqual(Object.keys(d.elements[0]), ['id', 'stats', 'fx']);
-  assert.deepEqual(d.elements[0].fx, [[1, 31, 90]]);
+  // [utakmica, BPS, minute, golovi, asistencije, odbrane, autogolovi, crveni]
+  assert.deepEqual(d.elements[0].fx, [[1, 31, 90, 2, 1, 0, 0, 0]]);
   assert.equal(d.elements[0].stats.bps, 31);
   assert.equal(d.elements[0].stats.total_points, 9);
   assert.equal(d.elements[0].stats.influence, undefined);

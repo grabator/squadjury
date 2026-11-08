@@ -29,12 +29,12 @@ export const ic = (k) => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true
 const G = { tim: tr('Tim', 'Team'), vise: tr('Više', 'More') };
 export const ROUTES = [
   ['pregled', tr('Pregled', 'Overview'), 'home', G.tim], ['tim', tr('Moj tim', 'My team'), 'team', G.tim], ['uzivo', tr('Uživo', 'Live'), 'live', G.tim], ['transferi', tr('Transferi', 'Transfers'), 'swap', G.tim],
-  ['kapiten', tr('Kapiten', 'Captain'), 'cap', G.vise, tr('Ko nosi traku ovog kola', 'Who wears the armband this week')], ['raspored', tr('Raspored', 'Fixtures'), 'cal', G.vise, tr('Sljedećih pet kola za svaki klub', 'Next five gameweeks for every club')],
-  ['liga', tr('Liga', 'League'), 'table', G.vise, tr('Tabela tvoje mini lige i dueli', 'Your mini league table and duels')], ['kutak', tr('Zanimljivosti', 'Records'), 'spark', G.vise, tr('Rekordi sezone i igrači koji se ističu', 'Season records and stand-out players')],
-  ['trofeji', tr('Trofeji', 'Trophies'), 'trophy', G.vise, tr('Nagrade kola iz tvojih liga', 'Weekly awards from your leagues')],
-  ['rotacija', tr('Rotacija', 'Rotation pairs'), 'rot', G.vise, tr('Dva igrača koji se smjenjuju kroz 6 kola', 'Two players who swap over 6 gameweeks')],
-  ['defcon', 'DefCon', 'shield', G.vise, tr('Ko je dobio +2 za odbranu i ko je bio blizu', 'Who got +2 for defending and who came close')],
-  ['bonus', tr('Bonus', 'Bonus'), 'star', G.vise, tr('Bonus bodovi po utakmicama', 'Bonus points match by match')]
+  ['kapiten', tr('Kapiten', 'Captain'), 'cap', G.vise, tr('Koga za kapitena', 'Who to captain')], ['raspored', tr('Raspored', 'Fixtures'), 'cal', G.vise, tr('Sljedećih 5 kola', 'Next 5 gameweeks')],
+  ['liga', tr('Liga', 'League'), 'table', G.vise, tr('Tabela i dueli', 'Table and duels')], ['kutak', tr('Zanimljivosti', 'Records'), 'spark', G.vise, tr('Rekordi sezone', 'Season records')],
+  ['trofeji', tr('Trofeji', 'Trophies'), 'trophy', G.vise, tr('Nagrade kola', 'Weekly awards')],
+  ['rotacija', tr('Rotacija', 'Rotation pairs'), 'rot', G.vise, tr('Igrači koji se smjenjuju', 'Players who swap')],
+  ['defcon', 'DefCon', 'shield', G.vise, tr('Odbrana i odbrane', 'Defending and saves')],
+  ['bonus', tr('Bonus', 'Bonus'), 'star', G.vise, tr('Bonus po utakmici', 'Bonus by match')]
 ];
 export const TABS = ['pregled', 'tim', 'uzivo', 'transferi'];
 
