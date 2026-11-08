@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import * as demo from '../src/lib/demo.js';
-import { index, xp, captainOptions, transferIdeas, whatIf, alerts, fixturesFor, availability, leagueAwards, fxStatus, playerState, defConList, bonusByFixture, defConByFixture } from '../public/js/model.js';
+import { index, xp, captainOptions, transferIdeas, whatIf, alerts, fixturesFor, availability, leagueAwards, fxStatus, playerState, defConList, bonusByFixture, defConByFixture, matchSheets } from '../public/js/model.js';
 
 const ix = index(demo.bootstrap(), demo.fixtures());
 const p = demo.picks(1, 9).picks.map((x) => x.element);
@@ -264,4 +264,21 @@ test('defConByFixture: igrači grupisani po utakmici', () => {
   const r = defConByFixture(ix, lv), f10 = r.find((x) => x.fid === 10), f11 = r.find((x) => x.fid === 11);
   assert.deepEqual(f10.hit.map((x) => x.e.id), [1]); assert.deepEqual(f10.near.map((x) => x.e.id), [2]);
   assert.deepEqual(f11.hit.map((x) => x.e.id), [3]);
+});
+
+test('matchSheets: golovi, asistencije i odbrane po utakmici; stari fx uzima statistiku kola', () => {
+  const ix = { players: new Map([[1, { id: 1, element_type: 4 }], [2, { id: 2, element_type: 1 }], [3, { id: 3, element_type: 2 }], [4, { id: 4, element_type: 3 }]]) };
+  const lv = new Map([
+    [1, { minutes: 90, goals_scored: 2, fx: [[10, 40, 90, 2, 0, 0, 0, 0]] }],
+    [2, { minutes: 90, saves: 4, fx: [[10, 20, 90]] }],
+    [3, { minutes: 90, goals_scored: 1, assists: 1, defensive_contribution: 11, fx: [[10, 25, 90, 0, 1, 0, 0, 0], [11, 10, 90, 1, 0, 0, 0, 0]] }],
+    [4, { minutes: 0, fx: [[11, 0, 0]] }]
+  ]);
+  const m = matchSheets(ix, lv), f10 = m.get(10).rows, f11 = m.get(11).rows;
+  assert.equal(f10.find((r) => r.e.id === 1).g, 2);
+  assert.equal(f10.find((r) => r.e.id === 2).sv, 4);
+  assert.equal(f10.find((r) => r.e.id === 3).a, 1);
+  assert.equal(f11.find((r) => r.e.id === 3).g, 1);
+  assert.equal(f10.find((r) => r.e.id === 3).dc.hit, true); assert.equal(f11.find((r) => r.e.id === 3).dc, null);
+  assert.equal(f11.some((r) => r.e.id === 4), false);
 });

@@ -1915,3 +1915,110 @@ body::after { background: rgba(13, 13, 15, .82); }
   .dcx .dm-n { padding: 3px 3px 0; } .dcx .dm-n .pbtn { font-size: 11.5px; }
   .dcx .dm-s { padding: 0 3px 3px; font-size: 9px; }
 }
+
+/* ===== Bonus i DefCon: kartica utakmice (rezultat gore, lijevo dva tima, desno bonus ili odbrane) ===== */
+.mc-days { display: grid; gap: 10px; margin-top: 14px; }
+.mc-day { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0 2px; padding: 12px 16px; border-radius: 16px; background: linear-gradient(90deg, rgba(201, 147, 95, .22), rgba(201, 147, 95, .08)); box-shadow: inset 0 0 0 1px rgba(201, 147, 95, .28); font: 400 21px/1 var(--cond); text-transform: uppercase; letter-spacing: .02em; color: var(--t); }
+.mc-day .ico { width: 20px; height: 20px; color: var(--acc); fill: none; stroke: currentColor; stroke-width: 1.8; }
+.mc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 10px; }
+.mc { display: grid; gap: 8px; padding: 12px; border-radius: 20px; background: var(--tile); box-shadow: inset 0 0 0 1px #2a2520; }
+.mc.has-me { box-shadow: inset 0 0 0 1.5px rgba(201, 147, 95, .65); }
+.mc-top { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 10px 8px 12px; border-radius: 14px; background: var(--tile2); }
+.mc-t { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mc-t.h { justify-content: flex-end; text-align: right; }
+.mc-t b { font-weight: 700; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-t .crest { width: 30px; height: 30px; flex: none; object-fit: contain; }
+.mc-sc { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 10px; background: #0b0b0d; box-shadow: inset 0 0 0 1px #2f2a24; font: 800 24px/1 var(--cond); color: #fff; }
+.mc-sc i { width: 1.5px; height: 20px; background: rgba(255, 255, 255, .35); }
+.mc-sc.v { font-size: 16px; color: var(--d); }
+.mc-st { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); padding: 2px 8px; border-radius: 99px; background: var(--tile); box-shadow: inset 0 0 0 1px #2f2a24; font: 700 10.5px/1.3 var(--cond); letter-spacing: .06em; text-transform: uppercase; color: var(--d); }
+.mc-st.live { background: var(--acc); color: var(--acc-t); box-shadow: none; }
+.mc-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .62fr); gap: 8px; align-items: stretch; }
+.mc-evs { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; align-content: start; padding: 10px 6px; border-radius: 14px; background: var(--tile2); min-height: 100%; }
+.mc-evs::before { content: ''; position: absolute; left: 50%; top: 10px; bottom: 10px; width: 1px; background: var(--line); }
+.mc-side { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.mc-side.h { justify-items: end; text-align: right; }
+.mc-side.h .mc-ev, .mc-side.h .mc-dc { flex-direction: row-reverse; }
+.mc-none { grid-column: 1 / -1; margin: 6px 0; text-align: center; font-size: 12.5px; color: var(--d); }
+.mc-ev { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 0; }
+.mc-side.h .mc-ev { flex-direction: row; }
+.mc-ic { display: inline-flex; gap: 3px; flex: none; }
+.mc-ball { width: 17px; height: 17px; fill: #f1ece4; stroke: #111; stroke-width: 1.4; stroke-linejoin: round; }
+.mc-a { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 3px; border-radius: 4px; background: var(--acc); color: var(--acc-t); font: 800 11px/1 var(--cond); }
+.mc-a.og { background: var(--dn); color: #fff; }
+.mc-rc { display: inline-block; width: 12px; height: 16px; border-radius: 2px; background: var(--danger); }
+.mc-nm { min-width: 0; display: inline-flex; }
+.mc-nm .pbtn { font-weight: 700; font-size: 13.5px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-nm.me .pbtn { color: var(--acc); }
+.mc-nm.me .pbtn::after { content: ' ★'; font-size: 10px; }
+.mc-v { flex: none; font: 700 12.5px/1 var(--cond); color: var(--acc); opacity: .9; }
+.mc-pan { display: grid; align-content: start; gap: 6px; padding: 10px; border-radius: 14px; background: var(--tile2); min-width: 0; }
+.mc-pan h3, .mc-dcs h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 2px; font: 400 16px/1 var(--cond); text-transform: uppercase; letter-spacing: .03em; color: var(--t); }
+.mc-pan h3 .ico { width: 17px; height: 17px; color: var(--acc); fill: none; stroke: currentColor; stroke-width: 1.8; }
+.mc-pan h3 em { margin-left: auto; font: 700 9.5px/1 var(--cond); font-style: normal; letter-spacing: .06em; padding: 3px 6px; border-radius: 99px; background: rgba(201, 147, 95, .18); color: var(--acc); }
+.mc-list { display: grid; gap: 6px; min-width: 0; }
+.mc-br { display: flex; align-items: center; gap: 7px; min-width: 0; margin: 0; }
+.mc-br .bx-b { width: 24px; height: 24px; flex: none; font-size: 14px; border-radius: 7px; }
+.mc-br .bx-b.b0 { background: rgba(255, 255, 255, .08); box-shadow: none; }
+.mc-br .mc-nm { flex: 1; }
+.mc-more { grid-column: 1 / -1; }
+.mc-more summary { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; padding: 4px 2px; list-style: none; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--d); }
+.mc-more summary::-webkit-details-marker { display: none; }
+.mc-more summary .ico { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; transition: transform .2s; }
+.mc-more[open] summary .ico { transform: rotate(180deg); }
+.mc-more[open] summary { margin-bottom: 6px; }
+.mc-dcs { display: grid; gap: 6px; padding: 10px 6px 6px; border-radius: 14px; background: var(--tile2); min-width: 0; }
+.mc-dcs h3 { justify-content: center; }
+.mc-dcs .mc-evs { padding: 0; background: none; min-height: 0; }
+.mc-dcs .mc-evs::before { top: 0; bottom: 0; }
+.mc-dcs .mc-side { display: block; }
+.mc-dcs .mc-side .mc-list { justify-items: start; }
+.mc-dcs .mc-side.h .mc-list { justify-items: start; }
+.mc-dc { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 0; }
+.mc-side.h .mc-dc { flex-direction: row; }
+.mc-pt { display: inline-grid; place-items: center; flex: none; min-width: 26px; height: 22px; padding: 0 4px; border-radius: 7px; font: 800 12.5px/1 var(--cond); }
+.mc-pt.ok { background: var(--up); color: #062312; }
+.mc-pt.no { background: rgba(255, 107, 107, .16); color: var(--dn); }
+.mc-pt svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+.mc-dc:not(.hit) .mc-nm .pbtn { color: var(--m); font-weight: 600; }
+.mc-dc:not(.hit) .mc-nm.me .pbtn { color: var(--acc); }
+.mc-dc:not(.hit) .mc-v { color: var(--dn); }
+@media (max-width: 560px) {
+  .mc { padding: 8px; gap: 6px; border-radius: 16px; }
+  .mc-top { gap: 6px; padding: 8px 4px 11px; }
+  .mc-t { gap: 5px; } .mc-t b { font-size: 12.5px; } .mc-t .crest { width: 24px; height: 24px; }
+  .mc-sc { font-size: 20px; padding: 5px 9px; gap: 6px; }
+  .mc-body { grid-template-columns: minmax(0, 1fr) minmax(0, .7fr); gap: 6px; }
+  .mc-evs { gap: 0 10px; padding: 8px 4px; }
+  .mc-nm .pbtn { font-size: 12px; } .mc-v { font-size: 11px; }
+  .mc-ball { width: 14px; height: 14px; } .mc-a { min-width: 15px; height: 15px; font-size: 10px; }
+  .mc-pan { padding: 8px 7px; } .mc-pan h3, .mc-dcs h3 { font-size: 14px; }
+  .mc-br .bx-b { width: 20px; height: 20px; font-size: 12px; border-radius: 6px; }
+  .mc-pt { min-width: 22px; height: 19px; font-size: 11px; border-radius: 6px; }
+  .mc-day { font-size: 17px; padding: 10px 12px; }
+  /* DefCon: tim lijevo i tim desno jedan ispod drugog bi bio predug, zato ime i broj kraće */
+  .dcm .mc-body { grid-template-columns: minmax(0, 1fr) minmax(0, .55fr); }
+}
+
+/* ===== meni Više: jednake pločice, kratko i čisto ===== */
+.ms-tiles { gap: 6px !important; }
+.ms-t, .ms-t:first-child, .ms-t:last-child:nth-child(even) { grid-column: auto !important; min-height: 0 !important; display: grid !important; grid-template-columns: auto minmax(0, 1fr) !important; grid-template-rows: auto auto !important; column-gap: 10px !important; row-gap: 1px !important; align-items: center !important; padding: 10px 12px !important; border-radius: 16px !important; background: var(--tile2) !important; background-image: none !important; box-shadow: none !important; }
+.ms-t .ms-i, .ms-t:first-child .ms-i { grid-row: span 2; width: 34px; height: 34px; margin: 0 !important; }
+.ms-t b { font-size: 17px !important; }
+.ms-t .sub { font-size: 11px !important; line-height: 1.25 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block !important; -webkit-line-clamp: unset !important; }
+.ms-t[aria-current='page'] { background: var(--acc) !important; }
+.ms-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 6px !important; margin-top: 12px !important; padding-top: 12px; border-top: 1px solid var(--line); }
+.ms-s { border-radius: 16px !important; padding: 10px 12px !important; background: transparent !important; box-shadow: inset 0 0 0 1px var(--line); }
+.more-lang { margin-top: 6px !important; border-radius: 16px !important; background: transparent !important; box-shadow: inset 0 0 0 1px var(--line); }
+.mc-ev, .mc-dc, .mc-br { max-width: 100%; }
+.mc-nm { flex: 0 1 auto; overflow: hidden; }
+.mc-side .mc-list { width: 100%; }
+.ms-t > * { min-width: 0; max-width: 100%; }
+@media (max-width: 560px) {
+  /* DefCon na mobitelu: odbrambeni doprinos preko cijele širine, odbrane golmana ispod u dvije kolone */
+  .dcm .mc-body { grid-template-columns: 1fr; }
+  .dcm .mc-pan { grid-template-columns: auto 1fr; align-items: center; column-gap: 12px; }
+  .dcm .mc-pan h3 { margin: 0; }
+  .dcm .mc-pan .mc-list { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .dcm .mc-nm .pbtn { font-size: 13px; }
+}

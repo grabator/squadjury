@@ -530,6 +530,29 @@ export function defConByFixture(ix, lv, near = 3) {
 }
 
 /**
+ * Zapisnik utakmica: za svaku utakmicu igrači koji su igrali, sa golovima, asistencijama, odbranama,
+ * autogolovima, crvenim kartonima, BPS-om i DefCon akcijama. fx je [utakmica, BPS, minute, golovi,
+ * asistencije, odbrane, autogolovi, crveni]; starije verzije imaju samo prva tri polja, pa se tada
+ * (ako je igrač imao jednu utakmicu u kolu) uzima ukupna statistika kola.
+ */
+export function matchSheets(ix, lv) {
+  const out = new Map();
+  for (const [id, s] of lv) {
+    const e = ix.players.get(id); if (!e) continue;
+    const fx = s.fx || [], one = fx.length === 1, first = fx.find((x) => x[2] > 0);
+    for (const x of fx) {
+      const mins = x[2] || 0; if (!(mins > 0)) continue;
+      const pick = (i, k) => (x[i] != null ? x[i] : one ? s[k] || 0 : 0);
+      // DefCon postoji samo za cijelo kolo; u duplom kolu ide uz prvu utakmicu (kao na DefCon stranici do sada)
+      const dc = x === first ? defCon(e, s) : null;
+      if (!out.has(x[0])) out.set(x[0], { fid: x[0], rows: [] });
+      out.get(x[0]).rows.push({ e, mins, bps: x[1] || 0, g: pick(3, 'goals_scored'), a: pick(4, 'assists'), sv: pick(5, 'saves'), og: pick(6, 'own_goals'), rc: pick(7, 'red_cards'), dc });
+    }
+  }
+  return out;
+}
+
+/**
  * Bonus po utakmicama: za svaku utakmicu igrači sa bonusom (3, 2, 1). Ako FPL još nije potvrdio bonus
  * u utakmici, bonus je procjena iz BPS-a (confirmed: false). Utakmice bez bonusa se ne vraćaju.
  */
