@@ -1,6 +1,6 @@
 // Pregled: pločice (kolo i rok, rang, bodovi, kapiten, šansa za zelenu strelicu, transfer, vrijednost, liga) i utakmice kola.
-import { S, league } from '../state.js';
-import { captainOptions, transferIdeas, greenArrowOdds, fixturesFor, num, fmt, int, time, dayLong, dayShort, dateLong, pct } from '../model.js';
+import { S, league, ftLeft } from '../state.js';
+import { captainOptions, transferIdeas, greenArrowOdds, fixturesFor, num, fmt, int, time, dayLong, dayShort, dateLong, pct, price } from '../model.js';
 import { esc, kit, ink, shirt, photo, crest, countUp, scorePlate } from '../ui.js';
 import { tr } from '../i18n.js';
 
@@ -49,18 +49,30 @@ export async function render() {
   const on = Math.round(odds.p * 100);
   const capFx = cap ? fixturesFor(ix, cap.e.team, gw, 1).map((f) => `${ix.teams.get(f.opp).short_name} (${f.home ? tr('D', 'H') : tr('G', 'A')})`).join(', ') : '';
   const lname = L?.league?.name || meta?.name || tr('Mini liga', 'Mini league');
+  // sljedeća 3 protivnika igrača kao obojene pločice težine
+  const nx3 = (e) => { const fx = fixturesFor(ix, e.team, gw, 3); return `<span class="ofx">${[0, 1, 2].map((k) => { const g = fx.filter((f) => f.gw === gw + k); return g.length ? g.map((f) => `<span class="fdr d${f.fdr}">${esc(ix.teams.get(f.opp).short_name)}${f.home ? '' : tr(' (G)', ' (A)')}</span>`).join('') : '<span class="fdr none">–</span>'; }).join('')}</span>`; };
+  const oppOf = (e) => fixturesFor(ix, e.team, gw, 1).map((f) => `${ix.teams.get(f.opp).short_name} (${f.home ? tr('D', 'H') : tr('G', 'A')})`).join(', ') || tr('nema utakmicu', 'no match');
+  const caps = captainOptions(ix, S.xi).slice(0, 3), capMax = Math.max(1, ...caps.map((c) => c.xp));
+  const sq = (S.nextIds || S.ids).map((id) => ix.players.get(id)).filter(Boolean);
+  const doubts = sq.filter((e) => e.status !== 'a' || (e.chance_of_playing_next_round != null && e.chance_of_playing_next_round < 100));
+  const ev = ix.events.find((e) => e.id === last.event), hi = num(ev?.highest_score), barMax = Math.max(1, hi, last.points, avg);
 
   return `<h1 class="sr">${tr('Pregled', 'Overview')}: ${esc(entry.name)}</h1>
     <div class="cards" id="ov-cards" aria-roledescription="${tr('vrtuljak', 'carousel')}" aria-label="${tr('Glavne kartice', 'Main cards')}">
       <section class="ocard pat-bg" aria-label="${tr('Kolo', 'Gameweek')} ${gw}"><span class="oslash" aria-hidden="true"><i></i><i></i><i></i></span><span class="otag">${tr('Kolo', 'Gameweek')} ${gw}</span>
         <h2 class="oname">${words.length > 1 ? `${esc(words.slice(0, -1).join(' '))}<br><em>${esc(words.at(-1))}</em>` : `<em>${esc(entry.name)}</em>`}</h2>
+        <div class="ostats"><a href="#/transferi"><b>${ftLeft()}</b><span>${tr('besplatnih transfera', 'free transfers')}</span></a><a href="#/transferi"><b>£${fmt(S.nextBank / 10)}m</b><span>${tr('u banci', 'in the bank')}</span></a><a href="#/tim"${doubts.length ? ' class="warn"' : ''}><b>${doubts.length}</b><span>${tr('upitnih igrača', 'flagged players')}</span></a></div>
         <div class="obot">${cd.parts ? `<div id="countdown" role="timer" aria-label="${tr('Rok za transfere', 'Transfer deadline')}: ${dateLong(new Date(cd.ev.deadline_time))}"><b>${cd.big}</b><span class="sub"><span class="dl-min">${cd.min}</span> ${tr('do roka', 'to deadline')} · ${dayShort(new Date(cd.ev.deadline_time))} ${time(new Date(cd.ev.deadline_time))}</span></div>` : `<div><b>${tr('Rok je prošao', 'Deadline passed')}</b></div>`}<a class="btn" href="#/tim">${tr('Moj tim', 'My team')}</a></div></section>
-      <section class="ocard" aria-label="${tr('Kapiten', 'Captain')}"><span class="otag">${tr('Kapiten', 'Captain')}</span>${cap ? `<span class="shirt ocap">${shirt(ix.teams.get(cap.e.team), cap.e.element_type === 1)}${photo(cap.e)}</span><h2 class="oname sm">${esc(cap.e.web_name)}</h2>` : ''}
-        <div class="obot"><div><b>${cap ? fmt(cap.xp) : '–'}</b><span class="sub">${tr('predviđeno', 'predicted')}${capFx ? ' · ' + esc(capFx) : ''}</span></div><a class="btn" href="#/kapiten">${tr('Kapiten', 'Captain')}</a></div></section>
-      <section class="ocard" aria-label="${tr('Najbolji transfer', 'Best transfer')}"><span class="otag">${tr('Najbolji transfer', 'Best transfer')}</span>${idea ? `<div class="otr"><span><small>${tr('Prodaj', 'Out')}</small><s>${esc(idea.out.web_name)}</s></span><span class="ar" aria-hidden="true">→</span><span><small>${tr('Kupi', 'In')}</small><b>${esc(idea.inn.web_name)}</b></span></div>` : `<h2 class="oname sm">${tr('Ništa se jasno ne isplati', 'Nothing clearly pays off')}</h2>`}
-        <div class="obot"><div><b class="g">${idea ? '+' + fmt(idea.gain) : '–'}</b><span class="sub">${tr('bodova kroz 5 kola', 'points over 5 gameweeks')}</span></div><a class="btn" href="#/transferi">${tr('Transferi', 'Transfers')}</a></div></section>
-      <section class="ocard" aria-label="${tr('Bodovi u kolu', 'Points in gameweek')} ${last.event}"><span class="otag">${tr('Kolo', 'Gameweek')} ${last.event}</span><h2 class="oname big" data-n="${last.points}" data-f="int">${last.points}</h2>
-        <div class="obot"><div><b class="${last.points >= avg ? 'g' : 'r'}">${last.points >= avg ? '+' : '−'}${int(last.points - avg)}</b><span class="sub">${tr('od prosjeka', 'vs average')} (${Math.round(avg)})</span></div><a class="btn" href="#/uzivo">${tr('Uživo', 'Live')}</a></div></section>
+      <section class="ocard" aria-label="${tr('Kapiten', 'Captain')}"><span class="otag">${tr('Kapiten kola', 'Captain picks')} · ${tr('Kolo', 'GW')} ${gw}</span>
+        <div class="ocaps">${caps.map((c, i) => `<div class="ocp${i ? '' : ' top'}"><span class="shirt">${shirt(ix.teams.get(c.e.team), c.e.element_type === 1)}${photo(c.e)}</span><span class="ocp-n"><b>${esc(c.e.web_name)}</b><span class="sub">${esc(oppOf(c.e))} · ${tr('posjeduje', 'owned')} ${fmt(c.own)}%</span><i class="ocp-bar"><i style="width:${(c.xp / capMax * 100).toFixed(0)}%"></i></i></span><span class="ocp-x">${fmt(c.xp)}<small>${tr('pred.', 'xP')}</small></span></div>`).join('') || `<p class="sub">${tr('Nema podataka', 'No data')}</p>`}</div>
+        <div class="obot"><div><span class="sub">${tr('Šansa za zelenu strelicu sa', 'Green arrow chance with')} ${cap ? esc(cap.e.web_name) : '–'}</span><b class="gd">${pct(odds.p)}</b></div><a class="btn" href="#/kapiten">${tr('Kapiten', 'Captain')}</a></div></section>
+      <section class="ocard" aria-label="${tr('Najbolji transfer', 'Best transfer')}"><span class="otag">${tr('Najbolji transfer', 'Best transfer')}</span>${idea ? `
+        <div class="otx">${[[idea.out, tr('Prodaj', 'Out'), 'out'], [idea.inn, tr('Kupi', 'In'), 'in']].map(([e, lb, k]) => `<div class="otp ${k}"><span class="shirt">${shirt(ix.teams.get(e.team), e.element_type === 1)}${photo(e)}</span><span class="otp-n"><small>${lb}</small><b>${esc(e.web_name)}</b><span class="sub">${esc(ix.teams.get(e.team).short_name)} · £${price(e)}m · ${tr('forma', 'form')} ${esc(e.form)}</span>${nx3(e)}</span></div>`).join('<span class="otx-ar" aria-hidden="true">↓</span>')}</div>` : `<h2 class="oname sm">${tr('Ništa se jasno ne isplati', 'Nothing clearly pays off')}</h2>`}
+        <div class="obot"><div><b class="g">${idea ? '+' + fmt(idea.gain) : '–'}</b><span class="sub">${tr('bodova kroz 5 kola', 'points over 5 gameweeks')}${idea ? ` · ${idea.cost > 0 ? '+' : ''}£${fmt(idea.cost / 10)}m` : ''}</span></div><a class="btn" href="#/transferi">${tr('Transferi', 'Transfers')}</a></div></section>
+      <section class="ocard" aria-label="${tr('Bodovi u kolu', 'Points in gameweek')} ${last.event}"><span class="otag">${tr('Kolo', 'Gameweek')} ${last.event} · ${tr('rezultat', 'result')}</span>
+        <div class="opts"><h2 class="oname big" data-n="${last.points}" data-f="int">${last.points}</h2><span class="sub">${tr('bodova', 'points')}${last.rank ? `<br>${tr('rang kola', 'GW rank')} <b>${int(last.rank)}</b>` : ''}</span></div>
+        <div class="opbs">${[[tr('Ti', 'You'), last.points, 'me'], [tr('Prosjek', 'Average'), Math.round(avg), ''], [tr('Najviše', 'Highest'), hi, 'hi']].map(([l, v, c]) => `<div class="opb ${c}"><span>${l}</span><i><i style="width:${(v / barMax * 100).toFixed(0)}%"></i></i><b>${v}</b></div>`).join('')}</div>
+        <div class="obot"><div><b class="${last.points >= avg ? 'g' : 'r'}">${last.points >= avg ? '+' : '−'}${int(Math.abs(last.points - avg))}</b><span class="sub">${tr('od prosjeka', 'vs average')}${last.points_on_bench ? ` · ${tr('klupa', 'bench')} ${last.points_on_bench}` : ''}${last.event_transfers_cost ? ` · −${last.event_transfers_cost} ${tr('za transfere', 'transfer hits')}` : ''}</span></div><a class="btn" href="#/uzivo">${tr('Uživo', 'Live')}</a></div></section>
     </div>
     <div class="odots" role="group" aria-label="${tr('Kartice', 'Cards')}">${[tr('Kolo', 'Gameweek'), tr('Kapiten', 'Captain'), tr('Transfer', 'Transfer'), tr('Bodovi', 'Points')].map((t, i) => `<button type="button" data-card="${i}" aria-label="${t}"${i ? '' : ' aria-current="true"'}></button>`).join('')}</div>
     <div class="minis">
