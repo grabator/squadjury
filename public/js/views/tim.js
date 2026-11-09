@@ -203,10 +203,12 @@ export async function render() {
         <div><span class="sub">${tr('Minus', 'Hits')}</span><b class="${r.hits ? 'neg' : ''}">${r.hits ? '−' + r.hits : '0'}</b></div>
         <div><span class="sub">${tr('Banka', 'Bank')}</span><b class="${r.bank < 0 ? 'neg' : ''}">${m(r.bank)}</b></div>
       </div>
-      <div class="pl-tools">
-        <div class="seg" role="group" aria-label="${tr('Čip u kolu', 'Chip this GW')} ${gw}">${[['', tr('Bez čipa', 'No chip')], ['wildcard', 'WC'], ['freehit', 'FH']].map(([k, t]) => `<button type="button" data-chip="${k}" aria-pressed="${(r.chip || '') === k}"${k ? ` aria-label="${k === 'wildcard' ? 'Wildcard' : 'Free Hit'}"` : ''}>${t}</button>`).join('')}</div>
-        <button type="button" class="tb" data-act="best"${Math.abs(best - r.gross) < 0.05 ? ' disabled' : ''}>${tr('Najbolja', 'Best')} ${opt.formation}</button><button type="button" class="tb" data-act="reset"${g.lineup ? '' : ' disabled'}>${tr('Vrati', 'Reset')}</button>
-        <button type="button" class="tb plan-open" data-act="side" aria-expanded="${side}" aria-controls="tm-side">${tr('Plan', 'Plan')}${r.used ? ` <span class="pill">${r.used}</span>` : ''}</button>
+      <div class="pl-tools tb2">
+        <div class="seg tb-chips" role="group" aria-label="${tr('Čip u kolu', 'Chip this GW')} ${gw}">${[['', tr('Bez čipa', 'No chip')], ['wildcard', 'WC'], ['freehit', 'FH']].map(([k, t]) => `<button type="button" data-chip="${k}" aria-pressed="${(r.chip || '') === k}"${k ? ` aria-label="${k === 'wildcard' ? 'Wildcard' : 'Free Hit'}"` : ''}>${t}</button>`).join('')}</div>
+        <span class="tb-gw" aria-hidden="true">GW${gw}</span>
+        <div class="tb-r">${Math.abs(best - r.gross) >= 0.05 || !g.lineup
+          ? `<button type="button" class="tb tb-best" data-act="best"${Math.abs(best - r.gross) < 0.05 ? ' disabled' : ''}><small>${tr('Najbolja', 'Best')}</small><b>${opt.formation}</b></button>`
+          : `<button type="button" class="tb tb-best" data-act="reset"><small>${tr('Vrati', 'Reset')}</small><b>${tr('postavu', 'lineup')}</b></button>`}<button type="button" class="tb plan-open" data-act="side" aria-expanded="${side}" aria-controls="tm-side">${tr('Plan', 'Plan')}${r.used ? ` <span class="pill">${r.used}</span>` : ''}</button></div>
       </div>
       ${r.chip ? `<p class="sub pl-note">${r.chip === 'wildcard' ? tr('Wildcard: transferi bez minus bodova, tim ostaje.', 'Wildcard: transfers with no hits, the team stays.') : tr('Free Hit: transferi bez minus bodova samo za ovo kolo, poslije se vraća stari tim.', 'Free Hit: transfers with no hits for this gameweek only, then the old team returns.')}${chipNote(r.chip)}</p>` : ''}
       ${r.used > r.ft && !r.chip ? `<p class="alert"><span class="dot" aria-hidden="true"></span><span>${tr(`${r.used} transfera, a besplatnih je ${r.ft}: to je −${r.hits} bodova.`, `${r.used} transfers with ${r.ft} free: that is −${r.hits} points.`)}</span></p>` : ''}
