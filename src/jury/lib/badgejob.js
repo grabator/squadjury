@@ -50,13 +50,15 @@ export async function evaluateBadges(env, userId, open, now) {
 /** Cron: badges for jurors who did something lately (every 5 minutes) or after a gameweek (hourly). */
 export async function badgeJob(env, open, now, sinceMs) {
   const since = now - sinceMs;
-  const users = await env.DB.prepare(
-    `SELECT user_id FROM votes WHERE updated_at > ?1 UNION SELECT user_id FROM duels WHERE created_at > ?1
-      UNION SELECT user_id FROM teams WHERE updated_at > ?1 UNION SELECT referred_by FROM users WHERE created_at > ?1 AND referred_by IS NOT NULL
+  // D1 dozvoljava najviše 5 dijelova u jednom UNION upitu, zato su dva upita od po tri dijela
+  const [a, b] = await env.DB.batch([
+    env.DB.prepare(`SELECT user_id FROM votes WHERE updated_at > ?1 UNION SELECT user_id FROM duels WHERE created_at > ?1
+      UNION SELECT user_id FROM teams WHERE updated_at > ?1`).bind(since),
+    env.DB.prepare(`SELECT referred_by AS user_id FROM users WHERE created_at > ?1 AND referred_by IS NOT NULL
       UNION SELECT user_id FROM results WHERE gw = (SELECT MAX(id) FROM gameweeks WHERE locked_at > ?1)
-      UNION SELECT user_id FROM scouts WHERE gw IN (SELECT id FROM gameweeks WHERE scouts_at > ?1)
-      LIMIT 300`,
-  ).bind(since).all();
+      UNION SELECT user_id FROM scouts WHERE gw IN (SELECT id FROM gameweeks WHERE scouts_at > ?1)`).bind(since),
+  ]);
+  const users = { results: [...new Set([...a.results, ...b.results].map((r) => r.user_id))].slice(0, 300).map((user_id) => ({ user_id })) };
   let n = 0;
   for (const { user_id } of users.results) {
     if (!user_id) continue;
